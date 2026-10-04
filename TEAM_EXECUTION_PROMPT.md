@@ -251,8 +251,14 @@ Our report will conclude with the **Horizon-Conditioned Tail Capital Multiplier 
 To maintain maximum code quality and avoid merge conflicts or compliance disqualification, every team member must strictly observe the following rules:
 
 ### A. Git & GitHub Workflow Rules
+
+> 🚨 **CRITICAL NON-NEGOTIABLE RULE: NEVER PUSH DIRECTLY TO `main`!**  
+> Pushing directly to `main` breaks working code, causes nasty merge conflicts, and risks failing the single-command reproduction requirement (`python run_all.py`).  
+> **Always push to your own workstream branch (`git push -u origin feat/ws...`) and open a Pull Request (PR) for review.**
+
 1. **Protected `main` Branch:**
-   - No team member ever pushes directly to `main`. All changes enter `main` via reviewed Pull Requests (PRs).
+   - The `main` branch is strictly protected and represents deployable, working code at all times.
+   - All contributions must arrive via Pull Requests (PRs) merged by the Team Lead after verification.
 2. **Standardized Branch Naming:**
    - Feature branches must follow: `feat/ws<number>-<short-description>` (e.g., `feat/ws1-data-pipeline`, `feat/ws2-wavelet-modwt`, `feat/ws3-garch-copula`, `feat/ws4-risk-backtesting`, `feat/ws5-report-visuals`).
 3. **Conventional Commit Messages:**
