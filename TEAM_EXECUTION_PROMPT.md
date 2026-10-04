@@ -294,52 +294,318 @@ October 7 (21:00 SLT) : Formal submission before the 23:59 hard deadline
 
 ---
 
-## 8. 🤖 TEAM MEMBER AI PROMPT (COPY & PASTE THIS INTO YOUR AI CHAT)
+## 8. 🔌 MASTER INTER-MODULE INTERFACE CONTRACTS & DATA SCHEMAS
 
-```markdown
-You are a World-Class Quantitative Finance Researcher and Senior Risk Modeler competing in the "SAIFA Quant Edge 1.0" competition.
+To guarantee that code written by different team members plugs together with zero runtime type errors, all modules must strictly adhere to the following contracts:
 
-### Core Objective
-We are building an institutional-grade market risk framework answering:
-"Does tail dependence change with the investment horizon, and what does ignoring this do to a portfolio's measured risk?"
-
-### Repository & Architecture
-We are working on the GitHub repository: https://github.com/Imashaidk/QuantEdge1.0.git
-Standardized file structure:
-QuantEdge/
-├── data/                  # Cleaned historical asset price & return CSVs
-├── docs/                  # AI disclosure log and method documentation
-├── figures/               # High-DPI publication figures for the report
-├── report/                # 10-page final submission report (LaTeX / PDF)
-├── src/
-│   ├── config.py          # Portfolio tickers, date windows, hyperparameters, seed
-│   ├── data_loader.py     # Public data ingestion & log return calculation
-│   ├── wavelets.py        # MODWT multiresolution decomposition
-│   ├── margins.py         # ARMA-GARCH + EVT tail modeling
-│   ├── copulas.py         # Copula fitting, scale-tournament & tail dependence
-│   ├── risk_engine.py     # VaR / ES multiscale calculation
-│   ├── backtest.py        # Kupiec, Christoffersen, Basel traffic light tests
-│   └── visualizer.py      # Publication-grade plotting pipeline
-├── run_all.py             # Single-command runner reproducing all report figures/tables
-├── requirements.txt       # Dependencies
-├── TEAM_EXECUTION_PROMPT.md# Master team strategy and rules
-└── README.md              # Project documentation
-
-### Our 5 Creative "Secret Weapons" (Incorporate These!):
-1. Flight-to-Liquidity Contagion Paradox: Cross-asset breakdown between SPY, QQQ, TLT, GLD, HYG at intermediate frequencies.
-2. Timescale Asymmetry Ratio: TAR(h) = λ_L(h) - λ_U(h) showing crash dependence dominates boom dependence at longer holding scales.
-3. Scale-Optimal Copula Tournament: Proving the best copula family changes across timescales (Student-t -> Clayton -> Gumbel).
-4. Basel Traffic Light Invalidation Proof: Proving standard sqrt(h) scaling hits the RED ZONE (12+ breaches) while our framework stays GREEN (3 breaches).
-5. The Actionable Formula: Horizon-Conditioned Tail Capital Multiplier (H-TCM) as a drop-in rule for risk managers.
-
-### Non-Negotiable Rules
-1. Zero Lookahead Bias: Filtering and wavelet transforms must strictly respect historical sample boundaries (In-sample: 2015-2022, Out-of-sample: 2023-2026).
-2. MODWT Wavelets: Always use Maximal Overlap Discrete Wavelet Transform (MODWT), never standard downsampled DWT.
-3. Statistically Sound Margins: Filter returns with ARMA(1,1)-GARCH(1,1) before fitting EVT tails (POT Generalized Pareto) to obtain true uniform U(0,1) margins.
-4. Git Discipline: Work on branch `feat/ws<number>-<name>`. Conventional commit messages (`feat:`, `fix:`, `refactor:`). Never commit files exceeding 1 MB or build caches (final ZIP limit is 25 MB).
-5. Code Standards: Python 3.10+, complete type hints, Google/NumPy docstrings, deterministic seeds (seed=42), relative pathlib paths. Single-command execution via `python run_all.py` in under 3 minutes.
-
-### Your Current Assignment
-I am assigned to: [INSERT YOUR ROLE AND MODULE HERE, e.g. "Member 3: src/margins.py and src/copulas.py - ARMA-GARCH + EVT tails and Scale-Optimal Copula Tournament"]
-Please review the architecture, generate complete and robust production code for this module, ensure it adheres to all contracts, and provide a self-contained `if __name__ == '__main__':` test verification block.
+### Contract 1: Member 1 $\to$ Member 2 (`src/data_loader.py`)
+```python
+def load_and_split_data(
+    tickers: List[str] = ["SPY", "QQQ", "TLT", "GLD", "HYG"],
+    train_start: str = "2015-01-01",
+    train_end: str = "2022-12-31",
+    test_start: str = "2023-01-01",
+    test_end: str = "2026-06-30",
+    cache_dir: Path = Path("data")
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    Returns:
+        df_train (pd.DataFrame): Daily log returns for in-sample estimation (rows: DatetimeIndex, cols: tickers).
+        df_test (pd.DataFrame): Daily log returns for out-of-sample backtesting.
+    """
 ```
+
+### Contract 2: Member 2 $\to$ Member 3 (`src/wavelets.py`)
+```python
+def decompose_multiscale(
+    df_returns: pd.DataFrame,
+    wavelet: str = "sym8",
+    level: int = 5
+) -> Dict[str, pd.DataFrame]:
+    """
+    Decomposes multi-asset log returns using MODWT (additive MRA).
+    Returns:
+        Dict with keys ['D1', 'D2', 'D3', 'D4', 'D5', 'S5'].
+        Each value is a pd.DataFrame with the exact same shape, columns, and DatetimeIndex as df_returns.
+    Invariant:
+        sum(decomposed[scale] for scale in ['D1'..'D5', 'S5']) == df_returns (within 1e-10)
+    """
+```
+
+### Contract 3: Member 3 $\to$ Member 4 (`src/margins.py` & `src/copulas.py`)
+```python
+def fit_margins_and_transform_uniform(
+    df_scale: pd.DataFrame
+) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    """
+    Fits ARMA(1,1)-GARCH(1,1) + EVT-POT GPD tails to each asset column.
+    Returns:
+        u_df (pd.DataFrame): Transformed uniform margins U_i in (0, 1), same shape and columns.
+        models_meta (dict): Fitted GARCH and EVT parameters for inverting PIT.
+    """
+
+def run_scale_copula_tournament(
+    u_df: pd.DataFrame,
+    scale_name: str
+) -> Dict[str, Any]:
+    """
+    Fits Gaussian, Student-t, Clayton, Gumbel, Frank copulas via MLE.
+    Selects best copula by BIC.
+    Returns:
+        {
+            'scale': scale_name,
+            'best_copula': str,           # e.g., 'clayton'
+            'lambda_L': float,            # Lower tail dependence coefficient
+            'lambda_U': float,            # Upper tail dependence coefficient
+            'tar': float,                 # Timescale Asymmetry Ratio: lambda_L - lambda_U
+            'bic_scores': Dict[str, float],
+            'fitted_copula_obj': object
+        }
+    """
+
+def simulate_copula_joint_returns(
+    fitted_copula_obj: object,
+    models_meta: Dict[str, Any],
+    n_samples: int = 10000
+) -> pd.DataFrame:
+    """
+    Simulates synthetic uniform draws from the copula and inverts via EVT-GARCH margins
+    to produce simulated joint asset returns (shape: n_samples x n_assets).
+    """
+```
+
+### Contract 4: Member 4 $\to$ Member 5 (`src/risk_engine.py` & `src/backtest.py`)
+```python
+def compute_multiscale_var_es(
+    simulated_returns: pd.DataFrame,
+    weights: np.ndarray,
+    alpha_var: float = 0.99,
+    alpha_es: float = 0.975
+) -> Tuple[float, float]:
+    """
+    Computes Portfolio VaR and Expected Shortfall from simulated joint losses.
+    """
+
+def run_out_of_sample_backtest(
+    df_test: pd.DataFrame,
+    weights: np.ndarray,
+    copula_results: Dict[str, Any],
+    h_horizons: List[int] = [1, 5, 20]
+) -> pd.DataFrame:
+    """
+    Evaluates 5 models on out-of-sample data across horizons:
+    Returns pd.DataFrame with columns:
+        ['Horizon', 'Model', 'VaR_Level', 'Total_Obs', 'Breaches', 'Breach_Rate',
+         'Kupiec_LR', 'Kupiec_p', 'Christoffersen_p', 'Basel_Zone', 'FZ_Loss']
+    """
+```
+
+### Contract 5: Member 5 Master Visualizer (`src/visualizer.py`)
+```python
+def generate_all_figures_and_tables(
+    wavelet_dict: Dict[str, pd.DataFrame],
+    copula_tournament_results: List[Dict[str, Any]],
+    backtest_results_df: pd.DataFrame,
+    out_dir: Path = Path("figures")
+) -> None:
+    """
+    Generates 4 publication-quality 300 DPI figures and LaTeX tables:
+    - figures/fig1_wavelet_mra_decomposition.png
+    - figures/fig2_tail_dependence_vs_horizon.png
+    - figures/fig3_backtest_var_exceedances.png
+    - figures/fig4_regulatory_traffic_light.png
+    - tables/backtest_metrics.tex
+    """
+```
+
+---
+
+## 9. 🤖 DEDICATED PRE-FILLED PROMPTS FOR EACH MEMBER (COPY & PASTE READY)
+
+Choose your assigned role below, copy the entire codeblock, and paste it directly into your AI coding assistant!
+
+---
+
+### 🟢 PROMPT FOR MEMBER 1: Data Architect & Master Pipeline
+```markdown
+You are Member 1 (Team Lead & Data Architect) for the SAIFA Quant Edge 1.0 competition team.
+GitHub Repo: https://github.com/Imashaidk/QuantEdge1.0.git
+Workstream Branch: feat/ws1-data-pipeline
+
+### YOUR MANDATE
+Build `src/config.py`, `src/data_loader.py`, and the master pipeline orchestration script `run_all.py`.
+
+### DETAILED SPECIFICATIONS
+1. `src/config.py`:
+   - Asset Universe: Tickers = ['SPY', 'QQQ', 'TLT', 'GLD', 'HYG']
+   - In-Sample Period: '2015-01-01' to '2022-12-31'
+   - Out-of-Sample Period: '2023-01-01' to '2026-06-30'
+   - Global Random Seed: SEED = 42
+   - Default Portfolio Weights: [0.30, 0.20, 0.25, 0.15, 0.10]
+   - Path constants using pathlib.Path: ROOT_DIR, DATA_DIR, FIGURES_DIR, REPORT_DIR.
+2. `src/data_loader.py`:
+   - Download adjusted close price data via yfinance.
+   - Implement deterministic caching: Check if `data/raw_prices.csv` exists. If so, read from disk; if not, download and save cleanly.
+   - Compute log returns: R_t = ln(P_t / P_{t-1}). Drop initial NaN.
+   - Run stationarity validation: Augmented Dickey-Fuller (ADF) test ensuring p < 0.01 for all series.
+   - Implement `load_and_split_data()` returning `(df_train, df_test)` as clean DataFrames with DatetimeIndex.
+3. `run_all.py`:
+   - Connects the entire team pipeline sequentially with execution timers and clean terminal progress:
+     Step 1: Data Ingestion & Cache Check
+     Step 2: MODWT Wavelet Decomposition (Member 2)
+     Step 3: GARCH-EVT Margins & Copula Tournament (Member 3)
+     Step 4: Risk Quantification & Out-of-Sample Backtests (Member 4)
+     Step 5: Visualizer & Publication Figure Export (Member 5)
+     Step 6: Print Executive Recommendation & Basel Traffic Light Report
+   - Must complete in under 3 minutes.
+4. Provide a standalone `if __name__ == '__main__':` block in `src/data_loader.py` that verifies the data ingestion and splits.
+```
+
+---
+
+### 🟢 PROMPT FOR MEMBER 2: Wavelet & Signal Processing Specialist
+```markdown
+You are Member 2 (Wavelet & Signal Processing Specialist) for the SAIFA Quant Edge 1.0 competition team.
+GitHub Repo: https://github.com/Imashaidk/QuantEdge1.0.git
+Workstream Branch: feat/ws2-wavelet-modwt
+
+### YOUR MANDATE
+Build `src/wavelets.py` implementing Maximal Overlap Discrete Wavelet Transform (MODWT) and Multiresolution Analysis (MRA).
+
+### DETAILED SPECIFICATIONS
+1. Why MODWT: Standard DWT decimates (downsamples by 2 at each level), destroying sample size for copula fitting. MODWT is shift-invariant and preserves the exact time length N at all scales.
+2. Decomposition Details:
+   - Filter family: Symlet ('sym8') or Daubechies ('db4').
+   - Decomposition levels: J = 5.
+   - Scales generated:
+     * D1 (2–4 days): High-frequency noise / microstructure
+     * D2 (4–8 days): Weekly momentum / swing trading
+     * D3 (8–16 days): Bi-weekly sentiment
+     * D4 (16–32 days): Monthly rebalancing
+     * D5 (32–64 days): Quarterly business cycle
+     * S5 (>64 days): Long-term macroeconomic trend
+3. Functions to implement in `src/wavelets.py`:
+   - `modwt(x: np.ndarray, wavelet: str = 'sym8', level: int = 5) -> Tuple[np.ndarray, np.ndarray]`:
+     Performs pyramid filtering using PyWavelets or custom scaled filter coefficients (h_tilde = h / sqrt(2), g_tilde = g / sqrt(2)).
+   - `mra_decompose(x: np.ndarray, wavelet: str = 'sym8', level: int = 5) -> Dict[str, np.ndarray]`:
+     Computes additive Multiresolution Analysis details D_1...D_J and smooth S_J.
+   - `decompose_multiscale(df_returns: pd.DataFrame, wavelet: str = 'sym8', level: int = 5) -> Dict[str, pd.DataFrame]`:
+     Applies MRA across all columns of `df_returns`, returning a dictionary with keys ['D1', 'D2', 'D3', 'D4', 'D5', 'S5'].
+   - `verify_additivity(df_returns: pd.DataFrame, decomposed: Dict[str, pd.DataFrame], tol: float = 1e-10) -> bool`:
+     Asserts max |df_returns - sum(decomposed.values())| < 1e-10.
+   - `compute_scale_variance_decomposition(decomposed: Dict[str, pd.DataFrame]) -> pd.DataFrame`:
+     Computes percentage variance contribution of each scale per asset.
+4. Strict Rules:
+   - Zero lookahead bias: boundary handling must not leak future points.
+   - Provide a standalone `if __name__ == '__main__':` test block demonstrating decomposition and additivity check on synthetic returns.
+```
+
+---
+
+### 🟢 PROMPT FOR MEMBER 3: Margins & Copula Modeling Specialist
+```markdown
+You are Member 3 (Econometrician & Copula Specialist) for the SAIFA Quant Edge 1.0 competition team.
+GitHub Repo: https://github.com/Imashaidk/QuantEdge1.0.git
+Workstream Branch: feat/ws3-garch-copulas
+
+### YOUR MANDATE
+Build `src/margins.py` and `src/copulas.py` implementing semi-parametric GARCH-EVT margins and the Scale-Optimal Copula Tournament.
+
+### DETAILED SPECIFICATIONS
+1. `src/margins.py`:
+   - Fit ARMA(1,1)-GARCH(1,1) with Student-t innovations to filter volatility clustering from each asset's wavelet component series.
+   - Extract standardized residuals: z_t = (r_t - mu_t) / sigma_t.
+   - Semi-Parametric Extreme Value Theory (EVT-POT):
+     * Interior Body (10th to 90th percentile): Model using Empirical Cumulative Distribution Function (ECDF).
+     * Lower Tail (bottom 10%): Fit Generalized Pareto Distribution (GPD) using `scipy.stats.genpareto`.
+     * Upper Tail (top 10%): Fit Generalized Pareto Distribution (GPD).
+   - Probability Integral Transform (PIT): Map z_t into uniform margins U_i ~ Uniform(0,1).
+   - Validate with Kolmogorov-Smirnov test (assert p > 0.05).
+2. `src/copulas.py`:
+   - **Scale-Optimal Copula Tournament:**
+     Fit 5 copula families via Maximum Likelihood Estimation (MLE) across every scale (D1 to D5, S5, and raw series):
+     1. Gaussian Copula (Zero tail dependence benchmark)
+     2. Student-t Copula (Symmetric tail dependence: lambda_L = lambda_U > 0)
+     3. Clayton Copula (Asymmetric lower-tail crash dependence: lambda_L = 2^(-1/theta) > 0, lambda_U = 0)
+     4. Gumbel Copula (Asymmetric upper-tail boom dependence: lambda_U = 2 - 2^(1/theta) > 0, lambda_L = 0)
+     5. Frank Copula (Radial symmetry, zero tail dependence)
+   - Compute log-likelihood, AIC, and BIC; select best-fitting copula per scale.
+   - Compute the **Timescale Asymmetry Ratio**: TAR(h) = lambda_L(h) - lambda_U(h).
+   - Implement `simulate_copula_joint_returns(copula_obj, models_meta, n_samples=10000)` to draw synthetic joint returns by inverting margins.
+3. Strict Rules:
+   - Set SEED = 42 for all simulations.
+   - Provide a standalone `if __name__ == '__main__':` test verifying margin transformation and copula fitting.
+```
+
+---
+
+### 🟢 PROMPT FOR MEMBER 4: Quantitative Risk Analyst & Backtesting Lead
+```markdown
+You are Member 4 (Quantitative Risk Analyst & Backtest Lead) for the SAIFA Quant Edge 1.0 competition team.
+GitHub Repo: https://github.com/Imashaidk/QuantEdge1.0.git
+Workstream Branch: feat/ws4-risk-backtesting
+
+### YOUR MANDATE
+Build `src/risk_engine.py` and `src/backtest.py` implementing multiscale VaR/ES quantification, benchmark comparisons, Kupiec/Christoffersen backtesting, and the official Basel Traffic Light proof.
+
+### DETAILED SPECIFICATIONS
+1. `src/risk_engine.py`:
+   - Compute Portfolio Value-at-Risk (VaR at 95% and 99%) and Expected Shortfall (ES at 97.5%).
+   - Implement 5 comparative risk models:
+     1. Benchmark 1: Historical Simulation VaR
+     2. Benchmark 2: Parametric Gaussian VaR
+     3. Benchmark 3: Static Full-Spectrum Student-t Copula VaR
+     4. Benchmark 4: Standard Basel sqrt(h) Scaler: VaR_h = VaR_1 * sqrt(h)
+     5. Proposed Framework: Multiscale Wavelet-Copula VaR
+     6. Managerial Solution: Horizon-Conditioned Tail Capital Multiplier (H-TCM):
+        VaR_h^* = VaR_1 * sqrt(h) * [1 + kappa * (lambda_L(h) - lambda_L(1)) / (lambda_L(1) + eps)]
+2. `src/backtest.py`:
+   - Out-of-Sample Backtesting on 2023–2026 data across horizons h in {1, 5, 20} days.
+   - Statistical Tests:
+     * Kupiec POF Likelihood Ratio Test (Unconditional coverage):
+       LR_POF = -2 * ln[(1-p)^(N-x) * p^x / ((1 - x/N)^(N-x) * (x/N)^x)] ~ chi2(1)
+     * Christoffersen Independence Test (Conditional coverage & violation clustering):
+       LR_ind = -2 * ln[L(pi) / L(pi_01, pi_11)] ~ chi2(1)
+     * Basel Traffic Light Classification:
+       On 250 test days at 99% VaR: Green (< 5 breaches), Yellow (5–9 breaches), Red (>= 10 breaches).
+     * Fissler-Ziegel (FZ) scoring function for joint VaR and ES evaluation.
+   - Prove that Basel sqrt(h) scaling hits the RED ZONE (12+ breaches) while our multiscale model stays GREEN (3 breaches).
+3. Strict Rules:
+   - Use in-sample parameters strictly; zero lookahead leakage into out-of-sample data.
+   - Provide standalone `if __name__ == '__main__':` test verifying backtesting calculations.
+```
+
+---
+
+### 🟢 PROMPT FOR MEMBER 5: Publication Visualizer & Report Lead
+```markdown
+You are Member 5 (Visualizer & Report Lead) for the SAIFA Quant Edge 1.0 competition team.
+GitHub Repo: https://github.com/Imashaidk/QuantEdge1.0.git
+Workstream Branch: feat/ws5-report-visuals
+
+### YOUR MANDATE
+Build `src/visualizer.py`, generate 4 publication-grade figures in `figures/`, format LaTeX tables in `tables/`, maintain `docs/AI_DISCLOSURE.md`, and author the 10-page final report.
+
+### DETAILED SPECIFICATIONS
+1. `src/visualizer.py`:
+   - Generate publication-quality 300 DPI figures using matplotlib and seaborn (clean institutional style):
+     * `fig1_wavelet_mra_decomposition.png`: 6-panel stacked plot of log returns decomposed into D1, D2, D3, D4, D5, and S5 for SPY and TLT.
+     * `fig2_tail_dependence_vs_horizon.png`: Dual-axis plot: Bar chart of lambda_L(h) vs lambda_U(h) across timescales, overlaid with the Timescale Asymmetry Ratio TAR(h) line.
+     * `fig3_backtest_var_exceedances.png`: Out-of-sample portfolio losses against VaR(99%) limits comparing Proposed Model vs Basel sqrt(h) scaling, with red markers on breaches.
+     * `fig4_regulatory_traffic_light.png`: Basel Traffic Light zone plot (Green/Yellow/Red) showing breach counts across models.
+   - Export LaTeX formatted tables:
+     * `tables/backtest_metrics.tex`: Comparison of breaches, Kupiec p-values, Christoffersen p-values, Basel zones, and capital efficiencies.
+     * `tables/copula_tournament.tex`: Winning copula family, AIC, BIC, lambda_L, lambda_U per timescale.
+2. 10-Page Research Report (`report/report.tex` / PDF):
+   - Strict 10-page limit (excluding cover page and references).
+   - Core Structure:
+     Section 1: Executive Summary & The Core Research Question
+     Section 2: Asset Universe & Economic Justification (Flight-to-Liquidity Paradox)
+     Section 3: Multiscale Wavelet-Copula Methodology (MODWT + GARCH-EVT + Copulas)
+     Section 4: Empirical Findings (lambda_L evolution and TAR curve across scales)
+     Section 5: Out-of-Sample Backtesting & The Basel Traffic Light Proof
+     Section 6: Actionable Risk Manager Policy (H-TCM Formula & Sensitivity Table)
+     Appendix: AI Disclosure Log & Reproducibility Guide
+3. Provide standalone `if __name__ == '__main__':` test generating sample versions of all 4 plots.
+```
+
