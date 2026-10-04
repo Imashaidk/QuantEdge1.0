@@ -10,9 +10,9 @@
 ---
 
 ## 📌 HOW TO USE THIS DOCUMENT
-Every team member should read this entire document before writing any code. To start working, copy **Section 6 ("Team Member AI Prompt")**, paste it into your AI assistant or IDE, and replace the placeholder with your assigned Workstream. 
+Every team member must read this document before writing any code. To start working, copy **Section 7 ("Team Member AI Prompt")**, paste it into your AI assistant or IDE, and replace the placeholder with your assigned Member Role / Workstream. 
 
-This ensures that all team members produce interoperable, mathematically rigorous, and publication-ready code that passes automated testing.
+This ensures all team members produce interoperable, mathematically rigorous, and publication-ready code that passes automated testing.
 
 ---
 
@@ -26,11 +26,11 @@ This ensures that all team members produce interoperable, mathematically rigorou
    - Rigorous statistical testing of out-of-sample backtests (Kupiec POF test, Christoffersen Independence test, and Tick/AS loss for Expected Shortfall).
 3. **Clarity of Explanation (20%):** "A simple idea explained well beats a complex one explained badly." The 10-page report must tell an intuitive story backed by clean, publication-grade figures.
 4. **Quality of Code & Reproducibility (20%):**
-   - Running `python run_all.py` must execute without errors on a clean machine and recreate every single figure and table in the report.
-   - Clean file hierarchy, strict type hinting, docstrings, and execution under 3 minutes.
+   - Running `python run_all.py` must execute without errors on a clean machine and recreate every single figure and table in the report in under 3 minutes.
+   - Clean file hierarchy, strict type hinting, docstrings, and fixed random seeds.
    - Total final package size strictly below the **25 MB limit**.
 
-### Common Pitfalls That Get Teams Eliminated:
+### Common Pitfalls That Get Teams Disqualified or Penalized:
 - ❌ **Downsampling distortion:** Using standard DWT which halves sample size at each level. (We **MUST use MODWT** - Maximal Overlap Discrete Wavelet Transform).
 - ❌ **Naive Margins:** Fitting copulas directly on raw returns without filtering volatility clustering (violates the i.i.d. assumption required for copula estimation).
 - ❌ **Vague Recommendation:** Giving generic advice like "diversify more." The judges explicitly require: **"one concrete recommendation a risk manager could act on tomorrow."**
@@ -38,82 +38,155 @@ This ensures that all team members produce interoperable, mathematically rigorou
 
 ---
 
-## 2. 🔬 THE RESEARCH & QUANTITATIVE BLUEPRINT
+## 2. 🏗️ WHAT WE ARE BUILDING: SYSTEM BLUEPRINT & DELIVERABLES
 
-### A. Asset Selection & Economic Justification
-We choose a **Cross-Asset Liquidity & Flight-to-Safety Portfolio (2015–2026)**:
-1. **Equities (High Beta / Risk-On):** S&P 500 (`SPY`) & Nasdaq 100 (`QQQ`)
-2. **Safe-Haven Fixed Income (Duration / Flight-to-Safety):** 20+ Year US Treasury Bond (`TLT`)
-3. **Alternative Asset / Inflation Hedge:** Gold (`GLD`)
-4. **Credit / Systematic Liquidity Indicator:** High Yield Corporate Bond (`HYG`)
+We are building **QuantEdge-MTR (Multiscale Tail Risk Framework)**, an institutional-grade quantitative risk platform consisting of:
 
-*Justification:*  
-- On a **daily/noise timescale (1–4 days)**: Gold and Treasuries frequently decouple or show zero/negative correlation with equities due to microstructure noise and rebalancing.
-- On a **crash/tail timescale**: Liquidity crunches (e.g., March 2020 COVID shock) cause margin calls where *all* liquid assets are sold simultaneously—joint tail dependence spikes dramatically across asset classes that otherwise appear uncorrelated.
-- On a **macro timescale (32–128 days)**: Monetary policy and inflation regimes drive long-horizon structural co-movements.
-
-### B. Core Mathematical Architecture
 ```
-Raw Asset Returns [R_t]
-         │
-         ▼
-[1] Wavelet Multiresolution Analysis (MODWT)
-    Decompose into scales:
-    • D1 (2–4 days)     : Microstructure / Noise
-    • D2 (4–8 days)     : Weekly Momentum / Swing Trading
-    • D3 (8–16 days)    : Bi-weekly Sentiment
-    • D4 (16–32 days)   : Monthly Rebalancing
-    • D5 (32–64 days)   : Quarterly Business Cycle
-    • S5 (>64 days)     : Long-term Macro Trend
-         │
-         ▼
-[2] Marginal Distribution Engine (ARMA-GARCH + EVT)
-    • Fit ARMA(1,1)-GJR-GARCH(1,1) with Student-t innovations to filter volatility clustering.
-    • Apply semi-parametric Extreme Value Theory (EVT):
-      - Body: Empirical CDF
-      - Tails: Generalized Pareto Distribution (GPD) for upper & lower thresholds
-    • Transform to Uniform Margins: U_i ~ Uniform(0,1) via Probability Integral Transform (PIT).
-         │
-         ▼
-[3] Multiscale Copula Engine
-    • Fit family of copulas across each timescale D_j and raw series:
-      - Gaussian (Benchmark: Zero tail dependence)
-      - Student-t (Symmetric tail dependence)
-      - Clayton (Strict lower-tail crash dependence: λ_L > 0, λ_U = 0)
-      - Gumbel (Upper-tail boom dependence: λ_U > 0, λ_L = 0)
-    • Extract Empirical and Theoretical Tail Dependence Coefficients:
-      λ_L(τ) = lim_{u->0} P(U_1 < u | U_2 < u) as a function of timescale τ.
-         │
-         ▼
-[4] Risk Quantification Engine (VaR & ES)
-    • Estimate Portfolio Value-at-Risk (VaR_99%, VaR_97.5%) and Expected Shortfall (ES_97.5%).
-    • Model A: Standard Benchmark (Single-horizon Static Gaussian / Historical Simulation).
-    • Model B: Static Full-Spectrum Copula.
-    • Model C: **Multiscale Wavelet-Copula Framework (Proposed Model)**.
-         │
-         ▼
-[5] Out-of-Sample Backtesting & Diagnostic Validation
-    • Kupiec Proportion of Failures (POF) test (unconditional coverage).
-    • Christoffersen Independence test (conditional coverage & loss clustering).
-    • Fissler-Ziegel Joint VaR/ES scoring function.
-         │
-         ▼
-[6] The Concrete Risk Manager Recommendation
-    • Actionable, formulaic policy: **"Horizon-Conditioned Tail Capital Multiplier (H-TCM)"**.
+QuantEdge-MTR Pipeline Architecture
+═══════════════════════════════════════════════════════════════════════════════════════
+ [Data Layer]       Public Multi-Asset Returns (SPY, QQQ, TLT, GLD, HYG: 2015–2026)
+                           │
+                           ▼
+ [Scale Layer]      MODWT Wavelet Filter Bank (Scales D1: 2-4d up to D5: 32-64d + S5)
+                           │
+                           ▼
+ [Margin Layer]     ARMA(1,1)-GJR-GARCH(1,1) + EVT-POT (Generalized Pareto Tails)
+                           │
+                           ▼
+ [Copula Layer]     Multiscale Copulas (Clayton, Gumbel, Student-t) -> λ_L(h) & λ_U(h)
+                           │
+                           ▼
+ [Risk Engine]      VaR (95%, 99%) & Expected Shortfall (97.5%) Simulation
+                           │
+                           ▼
+ [Backtest Layer]   Out-of-Sample Kupiec POF, Christoffersen Independence, Basel Zones
+                           │
+                           ▼
+ [Managerial Rule]  Horizon-Conditioned Tail Capital Multiplier (H-TCM)
+                           │
+                           ▼
+ [Outputs]          High-DPI Figures + LaTeX Report (10 pages) + Single-Command CLI
+═══════════════════════════════════════════════════════════════════════════════════════
+```
+
+### The 5 Models Implemented in the Framework:
+1. **Benchmark 1 (Historical Simulation VaR):** Non-parametric empirical quantile of past portfolio returns.
+2. **Benchmark 2 (Parametric Gaussian / Student-$t$ VaR):** Linear covariance matrix scaled by $\sqrt{h}$.
+3. **Benchmark 3 (Static Full-Spectrum Copula):** Standard copula fitted directly on raw return margins without frequency decomposition.
+4. **Benchmark 4 (Square-Root-of-Time Basel Scaler):** 1-day VaR scaled by $\sqrt{h}$ (exposes regulatory undercapitalization).
+5. **Proposed Model (QuantEdge Multiscale Wavelet-Copula):** Reconstructs joint returns by sampling from timescale-specific copulas, accurately capturing horizon-dependent tail crash contagion.
+
+### The 4 Required Research Figures (Auto-Generated in `figures/`):
+1. **Figure 1 (`fig1_wavelet_mra_decomposition.png`):** MODWT decomposition of asset log returns showing high-frequency noise vs. macroeconomic cycle regimes.
+2. **Figure 2 (`fig2_tail_dependence_vs_horizon.png`):** The primary research breakthrough plot: Lower tail dependence $\lambda_L(h)$ vs. Upper tail dependence $\lambda_U(h)$ across timescales $\tau \in \{2, 4, 8, 16, 32, 64\}$ days.
+3. **Figure 3 (`fig3_backtest_var_exceedances.png`):** Out-of-sample portfolio losses against VaR(99%) thresholds comparing the proposed model against Basel $\sqrt{h}$ and Static Copula.
+4. **Figure 4 (`fig4_regulatory_traffic_light.png`):** Basel Traffic Light backtest matrix (Green/Yellow/Red zones) demonstrating zero red breaches for the proposed framework.
+
+### The 3 Official Submission Deliverables:
+1. **Report:** PDF (maximum 10 pages) written in clean academic format.
+2. **Codebase:** Fully runnable Python package with single-command reproduction (`python run_all.py`).
+3. **Submission Package:** ZIP archive strictly $\le 25\text{ MB}$ uploaded to the portal + Google Drive link.
+
+---
+
+## 3. 👥 DETAILED MEMBER-BY-MEMBER WORK BREAKDOWN
+
+To ensure parallel development with zero bottlenecks, the work is divided into 4 core quant roles (or 5 if team has 5 members):
+
+```mermaid
+graph LR
+    M1["Member 1: Architecture & Data"] -->|Clean Returns & Config| M2["Member 2: Wavelet MODWT"]
+    M2 -->|Timescale Series D1-D5, S5| M3["Member 3: GARCH-EVT Copulas"]
+    M3 -->|Tail Dep λ_L(h) & Copula Sim| M4["Member 4: Risk & Backtesting"]
+    M4 -->|Backtest Metrics & Breach Series| M1
+    M1 -->|Master Pipeline: run_all.py| All["Final 10-Page Report & ZIP"]
 ```
 
 ---
 
-## 3. 👥 WORKSTREAM BREAKDOWN & ASSIGNMENTS
+### 👤 MEMBER 1: Team Lead, Data Architect & Master Pipeline
+* **Target Files:** [`src/config.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/config.py), [`src/data_loader.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/data_loader.py), [`run_all.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/run_all.py)
+* **Git Branch:** `feat/ws1-data-pipeline`
+* **Responsibilities:**
+  1. Build `src/config.py` defining tickers (`SPY`, `QQQ`, `TLT`, `GLD`, `HYG`), in-sample date range (`2015-01-01` to `2022-12-31`), out-of-sample range (`2023-01-01` to `2026-06-30`), seed (`42`), and path constants.
+  2. Build `src/data_loader.py`:
+     - Download historical data via `yfinance` and save cleaned CSVs to `data/`.
+     - Implement offline cache check: if CSV exists, load instantly without making web requests.
+     - Compute log returns, check stationarity (ADF test), and format train/test splits.
+  3. Build `run_all.py`:
+     - Orchestrates the full pipeline with a single CLI command: `python run_all.py`.
+     - Validates end-to-end execution in $< 3$ minutes.
+  4. Repository & Submission Manager:
+     - Review all team PRs, enforce formatting and git hygiene.
+     - Build final submission ZIP file and verify size $\le 25\text{ MB}$.
 
-| Workstream | Module / Target File | Primary Responsibilities |
-| :--- | :--- | :--- |
-| **WS 1: Data & Pipeline** | `src/data_loader.py`<br>`src/config.py` | • Fetch daily adjusted close data (2015-01-01 to 2026-06-30) for `SPY`, `QQQ`, `TLT`, `GLD`, `HYG`.<br>• Cache cleaned CSVs in `data/` to enable fully offline reproduction.<br>• Split dataset: In-Sample (2015–2022) / Out-of-Sample (2023–2026). |
-| **WS 2: Wavelet Engine** | `src/wavelets.py` | • Implement Maximal Overlap Discrete Wavelet Transform (**MODWT**).<br>• Filter family: Daubechies (`db4`) or Symlet (`sym8`) with circular/reflection boundary handling.<br>• Implement Multiresolution Analysis (MRA) ensuring additive reconstruction: $R_t = \sum D_j + S_J$.<br>• Strict zero lookahead filtering. |
-| **WS 3: Margins & Copulas** | `src/margins.py`<br>`src/copulas.py` | • Fit ARMA(1,1)-GARCH(1,1) to filter time-varying heteroskedasticity.<br>• Model tails using Generalized Pareto Distribution (EVT-POT method).<br>• PIT transform into uniform variables $U(0,1)$ and verify with KS test.<br>• Fit Gaussian, Student-$t$, Clayton, and Gumbel copulas via MLE.<br>• Calculate lower tail dependence $\lambda_L$ and upper $\lambda_U$ for each timescale. |
-| **WS 4: Risk & Backtesting** | `src/risk_engine.py`<br>`src/backtest.py` | • Simulate joint portfolio returns from multiscale copula draws.<br>• Compute 1-day, 5-day, and 20-day equivalent VaR (95%, 99%) and ES (97.5%).<br>• Compare against benchmarks: Historical Simulation, Normal parametric, Static Student-$t$ Copula.<br>• Run statistical backtests: Kupiec LR test, Christoffersen test, and Regulatory Traffic Light zone. |
-| **WS 5: Master Pipeline & Plots** | `run_all.py`<br>`src/visualizer.py` | • Build the single master execution command `python run_all.py`.<br>• Generate publication-grade, high-DPI figures in `figures/`: (1) Wavelet scale decomposition, (2) Tail dependence vs. timescale curve ($\lambda_L$ vs Horizon), (3) VaR breach out-of-sample chart, (4) Summary metrics table.<br>• Keep execution fast (< 3 minutes). |
-| **WS 6: 10-Page Report** | `report/report.tex` / `report.md` | • Write the competition paper adhering strictly to the 10-page limit.<br>• Sections: (1) Executive Summary & Core Question, (2) Economic Justification of Assets, (3) Mathematical Methodology, (4) Empirical Findings, (5) Out-of-Sample Validation, (6) Actionable Risk Manager Policy, (7) AI Disclosure Appendix. |
+---
+
+### 👤 MEMBER 2: Signal Processing & Wavelet Engineer
+* **Target Files:** [`src/wavelets.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/wavelets.py), [`tests/test_wavelets.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/tests/test_wavelets.py)
+* **Git Branch:** `feat/ws2-wavelet-modwt`
+* **Responsibilities:**
+  1. Implement **Maximal Overlap Discrete Wavelet Transform (MODWT)** and Multiresolution Analysis (MRA):
+     - Filter family: Symlet (`sym8`) or Daubechies (`db4`).
+     - Levels: $J = 5$, decomposing returns into detail scales $D_1$ (2–4d), $D_2$ (4–8d), $D_3$ (8–16d), $D_4$ (16–32d), $D_5$ (32–64d), and smooth trend $S_5$ ($>64$d).
+  2. Implement mathematical verification checks:
+     - **Additive Reconstruction:** Verify $\max |R_t - (\sum_{j=1}^J D_j + S_J)| < 10^{-10}$.
+     - **Variance Decomposition:** Prove that $\text{Var}(R_t) = \sum_{j=1}^J \text{Var}(D_j) + \text{Var}(S_J)$.
+  3. Ensure strict zero lookahead: Boundary handling must use reflection or periodic filtering strictly restricted to historical windows.
+  4. Provide standalone test block verifying decomposition of a sample multi-asset matrix.
+
+---
+
+### 👤 MEMBER 3: Econometrician & Copula Modeling Specialist
+* **Target Files:** [`src/margins.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/margins.py), [`src/copulas.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/copulas.py)
+* **Git Branch:** `feat/ws3-garch-copulas`
+* **Responsibilities:**
+  1. Build `src/margins.py`:
+     - Fit $\text{ARMA}(1,1)\text{-GJR-GARCH}(1,1)$ with Student-$t$ innovations to each asset's wavelet component series to filter conditional heteroskedasticity.
+     - Apply Extreme Value Theory (EVT) Peaks-Over-Threshold (POT): Model interior body with empirical CDF, upper and lower 10% tails with Generalized Pareto Distribution (GPD).
+     - Transform standardized residuals to uniform margins $U_i \in [0, 1]$ via Probability Integral Transform (PIT) and validate with Kolmogorov-Smirnov test.
+  2. Build `src/copulas.py`:
+     - Fit copula families via Maximum Likelihood Estimation (MLE): Gaussian, Student-$t$, Clayton (lower tail), Gumbel (upper tail), and Frank.
+     - Select best copula per scale using AIC/BIC.
+     - Compute theoretical and empirical lower tail dependence $\lambda_L(h)$ and upper tail dependence $\lambda_U(h)$ across all decomposed horizons.
+     - Generate joint simulation draws for portfolio loss calculation.
+
+---
+
+### 👤 MEMBER 4: Quantitative Risk Analyst & Backtesting Lead
+* **Target Files:** [`src/risk_engine.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/risk_engine.py), [`src/backtest.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/backtest.py)
+* **Git Branch:** `feat/ws4-risk-backtesting`
+* **Responsibilities:**
+  1. Build `src/risk_engine.py`:
+     - Calculate portfolio Value-at-Risk ($\text{VaR}_{95\%}, \text{VaR}_{99\%}$) and Expected Shortfall ($\text{ES}_{97.5\%}$).
+     - Implement the 5 comparative models (Historical Sim, Gaussian, Static Copula, Basel $\sqrt{h}$ Scaled, and Multiscale Wavelet-Copula).
+  2. Build `src/backtest.py`:
+     - Run out-of-sample backtests on 2023–2026 data.
+     - Implement statistical hypothesis tests:
+       - **Kupiec POF LR Test:** Unconditional coverage of exceptions.
+       - **Christoffersen Independence Test:** Tests for violation clustering during crashes.
+       - **Basel Traffic Light:** Green ($<5$ breaches), Yellow (5–9 breaches), Red ($\ge 10$ breaches).
+       - **Fissler-Ziegel Scoring:** Joint consistent loss function for VaR and ES.
+  3. Formalize the **Horizon-Conditioned Tail Capital Multiplier (H-TCM)** formula and quantify how many regulatory breaches it prevents.
+
+---
+
+### 👤 MEMBER 5 (or SHARED): Visualizer & Report Lead
+* **Target Files:** [`src/visualizer.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/visualizer.py), `report/report.tex`, `docs/AI_DISCLOSURE.md`
+* **Git Branch:** `feat/ws5-report-visuals`
+* **Responsibilities:**
+  1. Build `src/visualizer.py`:
+     - Matplotlib/Seaborn script generating high-DPI publication figures (`fig1_wavelet_mra_decomposition.png`, `fig2_tail_dependence_vs_horizon.png`, `fig3_backtest_var_exceedances.png`, `fig4_regulatory_traffic_light.png`).
+     - Export formatted LaTeX tables of backtesting metrics (breach counts, p-values, capital efficiencies).
+  2. Lead author for the **10-page final report** adhering to the competition structure:
+     - Section 1: Executive Summary & The Core Research Question
+     - Section 2: Asset Universe & Economic Justification
+     - Section 3: Multiscale Wavelet-Copula Methodology
+     - Section 4: Empirical Findings ($\lambda_L$ vs Timescale)
+     - Section 5: Out-of-Sample Backtesting & Benchmark Comparison
+     - Section 6: Actionable Risk Manager Policy (H-TCM)
+     - Appendix: AI Disclosure & Reproducibility Instructions
 
 ---
 
@@ -142,73 +215,47 @@ To maintain maximum code quality and avoid merge conflicts or compliance disqual
 1. **Protected `main` Branch:**
    - No team member ever pushes directly to `main`. All changes enter `main` via reviewed Pull Requests (PRs).
 2. **Standardized Branch Naming:**
-   - Feature branches must follow: `feat/ws<number>-<short-description>` (e.g., `feat/ws1-data-pipeline`, `feat/ws2-wavelet-modwt`, `feat/ws3-garch-copula`).
-   - Fixes and docs must follow: `fix/<issue-name>` or `docs/<topic>`.
+   - Feature branches must follow: `feat/ws<number>-<short-description>` (e.g., `feat/ws1-data-pipeline`, `feat/ws2-wavelet-modwt`, `feat/ws3-garch-copula`, `feat/ws4-risk-backtesting`, `feat/ws5-report-visuals`).
 3. **Conventional Commit Messages:**
-   - Use standard prefixes:
-     - `feat:` for new capabilities or modules
-     - `fix:` for bug fixes
-     - `refactor:` for code restructuring without behavioral change
-     - `test:` for unit tests or validation scripts
-     - `docs:` for README, report, or markdown updates
+   - `feat:`, `fix:`, `refactor:`, `test:`, `docs:`.
    - Example: `feat(margins): implement GJR-GARCH and EVT-POT marginal estimation`
 4. **Pull Request Protocol:**
-   - Before opening a PR, sync your branch with latest `main`: `git pull --rebase origin main`.
-   - Every PR must verify:
-     - All imports resolve without errors.
-     - The module executes its standalone `__main__` test cleanly.
-     - Code is formatted and lint-free.
+   - Before opening a PR: `git pull --rebase origin main`.
+   - Ensure your module's `if __name__ == '__main__':` block executes without any errors.
 5. **Strict Repository Size Guardrail (25 MB Maximum Limit):**
    - The competition rules strictly state: **"Final submission: one ZIP file per team, maximum 25 MB."**
-   - **NEVER** commit:
-     - `.venv/` or virtual environment folders
-     - `__pycache__/` or `.pytest_cache/`
-     - Massive raw tick-level files or intermediate `.pkl` caches larger than 1 MB
-     - Uncompressed video or redundant high-res assets
-   - Always verify repo size before committing: all data files in `data/` must be compressed or capped to small daily close CSVs.
+   - **NEVER** commit `.venv/`, `__pycache__/`, large raw data dumps, or uncompressed video.
 
 ### B. Python Engineering & Code Quality Standards
-1. **Python Version & Dependencies:**
-   - Python 3.10+ compatible.
-   - Only use libraries declared in [requirements.txt](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/requirements.txt).
-2. **Type Annotations & Documentation:**
-   - Every function and class method must include standard Python type hints (`np.ndarray`, `pd.DataFrame`, `Tuple[float, float]`, etc.).
-   - Include Google/NumPy style docstrings explaining inputs, outputs, exceptions, and the mathematical formula implemented.
-3. **Deterministic Execution (Fixed Random Seeds):**
-   - All stochastic procedures (Monte Carlo copula simulations, bootstrap tests) must set `np.random.seed(42)` and `random.seed(42)`.
-   - The global seed is defined in `src/config.py`.
-4. **Zero Hardcoded Paths:**
-   - Never use absolute paths like `C:\Users\...`.
-   - Always use `pathlib.Path`:
-     ```python
-     from pathlib import Path
-     ROOT_DIR = Path(__file__).resolve().parent.parent
-     DATA_DIR = ROOT_DIR / "data"
-     ```
-5. **Standalone Execution Block:**
-   - Every file under `src/` must contain an `if __name__ == "__main__":` block demonstrating that the module runs independently with synthetic or sample data.
+1. **Python Version:** 3.10+ compatible, only use libraries declared in [requirements.txt](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/requirements.txt).
+2. **Type Annotations & Documentation:** Full type hints and Google/NumPy docstrings on every function and method.
+3. **Deterministic Execution:** Always import and use `SEED = 42` from `src/config.py`.
+4. **Zero Hardcoded Paths:** Always use `pathlib.Path(__file__).resolve().parent.parent`.
+5. **Standalone Execution Block:** Every file under `src/` must contain an `if __name__ == "__main__":` test block.
 
 ### C. Methodological Rigour Rules
-1. **Zero Lookahead Leakage:**
-   - In-sample estimation: `2015-01-01` to `2022-12-31`.
-   - Out-of-sample backtesting: `2023-01-01` to `2026-06-30`.
-   - Parameters for GARCH, EVT thresholds, and Copula shapes must **never** be fitted using out-of-sample data.
-2. **Wavelet Additivity Check:**
-   - For any MODWT decomposition, ensure the additive property holds within numerical tolerance:
-     $$\max \left| R_t - \left( \sum_{j=1}^J D_j + S_J \right) \right| < 10^{-10}$$
-3. **Copula Marginal Validation:**
-   - Before estimating copula parameters, test transformed uniform series $U_i$ with Kolmogorov-Smirnov test ($p > 0.05$) to verify uniform distribution on $[0,1]$.
+1. **Zero Lookahead Leakage:** In-sample (`2015-01-01` to `2022-12-31`) vs Out-of-sample (`2023-01-01` to `2026-06-30`). Never train GARCH or copulas on future test data.
+2. **Wavelet Additivity Check:** Ensure $\max |R_t - (\sum_{j=1}^J D_j + S_J)| < 10^{-10}$.
+3. **Copula Marginal Validation:** PIT uniform series $U_i$ must pass Kolmogorov-Smirnov uniformity test.
 
 ### D. AI Tool Disclosure & Transparency Protocol
-- As mandated by the competition brief: *"Any material use of AI tools must be disclosed in a short appendix or README. Teams selected for the next round may be asked questions about AI use and may be required to explain, modify or reproduce their work live."*
-- Every team member must keep an entry in `docs/AI_DISCLOSURE.md`:
-  - Date & Model used (e.g. Gemini 3.8 Flash, Claude 3.7 Sonnet).
-  - Scope of assistance (e.g. boilerplate generation, LaTeX drafting, docstrings).
-  - Human validation: Every line of code must be fully understood and explainable in Round 2 live defense.
+- Update [docs/AI_DISCLOSURE.md](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/docs/AI_DISCLOSURE.md) for any generative AI tool usage as required for Round 2 live questioning defense.
 
 ---
 
-## 6. 🤖 TEAM MEMBER AI PROMPT (COPY & PASTE THIS INTO YOUR AI CHAT)
+## 6. 📅 MILESTONE TIMELINE (COUNTDOWN TO OCT 7 DEADLINE)
+
+```
+October 4 (Tonight)   : Core pipeline code complete (WS 1, WS 2, WS 3, WS 4)
+October 5             : Out-of-sample backtests, benchmarks, and run_all.py verification (WS 4, WS 5)
+October 6             : 10-Page Report drafting, chart rendering, and review (WS 5, WS 6)
+October 7 (Midday)    : Final ZIP packaging (<25MB), Google Drive upload, submission dry run
+October 7 (21:00 SLT) : Formal submission before the 23:59 hard deadline
+```
+
+---
+
+## 7. 🤖 TEAM MEMBER AI PROMPT (COPY & PASTE THIS INTO YOUR AI CHAT)
 
 ```markdown
 You are a World-Class Quantitative Finance Researcher and Senior Risk Modeler competing in the "SAIFA Quant Edge 1.0" competition.
@@ -248,18 +295,6 @@ QuantEdge/
 6. Code Standards: Python 3.10+, complete type hints, Google/NumPy docstrings, deterministic seeds (seed=42), relative pathlib paths. Single-command execution via `python run_all.py` in under 3 minutes.
 
 ### Your Current Assignment
-I am assigned to: [INSERT WORKSTREAM NUMBER & MODULE HERE, e.g. "Workstream 1: src/config.py and src/data_loader.py"]
+I am assigned to: [INSERT YOUR ROLE AND MODULE HERE, e.g. "Member 2: src/wavelets.py - MODWT multiresolution decomposition"]
 Please review the architecture, generate complete and robust production code for this module, ensure it adheres to all contracts, and provide a self-contained `if __name__ == '__main__':` test verification block.
-```
-
----
-
-## 7. 📅 MILESTONE TIMELINE (COUNTDOWN TO OCT 7 DEADLINE)
-
-```
-October 4 (Tonight)   : Core pipeline code complete (WS 1, WS 2, WS 3, WS 4)
-October 5             : Out-of-sample backtests, benchmarks, and run_all.py verification (WS 4, WS 5)
-October 6             : 10-Page Report drafting, chart rendering, and review (WS 6)
-October 7 (Midday)    : Final ZIP packaging (<25MB), Google Drive upload, submission dry run
-October 7 (21:00 SLT) : Formal submission before the 23:59 hard deadline
 ```
