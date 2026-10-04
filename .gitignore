@@ -54,3 +54,8 @@ data/cache/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Internal Team Strategy & Master Prompts (Do not commit to public repo or final submission)
+TEAM_EXECUTION_PROMPT.md
+*_PROMPT.md
+*INSTRUCTIONS*.md
