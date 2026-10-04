@@ -145,7 +145,7 @@ graph LR
 ---
 
 ### 👤 MEMBER 1: Team Lead, Data Architect & Master Pipeline
-* **Target Files:** [`src/config.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/config.py), [`src/data_loader.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/data_loader.py), [`run_all.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/run_all.py)
+* **Target Files:** `src/config.py`, `src/data_loader.py`, `run_all.py`
 * **Git Branch:** `feat/ws1-data-pipeline`
 * **Responsibilities:**
   1. Build `src/config.py` defining tickers (`SPY`, `QQQ`, `TLT`, `GLD`, `HYG`), in-sample date range (`2015-01-01` to `2022-12-31`), out-of-sample range (`2023-01-01` to `2026-06-30`), seed (`42`), and path constants.
@@ -163,7 +163,7 @@ graph LR
 ---
 
 ### 👤 MEMBER 2: Signal Processing & Wavelet Engineer
-* **Target Files:** [`src/wavelets.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/wavelets.py), [`tests/test_wavelets.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/tests/test_wavelets.py)
+* **Target Files:** `src/wavelets.py`, `tests/test_wavelets.py`
 * **Git Branch:** `feat/ws2-wavelet-modwt`
 * **Responsibilities:**
   1. Implement **Maximal Overlap Discrete Wavelet Transform (MODWT)** and Multiresolution Analysis (MRA):
@@ -178,7 +178,7 @@ graph LR
 ---
 
 ### 👤 MEMBER 3: Econometrician & Copula Modeling Specialist
-* **Target Files:** [`src/margins.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/margins.py), [`src/copulas.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/copulas.py)
+* **Target Files:** `src/margins.py`, `src/copulas.py`
 * **Git Branch:** `feat/ws3-garch-copulas`
 * **Responsibilities:**
   1. Build `src/margins.py`:
@@ -194,7 +194,7 @@ graph LR
 ---
 
 ### 👤 MEMBER 4: Quantitative Risk Analyst & Backtesting Lead
-* **Target Files:** [`src/risk_engine.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/risk_engine.py), [`src/backtest.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/backtest.py)
+* **Target Files:** `src/risk_engine.py`, `src/backtest.py`
 * **Git Branch:** `feat/ws4-risk-backtesting`
 * **Responsibilities:**
   1. Build `src/risk_engine.py`:
@@ -212,7 +212,7 @@ graph LR
 ---
 
 ### 👤 MEMBER 5 (or SHARED): Visualizer & Report Lead
-* **Target Files:** [`src/visualizer.py`](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/src/visualizer.py), `report/report.tex`, `docs/AI_DISCLOSURE.md`
+* **Target Files:** `src/visualizer.py`, `report/report.tex`, `docs/AI_DISCLOSURE.md`
 * **Git Branch:** `feat/ws5-report-visuals`
 * **Responsibilities:**
   1. Build `src/visualizer.py`:
@@ -266,7 +266,7 @@ To maintain maximum code quality and avoid merge conflicts or compliance disqual
    - **NEVER** commit `.venv/`, `__pycache__/`, large raw data dumps, or uncompressed video.
 
 ### B. Python Engineering & Code Quality Standards
-1. **Python Version:** 3.10+ compatible, only use libraries declared in [requirements.txt](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/requirements.txt).
+1. **Python Version:** 3.10+ compatible, only use libraries declared in [requirements.txt](requirements.txt).
 2. **Type Annotations & Documentation:** Full type hints and Google/NumPy docstrings on every function and method.
 3. **Deterministic Execution:** Always import and use `SEED = 42` from `src/config.py`.
 4. **Zero Hardcoded Paths:** Always use `pathlib.Path(__file__).resolve().parent.parent`.
@@ -278,7 +278,7 @@ To maintain maximum code quality and avoid merge conflicts or compliance disqual
 3. **Copula Marginal Validation:** PIT uniform series $U_i$ must pass Kolmogorov-Smirnov uniformity test.
 
 ### D. AI Tool Disclosure & Transparency Protocol
-- Update [docs/AI_DISCLOSURE.md](file:///c:/Users/IMASHA/Documents/Competitions/QuantEdge/docs/AI_DISCLOSURE.md) for any generative AI tool usage as required for Round 2 live questioning defense.
+- Update [docs/AI_DISCLOSURE.md](docs/AI_DISCLOSURE.md) for any generative AI tool usage as required for Round 2 live questioning defense.
 
 ---
 
