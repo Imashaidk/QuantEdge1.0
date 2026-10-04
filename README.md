@@ -44,7 +44,6 @@ QuantEdge/
 ├── tests/                 # Automated unit tests
 ├── run_all.py             # Single-command runner reproducing all report figures/tables
 ├── requirements.txt       # Dependencies
-├── TEAM_EXECUTION_PROMPT.md# Master team strategy and rules
 └── README.md              # Project documentation
 ```
 
@@ -79,6 +78,7 @@ python run_all.py
 
 ---
 
-## 📜 Team Instructions & Execution Guide
-For detailed instructions, member role prompts, coding standards, and GitHub contribution rules, see:
-👉 **[TEAM_EXECUTION_PROMPT.md](TEAM_EXECUTION_PROMPT.md)**
+## 👥 Contributing & Team Protocol
+- Work is organized across dedicated workstream branches (`feat/ws<number>-<topic>`).
+- **Never push directly to `main`**; all features must enter via reviewed Pull Requests (PRs).
+- Refer to your local `TEAM_EXECUTION_PROMPT.md` for specific role instructions, contracts, and prompt templates.
