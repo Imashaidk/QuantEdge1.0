@@ -1,7 +1,7 @@
-\documentclass[10pt,twocolumn,a4paper]{article}
+\documentclass[11pt,a4paper]{article}
 
 \usepackage[utf8]{inputenc}
-\usepackage[margin=1.8cm]{geometry}
+\usepackage[margin=2.5cm]{geometry}
 \usepackage{amsmath,amssymb,amsfonts,amsthm}
 \usepackage{booktabs}
 \usepackage{graphicx}
@@ -13,6 +13,10 @@
 \usepackage{fancyhdr}
 \usepackage{tabularx}
 \usepackage{cite}
+\usepackage{setspace}
+
+\setstretch{1.15}
+\captionsetup{font=small,labelfont=bf}
 
 \graphicspath{{../figures/}{figures/}}
 
@@ -29,13 +33,13 @@
 \lhead{\small \textit{Risk Across Tails and Timescales}}
 \cfoot{\thepage}
 
-\title{\Large \textbf{Risk Across Tails and Timescales: \\
+\title{\LARGE \textbf{Risk Across Tails and Timescales: \\
 Frequency-Variant Tail Dependence and the Invalidation of Horizon Square-Root Scaling}}
 
 \author{
     \textbf{QuantEdge Research Consortium} \\
     \textit{Department of Statistics \& Computer Science / Industrial Management} \\
-    \texttt{https://github.com/Imashaidk/QuantEdge1.0.git}
+    \url{https://github.com/Imashaidk/QuantEdge1.0.git}
 }
 
 \date{October 2026}
@@ -50,6 +54,8 @@ Most banks and asset managers scale daily Value-at-Risk (VaR) to multi-day horiz
 
 Our empirical findings reveal what we term the \textbf{Flight-to-Liquidity Contagion Paradox}. Lower tail crash dependence ($\lambda_L$) is very low at high-frequency daily noise scales ($0.042$ at scale $D_1$, 2 to 4 days), but jumps by over $650\%$ to $0.318$ at quarterly business-cycle horizons ($D_5$, 32 to 64 days). Over the same span, the Timescale Asymmetry Ratio ($\text{TAR} = \lambda_L - \lambda_U$) climbs from $0.000$ to $+0.286$. In simple terms: assets that normally hedge each other during calm periods crash together during extended sell-offs because investors dump their most liquid holdings (Treasuries and Gold) to meet cash margin calls. In out-of-sample backtesting across 875 trading days (2023 to 2026), conventional Gaussian models suffer more than double the permitted violations. To give risk managers an immediate fix, we introduce the \textbf{Horizon-Conditioned Tail Capital Multiplier (H-TCM)}, a closed-form formula that dynamically expands capital reserves for multi-day horizons without requiring firms to rebuild their legacy risk systems.
 \end{abstract}
+
+\vspace{0.5cm}
 
 \section{Introduction \& Research Question}
 \label{sec:intro}
@@ -126,8 +132,8 @@ Here $D_j$ represents scale-specific detail fluctuations and $S_J$ captures the 
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{../figures/fig1_wavelet_mra_decomposition.png}
-    \caption{\textbf{Figure 1:} MODWT Additive Multiresolution Decomposition of SPY and TLT returns into detail timescales $D_1$ through $D_5$ and smooth macroeconomic trend $S_5$.}
+    \includegraphics[width=0.88\textwidth]{fig1_wavelet_mra_decomposition.png}
+    \caption{MODWT Additive Multiresolution Decomposition of SPY and TLT returns into detail timescales $D_1$ through $D_5$ and smooth macroeconomic trend $S_5$.}
     \label{fig:wavelets}
 \end{figure}
 
@@ -185,9 +191,11 @@ The winning copula per timescale is selected by minimizing the Bayesian Informat
 
 \subsection{Timescale Variance Decomposition}
 Table \ref{tab:variance} displays how total return variance is distributed across octave frequency bands.
+
 \begin{table}[htbp]
 \centering
 \small
+\renewcommand{\arraystretch}{1.2}
 \caption{Wavelet Multiresolution Percentage Variance Contribution Across Assets}
 \label{tab:variance}
 \begin{tabular}{lrrrrr}
@@ -208,16 +216,18 @@ High-frequency noise ($D_1$) represents between $53\%$ and $64\%$ of total varia
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{../figures/fig2_tail_dependence_vs_horizon.png}
-    \caption{\textbf{Figure 2:} Evolution of Lower Tail Crash Dependence $\lambda_L(h)$ versus Upper Tail Dependence $\lambda_U(h)$ and the Timescale Asymmetry Ratio ($\text{TAR}(h)$) across holding horizons.}
+    \includegraphics[width=0.88\textwidth]{fig2_tail_dependence_vs_horizon.png}
+    \caption{Evolution of Lower Tail Crash Dependence $\lambda_L(h)$ versus Upper Tail Dependence $\lambda_U(h)$ and the Timescale Asymmetry Ratio ($\text{TAR}(h)$) across holding horizons.}
     \label{fig:tail_dep}
 \end{figure}
 
 \subsection{The Surge of Tail Dependence \& The TAR Curve}
 Table \ref{tab:copula_leaderboard} and Figure \ref{fig:tail_dep} report the central empirical finding of our study.
+
 \begin{table}[htbp]
 \centering
 \small
+\renewcommand{\arraystretch}{1.2}
 \caption{Scale-Optimal Copula Tournament Leaderboard Across Horizons}
 \label{tab:copula_leaderboard}
 \begin{tabular}{llcccc}
@@ -255,8 +265,8 @@ To evaluate what happens when a risk desk ignores horizon-dependent tail depende
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{../figures/fig3_backtest_var_exceedances.png}
-    \caption{\textbf{Figure 3:} Out-of-sample portfolio losses against $\text{VaR}(99\%)$ limits comparing the Proposed Multiscale Framework against Basel $\sqrt{h}$ scaling.}
+    \includegraphics[width=0.88\textwidth]{fig3_backtest_var_exceedances.png}
+    \caption{Out-of-sample portfolio losses against $\text{VaR}(99\%)$ limits comparing the Proposed Multiscale Framework against Basel $\sqrt{h}$ scaling.}
     \label{fig:backtest_exceed}
 \end{figure}
 
@@ -285,16 +295,18 @@ We evaluate model performance through four established supervisory criteria:
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\linewidth]{../figures/fig4_regulatory_traffic_light.png}
-    \caption{\textbf{Figure 4:} Basel Committee Traffic Light zone performance across models and horizons.}
+    \includegraphics[width=0.88\textwidth]{fig4_regulatory_traffic_light.png}
+    \caption{Basel Committee Traffic Light zone performance across models and horizons.}
     \label{fig:traffic_light}
 \end{figure}
 
 \subsection{Backtesting Performance Results}
 Table \ref{tab:backtest_summary} reports the empirical backtest results across all competing models.
+
 \begin{table}[htbp]
 \centering
 \small
+\renewcommand{\arraystretch}{1.2}
 \caption{Out-of-Sample Performance and Regulatory Traffic Light Classification (875 Test Days)}
 \label{tab:backtest_summary}
 \begin{tabular}{llcccc}
@@ -346,9 +358,11 @@ where:
 
 \subsection{Capital Buffer Calibration}
 Table \ref{tab:sensitivity} shows the capital buffer multiplier across horizons for different values of $\kappa$.
+
 \begin{table}[htbp]
 \centering
 \small
+\renewcommand{\arraystretch}{1.2}
 \caption{H-TCM Multiplier Values Across Horizons ($\kappa \in [0.20, 0.50]$)}
 \label{tab:sensitivity}
 \begin{tabular}{lcccc}
@@ -373,7 +387,7 @@ This research provides a direct answer to the competition challenge: \textbf{Tai
 \noindent
 In accordance with competition rules:
 \begin{itemize}
-    \item \textbf{One-Command Reproduction:} The entire pipeline, figures, tables, and backtests reproduce by running \texttt{python run_all.py} in approximately 20 seconds.
+    \item \textbf{One-Command Reproduction:} The entire pipeline, figures, tables, and backtests reproduce by running the command \texttt{python run\_all.py} in approximately 20 seconds.
     \item \textbf{AI Disclosure Statement:} Generative AI tools were used for code scaffolding, documentation formatting, and syntax checks. All econometric design, mathematical formulations, empirical models, and risk conclusions were developed by the authors (see \texttt{docs/AI\_DISCLOSURE.md}).
 \end{itemize}
 
