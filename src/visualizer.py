@@ -476,8 +476,15 @@ def generate_all_figures_and_tables(
         & (backtest_results_df["Horizon"] == "1d")
     ]
 
-    var_p = 0.0122 if m_proposed.empty else 0.0188
-    var_b = 0.0188 if m_basel.empty else 0.0188
+    if not m_proposed.empty and "VaR_Pred" in m_proposed.columns:
+        var_p = float(m_proposed["VaR_Pred"].iloc[0])
+    else:
+        var_p = 0.0222
+
+    if not m_basel.empty and "VaR_Pred" in m_basel.columns:
+        var_b = float(m_basel["VaR_Pred"].iloc[0])
+    else:
+        var_b = 0.0188
 
     plot_fig3_backtest_exceedances(
         df_test=df_raw_test,

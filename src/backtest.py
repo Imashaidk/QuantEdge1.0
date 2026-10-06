@@ -426,6 +426,8 @@ def run_out_of_sample_backtest(
                 "Horizon": f"{h}d",
                 "Model": model_name,
                 "VaR_Level": f"{int(alpha_var * 100)}%",
+                "VaR_Pred": round(float(var_pred), 5),
+                "ES_Pred": round(float(es_pred), 5),
                 "Total_Obs": metrics["Total_Obs"],
                 "Breaches": metrics["Breaches"],
                 "Breach_Rate": f"{metrics['Breach_Rate'] * 100:.2f}%",

@@ -153,7 +153,7 @@ QuantEdge/
 │   ├── config.py                # Universe tickers, weights, dates, hyperparameters
 │   ├── data_loader.py           # Ingestion, log returns, ADF stationarity, caching
 │   ├── wavelets.py              # MODWT filter bank, additive MRA, variance decomposition
-│   ├── margins.py               # ARMA-GJR-GARCH + EVT-POT GPD tails + PIT validation
+│   ├── margins.py               # AR(1)-GJR-GARCH(1,1) + EVT-POT GPD tails + PIT validation
 │   ├── copulas.py               # 5-family tournament, MLE fitting, BIC selection
 │   ├── risk_engine.py           # Multiscale VaR/ES, benchmark models, H-TCM rule
 │   ├── backtest.py              # Kupiec, Christoffersen, Basel zones, FZ scoring
@@ -180,7 +180,7 @@ QuantEdge/
 | :--- | :--- | :--- | :--- |
 | **Member 1** | Team Lead & Pipeline Architect | `src/config.py`<br>`src/data_loader.py`<br>`run_all.py` | Data fetching and caching, train/test splitting, master runner, repo PR review, ZIP packaging. |
 | **Member 2** | Wavelet & Signal Specialist | `src/wavelets.py`<br>`tests/test_wavelets.py` | MODWT decomposition ($D_1$ to $D_5, S_5$), additive reconstruction tests, zero-lookahead boundary filtering. |
-| **Member 3** | Econometrician & Copula Modeler | `src/margins.py`<br>`src/copulas.py` | ARMA-GARCH + EVT-POT margins, uniform PIT validation, copula MLE fitting, tail dependence curves $\lambda_L(h)$. |
+| **Member 3** | Econometrician & Copula Modeler | `src/margins.py`<br>`src/copulas.py` | AR(1)-GJR-GARCH(1,1) + EVT-POT margins, uniform PIT validation, copula MLE fitting, tail dependence curves $\lambda_L(h)$. |
 | **Member 4** | Risk Analyst & Backtest Lead | `src/risk_engine.py`<br>`src/backtest.py` | Multiscale VaR/ES engine, benchmark models, Kupiec POF, Christoffersen independence tests, H-TCM formulation. |
 | **Member 5** | Visualizer & Report Lead | `src/visualizer.py`<br>`report/report.tex` | High-DPI publication figures, academic manuscript, AI disclosure appendix. |
 

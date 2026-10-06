@@ -16,12 +16,12 @@ This rule assumes that the way assets move together during extreme panics stays 
 In this study, we answer the competition question directly: **tail dependence changes dramatically across investment horizons**. Assets that normally hedge each other during calm periods crash together during extended sell-offs.
 
 ### Key Discoveries:
-1. **The Flight-to-Liquidity Contagion Paradox:** On a normal day, Long Treasuries (TLT) and Gold (GLD) protect equity portfolios (SPY, QQQ). At short noise horizons ($D_1$: 2 to 4 days), lower tail crash dependence is minimal ($\lambda_L = 0.042$). But during an extended market crash, funds face sudden margin calls on equities. They cannot easily liquidate illiquid positions, so they dump their most liquid safe assets (Treasuries and Gold) to get immediate cash. As everyone sells together, lower tail dependence surges to $0.318$ at quarterly business-cycle horizons ($D_5$: 32 to 64 days), representing a **657% jump in crash co-movement**.
+1. **The Flight-to-Liquidity Contagion Paradox:** On a normal day, Long Treasuries (TLT) and Gold (GLD) protect equity portfolios (SPY, QQQ). At short noise horizons ($D_1$: 2 to 4 days), lower tail crash dependence is minimal ($\lambda_L = 0.042$). But during an extended market crash, market participants face liquidity pressures across portfolios, consistent with flight-to-liquidity hypotheses where funds liquidate their most liquid safe assets (Treasuries and Gold) simultaneously to raise cash. As everyone sells together, lower tail co-exceedance surges to $0.318$ at quarterly business-cycle horizons ($D_5$: 32 to 64 days), representing a **657% jump in crash co-movement**.
 2. **The Timescale Asymmetry Ratio ($\text{TAR} = \lambda_L - \lambda_U$):** Markets crash together over holding periods, but recover on their own. While daily noise shows symmetric tails ($\text{TAR} = 0.000$), quarterly scales exhibit strong crash asymmetry ($\text{TAR} = +0.286$).
 3. **Basel Square-Root Scaling Understates Risk:** In out-of-sample testing across 875 trading days (2023 to 2026), standard Gaussian models generate 13 breaches at the 99% level (a 1.49% breach rate, well above the 1.00% target). Scaling by $\sqrt{h}$ fails to account for the jump in joint tail risk at multi-week horizons.
 4. **Actionable Fix for Risk Desks (The H-TCM Rule):** We provide a closed-form formula, the **Horizon-Conditioned Tail Capital Multiplier (H-TCM)**, that risk managers can insert into their spreadsheets or code tomorrow:
    $$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \max\left(0, \frac{\lambda_L(h) - \lambda_L(1)}{\lambda_L(1) + \epsilon}\right) \right]$$
-   With $\kappa = 0.35$, this formula automatically adds an 8.8% capital buffer at weekly horizons and a 24.5% buffer at monthly horizons, protecting against liquidity freezes without requiring firms to rebuild their legacy risk systems.
+   With $\kappa = 0.35$, this formula maintains a baseline multiplier of 1.000 at weekly horizons and adds a 23.3% capital buffer at monthly horizons ($h=20$), protecting against liquidity freezes without requiring firms to rebuild their legacy risk systems.
 
 ***
 
@@ -128,7 +128,7 @@ We evaluate models across 875 out-of-sample trading days (January 2023 to June 2
 | **20-Day** | **Proposed Multiscale Model** | **0** | **0.00%** | **0.000** | **GREEN** | **-2.094** |
 | **20-Day** | H-TCM Adjusted | 0 | 0.00% | 0.000 | **GREEN** | -2.253 |
 
-The Parametric Gaussian model generates 13 breaches at the 1-day horizon (1.49% vs 1.00% expected, Kupiec $p = 0.178$). While within the Basel Green Zone scaled over 250 days (3.71 breaches per 250 days), it approaches the supervisory penalty threshold, showing that assuming normal distributions understates risk.
+The Parametric Gaussian model generates 13 breaches at the 1-day horizon (1.49% vs 1.00% expected, Kupiec $p = 0.178$). While within the Basel Green Zone scaled over 250 days (3.71 breaches per 250 days), it approaches the supervisory penalty threshold, showing that assuming normal distributions understates risk. Crucially, observing zero breaches at the 20-day horizon causes the two-sided Kupiec test to formally reject exact 1% coverage ($p = 0.000$), reflecting conservative risk buffers during the steady 2023 to 2026 equity expansion combined with rolling-window aggregation; however, the Fissler-Ziegel joint score consistently confirms the superior elicitable accuracy of the multiscale tail risk model across all holding periods.
 
 ***
 

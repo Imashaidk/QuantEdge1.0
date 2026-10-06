@@ -1,6 +1,6 @@
 """QuantEdge-MTR Master Pipeline Orchestration Script.
 
-SAIFA QUANT EDGE 1.0 — WINNING SUBMISSION PIPELINE
+SAIFA QUANT EDGE 1.0: MASTER WINNING PIPELINE
 Official Challenge Question:
 "Does tail dependence change with the investment horizon, and what does ignoring
 this do to a portfolio's measured risk?"
@@ -8,7 +8,7 @@ this do to a portfolio's measured risk?"
 Executes the complete end-to-end institutional workflow in < 3 minutes:
   Step 1: Data Ingestion & Deterministic Caching
   Step 2: MODWT Wavelet Multiresolution Analysis (MRA)
-  Step 3: ARMA-GJR-GARCH EVT-POT Margins & Scale-Optimal Copula Tournament
+  Step 3: AR(1)-GJR-GARCH(1,1) EVT-POT Margins & Scale-Optimal Copula Tournament
   Step 4: Out-of-Sample Quantitative Risk Backtesting & Basel Traffic Light Proof
   Step 5: Publication Figures (300 DPI) & LaTeX Table Generation
   Step 6: Executive Recommendation & H-TCM Capital Policy Report
@@ -97,7 +97,7 @@ def main() -> None:
     # --------------------------------------------------------------------------
     # STEP 3: GARCH-EVT MARGINS & COPULA TOURNAMENT
     # --------------------------------------------------------------------------
-    print("\n[STEP 3/6] Estimating ARMA-GARCH + EVT Margins & Running Scale-Optimal Copula Tournament...")
+    print("\n[STEP 3/6] Estimating AR(1)-GJR-GARCH(1,1) + EVT Margins & Running Scale-Optimal Copula Tournament...")
     t0 = time.time()
     copula_results: dict = {}
     tournament_summary = []

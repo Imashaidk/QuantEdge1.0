@@ -20,7 +20,7 @@ In accordance with competition rules and academic publishing standards (e.g., CF
    - **All core quantitative and econometric design choices were originated and decided exclusively by the human team members**, including:
      - Selection and economic justification of the 5-asset liquidity portfolio (`SPY`, `QQQ`, `TLT`, `GLD`, `HYG`).
      - Selection of the Maximal Overlap Discrete Wavelet Transform (**MODWT**) and wavelets filter bank parameters.
-     - Formulation of the semi-parametric **ARMA-GARCH + EVT-POT** marginal distribution model.
+     - Formulation of the semi-parametric **AR(1)-GJR-GARCH(1,1) + EVT-POT** marginal distribution model.
      - Mathematical specification of the **Scale-Optimal Copula Tournament** and the **Timescale Asymmetry Ratio (TAR)**.
      - Out-of-sample backtesting methodology and Basel Traffic Light evaluation.
      - Derivation and calibration of the **Horizon-Conditioned Tail Capital Multiplier (H-TCM)**.

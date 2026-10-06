@@ -1,4 +1,4 @@
-"""QuantEdge-MTR Semi-Parametric Margins Module: ARMA-GARCH + EVT-POT.
+"""QuantEdge-MTR Semi-Parametric Margins Module: AR(1)-GJR-GARCH(1,1) + EVT-POT.
 
 Implements the two-stage semi-parametric marginal estimation framework:
 1. AR(1)-GJR-GARCH(1,1) filtering of conditional heteroskedasticity and leverage effects.
@@ -395,7 +395,7 @@ def fit_margins_and_transform_uniform(
     df_scale: pd.DataFrame,
     tail_percentile: float = EVT_TAIL_PERCENTILE,
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
-    """Fits ARMA(1,1)-GARCH(1,1) + EVT-POT GPD tails to each asset column.
+    """Fits AR(1)-GJR-GARCH(1,1) + EVT-POT GPD tails to each asset column.
 
     Transforms return series into uniform margins U_i in (0, 1) via PIT
     and validates uniform distribution using Kolmogorov-Smirnov test.
