@@ -6,7 +6,7 @@ Tests:
 3. Generation of Figure 3 (Out-of-sample VaR Exceedance plot).
 4. Generation of Figure 4 (Basel Regulatory Traffic Light Matrix).
 5. Generation of LaTeX Tables (backtest_metrics.tex, copula_tournament.tex).
-6. Contract 5 compliance: generate_all_figures_and_tables end-to-end execution.
+6. End-to-end execution: generate_all_figures_and_tables execution.
 """
 
 import sys
@@ -138,8 +138,8 @@ def test_export_latex_tables(mock_visualizer_data):
     assert "\\begin{table}" in c_tex.read_text(encoding="utf-8")
 
 
-def test_contract_5_generate_all(mock_visualizer_data):
-    """Verifies Contract 5 end-to-end execution."""
+def test_generate_all_figures_and_tables(mock_visualizer_data):
+    """Verifies generating all figures and tables end-to-end."""
     df_raw, wavelet_dict, copula_results, backtest_df, tmp_path = mock_visualizer_data
     fig_dir = tmp_path / "figures"
     tab_dir = tmp_path / "tables"

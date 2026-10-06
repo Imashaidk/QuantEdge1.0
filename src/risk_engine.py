@@ -1,25 +1,7 @@
-"""QuantEdge-MTR Quantitative Risk Engine Module.
+"""Quantitative risk engine module.
 
-Implements portfolio Value-at-Risk (VaR at 95% and 99%) and Expected Shortfall
-(ES at 97.5%) across 5 institutional benchmark models, the proposed multiscale
-wavelet-copula model, and the Horizon-Conditioned Tail Capital Multiplier (H-TCM).
-
-The 5 Comparative Risk Models:
-1. Benchmark 1 (Historical Simulation VaR):
-   Non-parametric empirical quantile of past portfolio return observations.
-2. Benchmark 2 (Parametric Gaussian VaR):
-   Linear variance-covariance matrix scaled by horizon factor sqrt(h) and z_alpha.
-3. Benchmark 3 (Static Full-Spectrum Copula VaR):
-   Student-t / raw copula fitted on full-spectrum returns without multiscale filtering.
-4. Benchmark 4 (Basel Square-Root-of-Time Scaler):
-   Standard regulatory formula VaR_h = VaR_1 * sqrt(h) (exposes undercapitalization).
-5. Proposed Framework (QuantEdge Multiscale Wavelet-Copula VaR):
-   Reconstructs joint returns by sampling from timescale-specific copulas, accurately
-   capturing horizon-dependent tail crash contagion.
-6. Managerial Solution (Horizon-Conditioned Tail Capital Multiplier - H-TCM):
-   VaR_h^* = VaR_1 * sqrt(h) * [1 + kappa * (lambda_L(h) - lambda_L(1)) / (lambda_L(1) + eps)]
-
-Satisfies Contract 4 of the QuantEdge-MTR architecture.
+Computes portfolio Value-at-Risk (VaR at 95% and 99%) and Expected Shortfall (ES)
+across benchmark models and multiscale wavelet-copula estimators.
 """
 
 import sys
@@ -37,6 +19,7 @@ from scipy.stats import norm, t
 
 from src.config import (
     ALPHA_ES_975,
+    ALPHA_ES_99,
     ALPHA_VAR_95,
     ALPHA_VAR_99,
     BACKTEST_HORIZONS,
@@ -82,7 +65,7 @@ def compute_portfolio_returns(
 def compute_var_es_from_loss(
     losses: np.ndarray,
     alpha_var: float = ALPHA_VAR_99,
-    alpha_es: float = ALPHA_ES_975,
+    alpha_es: float = ALPHA_ES_99,
 ) -> Tuple[float, float]:
     """Calculates non-parametric VaR and Expected Shortfall from a loss distribution.
 
@@ -92,8 +75,8 @@ def compute_var_es_from_loss(
 
     Args:
         losses: 1D array of real-valued portfolio losses.
-        alpha_var: VaR confidence level (e.g., 0.99 or 0.95).
-        alpha_es: ES confidence level (e.g., 0.975).
+        alpha_var: VaR confidence level (default: 0.99).
+        alpha_es: ES confidence level (default: 0.99).
 
     Returns:
         Tuple of (VaR, ES) as positive float numbers.
@@ -122,7 +105,7 @@ def compute_historical_var(
     r_train: np.ndarray,
     horizon: int = 1,
     alpha_var: float = ALPHA_VAR_99,
-    alpha_es: float = ALPHA_ES_975,
+    alpha_es: float = ALPHA_ES_99,
 ) -> Tuple[float, float]:
     """Benchmark 1: Historical Simulation VaR and ES.
 
@@ -152,7 +135,7 @@ def compute_parametric_gaussian_var(
     r_train: np.ndarray,
     horizon: int = 1,
     alpha_var: float = ALPHA_VAR_99,
-    alpha_es: float = ALPHA_ES_975,
+    alpha_es: float = ALPHA_ES_99,
 ) -> Tuple[float, float]:
     """Benchmark 2: Parametric Gaussian VaR and ES.
 
@@ -316,14 +299,15 @@ class RiskEngine:
         weights: np.ndarray = DEFAULT_PORTFOLIO_WEIGHTS,
         alpha_var_99: float = ALPHA_VAR_99,
         alpha_var_95: float = ALPHA_VAR_95,
-        alpha_es_975: float = ALPHA_ES_975,
+        alpha_es: float = ALPHA_ES_99,
         kappa: float = HTCM_KAPPA,
     ) -> None:
         self.weights: np.ndarray = np.asarray(weights, dtype=np.float64).flatten()
         self.weights = self.weights / np.sum(self.weights)
         self.alpha_var_99: float = alpha_var_99
         self.alpha_var_95: float = alpha_var_95
-        self.alpha_es_975: float = alpha_es_975
+        self.alpha_es: float = alpha_es
+        self.alpha_es_975: float = alpha_es  # Backward compatibility alias
         self.kappa: float = kappa
 
     def compute_all_models_for_horizon(
@@ -344,16 +328,16 @@ class RiskEngine:
             horizon: Holding horizon h in days (e.g., 1, 5, 20).
 
         Returns:
-            Dictionary mapping model names to {'VaR_99': val, 'VaR_95': val, 'ES_975': val}.
+            Dictionary mapping model names to {'VaR_99': val, 'VaR_95': val, 'ES_99': val, 'ES_975': val}.
         """
         r_port_train = compute_portfolio_returns(df_train, self.weights)
 
         # Baseline 1-day estimates
-        v1_hist_99, es1_hist_975 = compute_historical_var(
-            r_port_train, horizon=1, alpha_var=self.alpha_var_99, alpha_es=self.alpha_es_975
+        v1_hist_99, es1_hist_99 = compute_historical_var(
+            r_port_train, horizon=1, alpha_var=self.alpha_var_99, alpha_es=self.alpha_es
         )
         v1_hist_95, _ = compute_historical_var(
-            r_port_train, horizon=1, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es_975
+            r_port_train, horizon=1, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es
         )
 
         # Retrieve tail dependence parameters
@@ -368,53 +352,49 @@ class RiskEngine:
 
         results: Dict[str, Dict[str, float]] = {}
 
-        # ----------------------------------------------------------------------
-        # Model 1: Historical Simulation
-        # ----------------------------------------------------------------------
+        # Model 1: Historical simulation
         v_h_hist_99, es_h_hist = compute_historical_var(
-            r_port_train, horizon=horizon, alpha_var=self.alpha_var_99, alpha_es=self.alpha_es_975
+            r_port_train, horizon=horizon, alpha_var=self.alpha_var_99, alpha_es=self.alpha_es
         )
         v_h_hist_95, _ = compute_historical_var(
-            r_port_train, horizon=horizon, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es_975
+            r_port_train, horizon=horizon, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es
         )
         results["Historical_Simulation"] = {
             "VaR_99": v_h_hist_99,
             "VaR_95": v_h_hist_95,
+            "ES_99": es_h_hist,
             "ES_975": es_h_hist,
         }
 
-        # ----------------------------------------------------------------------
         # Model 2: Parametric Gaussian
-        # ----------------------------------------------------------------------
         v_h_norm_99, es_h_norm = compute_parametric_gaussian_var(
-            r_port_train, horizon=horizon, alpha_var=self.alpha_var_99, alpha_es=self.alpha_es_975
+            r_port_train, horizon=horizon, alpha_var=self.alpha_var_99, alpha_es=self.alpha_es
         )
         v_h_norm_95, _ = compute_parametric_gaussian_var(
-            r_port_train, horizon=horizon, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es_975
+            r_port_train, horizon=horizon, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es
         )
         results["Parametric_Gaussian"] = {
             "VaR_99": v_h_norm_99,
             "VaR_95": v_h_norm_95,
+            "ES_99": es_h_norm,
             "ES_975": es_h_norm,
         }
 
-        # ----------------------------------------------------------------------
-        # Model 3: Static Full-Spectrum Copula
-        # ----------------------------------------------------------------------
+        # Model 3: Static copula
         if sim_returns_raw is not None and not sim_returns_raw.empty:
             r_sim_raw = compute_portfolio_returns(sim_returns_raw, self.weights)
             v1_raw_99, es1_raw = compute_var_es_from_loss(
-                -r_sim_raw, alpha_var=self.alpha_var_99, alpha_es=self.alpha_es_975
+                -r_sim_raw, alpha_var=self.alpha_var_99, alpha_es=self.alpha_es
             )
             v1_raw_95, _ = compute_var_es_from_loss(
-                -r_sim_raw, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es_975
+                -r_sim_raw, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es
             )
             # Scaled across horizons by Basel sqrt(h)
             vh_raw_99, esh_raw = compute_basel_scaled_var(v1_raw_99, es1_raw, horizon)
             vh_raw_95, _ = compute_basel_scaled_var(v1_raw_95, es1_raw, horizon)
         else:
             # Baseline from historical if simulation not supplied
-            v1_raw_99, es1_raw = v1_hist_99, es1_hist_975
+            v1_raw_99, es1_raw = v1_hist_99, es1_hist_99
             v1_raw_95 = v1_hist_95
             vh_raw_99, esh_raw = compute_basel_scaled_var(v1_raw_99, es1_raw, horizon)
             vh_raw_95, _ = compute_basel_scaled_var(v1_raw_95, es1_raw, horizon)
@@ -422,24 +402,21 @@ class RiskEngine:
         results["Static_Copula"] = {
             "VaR_99": vh_raw_99,
             "VaR_95": vh_raw_95,
+            "ES_99": esh_raw,
             "ES_975": esh_raw,
         }
 
-        # ----------------------------------------------------------------------
-        # Model 4: Basel Square-Root-of-Time Scaler
-        # ----------------------------------------------------------------------
-        v_basel_99, es_basel = compute_basel_scaled_var(v1_hist_99, es1_hist_975, horizon)
-        v_basel_95, _ = compute_basel_scaled_var(v1_hist_95, es1_hist_975, horizon)
+        # Model 4: Basel square-root-of-time scaling
+        v_basel_99, es_basel = compute_basel_scaled_var(v1_hist_99, es1_hist_99, horizon)
+        v_basel_95, _ = compute_basel_scaled_var(v1_hist_95, es1_hist_99, horizon)
         results["Basel_Sqrt_Time"] = {
             "VaR_99": v_basel_99,
             "VaR_95": v_basel_95,
+            "ES_99": es_basel,
             "ES_975": es_basel,
         }
 
-        # ----------------------------------------------------------------------
-        # Model 5: Proposed Multiscale Wavelet-Copula Model (H-TCM Scaling)
-        # ----------------------------------------------------------------------
-        # Scales 1-day copula risk by the Horizon-Conditioned Tail Capital Multiplier
+        # Model 5: Multiscale wavelet-copula model (H-TCM scaling)
         mult_factor = compute_htcm_multiplier(lambda_L_h, lambda_L_1, self.kappa)
         vh_multi_99 = v1_raw_99 * np.sqrt(horizon) * mult_factor
         vh_multi_95 = v1_raw_95 * np.sqrt(horizon) * mult_factor
@@ -448,15 +425,14 @@ class RiskEngine:
         results["Proposed_Multiscale_Copula"] = {
             "VaR_99": vh_multi_99,
             "VaR_95": vh_multi_95,
+            "ES_99": esh_multi,
             "ES_975": esh_multi,
         }
 
-        # ----------------------------------------------------------------------
-        # Model 6: Managerial Solution (H-TCM)
-        # ----------------------------------------------------------------------
+        # Model 6: H-TCM adjusted
         v_htcm_99, es_htcm = compute_htcm_var(
             var_1d=v1_hist_99,
-            es_1d=es1_hist_975,
+            es_1d=es1_hist_99,
             horizon=horizon,
             lambda_L_h=lambda_L_h,
             lambda_L_1=lambda_L_1,
@@ -464,7 +440,7 @@ class RiskEngine:
         )
         v_htcm_95, _ = compute_htcm_var(
             var_1d=v1_hist_95,
-            es_1d=es1_hist_975,
+            es_1d=es1_hist_99,
             horizon=horizon,
             lambda_L_h=lambda_L_h,
             lambda_L_1=lambda_L_1,
@@ -473,20 +449,14 @@ class RiskEngine:
         results["H_TCM_Adjusted"] = {
             "VaR_99": v_htcm_99,
             "VaR_95": v_htcm_95,
+            "ES_99": es_htcm,
             "ES_975": es_htcm,
         }
 
         return results
 
 
-# ==============================================================================
-# STANDALONE VERIFICATION SUITE
-# ==============================================================================
 if __name__ == "__main__":
-    print("=" * 80)
-    print(" QuantEdge-MTR Risk Engine Validation (5 Models + H-TCM) ")
-    print("=" * 80)
-
     from src.data_loader import load_and_split_data
     from src.wavelets import decompose_multiscale
     from src.margins import fit_margins_and_transform_uniform

@@ -21,8 +21,6 @@ LaTeX Tables:
 1. `tables/backtest_metrics.tex`: Out-of-sample backtest results and p-values.
 2. `tables/copula_tournament.tex`: Scale-optimal copula selection leaderboard.
 3. `tables/variance_decomposition.tex`: Percentage variance contribution per scale.
-
-Satisfies Contract 5 of the QuantEdge-MTR architecture.
 """
 
 import sys
@@ -360,15 +358,20 @@ def export_latex_tables(
     """Exports structured LaTeX tables for inclusion in report/report.tex."""
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # --------------------------------------------------------------------------
     # 1. Backtest Metrics Table (tables/backtest_metrics.tex)
-    # --------------------------------------------------------------------------
-    bt_cols = ["Horizon", "Model", "Breaches", "Breach_Rate", "Kupiec_p", "Christoffersen_p", "Basel_Zone", "FZ_Loss"]
+    bt_cols = ["Horizon", "Model", "Total_Obs", "Breaches", "Breach_Rate", "Kupiec_p", "Christoffersen_p", "Basel_Zone", "FZ_Loss"]
     valid_cols = [c for c in bt_cols if c in backtest_df.columns]
     tex_df = backtest_df[valid_cols].copy()
     tex_df["Model"] = tex_df["Model"].str.replace("_", " ")
     tex_df["Breach_Rate"] = tex_df["Breach_Rate"].str.replace("%", "\\%")
+    if "Kupiec_p" in tex_df.columns:
+        tex_df["Kupiec_p"] = tex_df["Kupiec_p"].apply(lambda x: f"{float(x):.4f}")
+    if "Christoffersen_p" in tex_df.columns:
+        tex_df["Christoffersen_p"] = tex_df["Christoffersen_p"].apply(lambda x: f"{float(x):.4f}")
+    if "FZ_Loss" in tex_df.columns:
+        tex_df["FZ_Loss"] = tex_df["FZ_Loss"].apply(lambda x: f"{float(x):.4f}")
     tex_df = tex_df.rename(columns={
+        "Total_Obs": "Obs",
         "Breach_Rate": "Breach Rate",
         "Kupiec_p": "Kupiec $p$",
         "Christoffersen_p": "Christoffersen $p$",
@@ -381,7 +384,7 @@ def export_latex_tables(
         index=False,
         caption="Out-of-Sample Risk Model Evaluation and Basel Traffic Light Performance",
         label="tab:backtest_metrics",
-        column_format="llcccccc",
+        column_format="llccccccc",
         position="htbp",
         escape=False,
     )
@@ -389,9 +392,7 @@ def export_latex_tables(
         f.write(tex_code)
     print(f"[Visualizer] Exported LaTeX Table -> {bt_path}")
 
-    # --------------------------------------------------------------------------
     # 2. Copula Tournament Leaderboard Table (tables/copula_tournament.tex)
-    # --------------------------------------------------------------------------
     c_rows = []
     for s in ["D1", "D2", "D3", "D4", "D5", "S5"]:
         if s in copula_tournament_results:
@@ -401,18 +402,22 @@ def export_latex_tables(
                 best_c = "Student-$t$"
             else:
                 best_c = raw_c.capitalize()
-            lL = float(res.get("lambda_L", 0.0))
-            lU = float(res.get("lambda_U", 0.0))
-            tar = float(res.get("tar", lL - lU))
+            lL_theo = float(res.get("lambda_L_theo", res.get("lambda_L", 0.0)))
+            lU_theo = float(res.get("lambda_U_theo", res.get("lambda_U", 0.0)))
+            lL_emp = float(res.get("lambda_L_emp", res.get("lambda_L", 0.0)))
+            lU_emp = float(res.get("lambda_U_emp", res.get("lambda_U", 0.0)))
+            tar_emp = float(res.get("tar_emp", lL_emp - lU_emp))
             bic = res.get("bic_scores", {}).get(res.get("best_copula", ""), 0.0)
 
             c_rows.append({
                 "Scale": s,
                 "Trading Horizon": SCALE_HORIZONS.get(s, s).split("(")[0].strip(),
                 "Best Copula": best_c,
-                "Lower Tail ($\\lambda_L$)": f"{lL:.3f}",
-                "Upper Tail ($\\lambda_U$)": f"{lU:.3f}",
-                "TAR ($\\Delta \\lambda$)": f"{tar:+.3f}",
+                "Theo. $\\lambda_L$": f"{lL_theo:.3f}",
+                "Theo. $\\lambda_U$": f"{lU_theo:.3f}",
+                "Emp. $\\lambda_L$": f"{lL_emp:.3f}",
+                "Emp. $\\lambda_U$": f"{lU_emp:.3f}",
+                "Emp. TAR": f"{tar_emp:+.3f}",
                 "BIC": f"{bic:.1f}",
             })
 
@@ -423,7 +428,7 @@ def export_latex_tables(
             index=False,
             caption="Scale-Optimal Copula Tournament Leaderboard and Tail Dependence Parameters",
             label="tab:copula_tournament",
-            column_format="llccccc",
+            column_format="llccccccc",
             position="htbp",
             escape=False,
         )
@@ -431,9 +436,7 @@ def export_latex_tables(
             f.write(c_tex)
         print(f"[Visualizer] Exported LaTeX Table -> {c_path}")
 
-    # --------------------------------------------------------------------------
     # 3. Variance Decomposition Table (tables/variance_decomposition.tex)
-    # --------------------------------------------------------------------------
     if variance_decomp_df is not None and not variance_decomp_df.empty:
         var_path = out_dir / "variance_decomposition.tex"
         var_tex = variance_decomp_df.round(2).to_latex(
@@ -458,10 +461,7 @@ def generate_all_figures_and_tables(
     out_dir_figures: Path = FIGURES_DIR,
     out_dir_tables: Path = TABLES_DIR,
 ) -> None:
-    """Master visualization generator fulfilling Contract 5.
-
-    Generates all 4 publication 300 DPI figures and LaTeX tables in a single call.
-    """
+    """Generates all publication figures and LaTeX tables."""
     out_dir_figures.mkdir(parents=True, exist_ok=True)
     out_dir_tables.mkdir(parents=True, exist_ok=True)
 
@@ -525,14 +525,7 @@ def generate_all_figures_and_tables(
     )
 
 
-# ==============================================================================
-# STANDALONE DEMONSTRATION & VERIFICATION
-# ==============================================================================
 if __name__ == "__main__":
-    print("=" * 80)
-    print(" QuantEdge-MTR Visualizer & Publication Artifact Generator ")
-    print("=" * 80)
-
     from src.data_loader import load_and_split_data
     from src.wavelets import decompose_multiscale, compute_scale_variance_decomposition
     from src.margins import fit_margins_and_transform_uniform

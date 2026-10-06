@@ -10,7 +10,7 @@ Tests:
 7. Christoffersen Independence Likelihood Ratio test (violation clustering).
 8. Official Basel Committee Traffic Light zone classification (Green/Yellow/Red).
 9. Fissler-Ziegel (FZ) joint scoring consistency.
-10. Contract 4 compliance: run_out_of_sample_backtest schema and output types.
+10. Backtest integration: run_out_of_sample_backtest schema and output types.
 """
 
 import sys
@@ -63,9 +63,7 @@ def data_splits():
     return df_train, df_test
 
 
-# ==============================================================================
-# 1. PORTFOLIO CALCULATION & INVARIANTS
-# ==============================================================================
+# Portfolio calculation and invariants
 
 def test_compute_portfolio_returns():
     """Verifies portfolio return calculation and weight normalization."""
@@ -96,9 +94,7 @@ def test_var_es_empirical_invariants():
     assert es_975 >= var_99, "Expected Shortfall must be >= Value-at-Risk"
 
 
-# ==============================================================================
-# 2. RISK MODELS & SCALING
-# ==============================================================================
+# Risk models and scaling
 
 def test_parametric_gaussian_var():
     """Verifies parametric Gaussian formulas against analytical values."""
@@ -149,9 +145,7 @@ def test_map_horizon_to_wavelet_scale():
     assert map_horizon_to_wavelet_scale(90) == "S5"
 
 
-# ==============================================================================
-# 3. STATISTICAL BACKTEST TESTS
-# ==============================================================================
+# Statistical backtest tests
 
 def test_kupiec_pof_test():
     """Verifies Kupiec POF test on valid and invalid breach frequencies."""
@@ -214,12 +208,10 @@ def test_fissler_ziegel_loss():
     assert np.isfinite(loss_optimal)
 
 
-# ==============================================================================
-# 4. CONTRACT 4 INTEGRATION TEST
-# ==============================================================================
+# Backtest integration test
 
-def test_contract_4_run_out_of_sample_backtest(data_splits):
-    """Verifies Contract 4 compliance on real market data splits."""
+def test_run_out_of_sample_backtest_integration(data_splits):
+    """Verifies backtesting on real market data splits."""
     df_train, df_test = data_splits
     weights = DEFAULT_PORTFOLIO_WEIGHTS
 
@@ -236,7 +228,7 @@ def test_contract_4_run_out_of_sample_backtest(data_splits):
     assert isinstance(backtest_df, pd.DataFrame)
     assert not backtest_df.empty
 
-    # 2. Check required Contract 4 columns
+    # Check required output columns
     expected_cols = [
         "Horizon",
         "Model",
@@ -264,3 +256,9 @@ def test_contract_4_run_out_of_sample_backtest(data_splits):
     # 4. Check Basel zones are valid
     valid_zones = {"GREEN", "YELLOW", "RED"}
     assert set(backtest_df["Basel_Zone"].unique()).issubset(valid_zones)
+
+    # 5. Check observation counts match horizon
+    obs_1d = backtest_df[backtest_df["Horizon"] == "1d"]["Total_Obs"].iloc[0]
+    obs_5d = backtest_df[backtest_df["Horizon"] == "5d"]["Total_Obs"].iloc[0]
+    assert obs_1d == 875, f"1d observation count should be 875, got {obs_1d}"
+    assert obs_5d == 871, f"5d observation count should be 871, got {obs_5d}"

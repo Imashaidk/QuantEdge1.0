@@ -1,28 +1,28 @@
 \begin{table}[htbp]
 \caption{Out-of-Sample Risk Model Evaluation and Basel Traffic Light Performance}
 \label{tab:backtest_metrics}
-\begin{tabular}{llcccccc}
+\begin{tabular}{llccccccc}
 \toprule
-Horizon & Model & Breaches & Breach Rate & Kupiec $p$ & Christoffersen $p$ & Basel Zone & FZ Loss \\
+Horizon & Model & Obs & Breaches & Breach Rate & Kupiec $p$ & Christoffersen $p$ & Basel Zone & FZ Loss \\
 \midrule
-1d & Historical Simulation & 6 & 0.69\% & 0.321900 & 0.028600 & GREEN & -3.731700 \\
-1d & Parametric Gaussian & 13 & 1.49\% & 0.178000 & 0.182400 & GREEN & -3.622900 \\
-1d & Static Copula & 5 & 0.57\% & 0.165900 & 0.018200 & GREEN & -3.683800 \\
-1d & Basel Sqrt Time & 6 & 0.69\% & 0.321900 & 0.028600 & GREEN & -3.731700 \\
-1d & Proposed Multiscale Copula & 5 & 0.57\% & 0.165900 & 0.018200 & GREEN & -3.683800 \\
-1d & H TCM Adjusted & 6 & 0.69\% & 0.321900 & 0.028600 & GREEN & -3.731700 \\
-5d & Historical Simulation & 2 & 0.23\% & 0.005900 & 0.001600 & GREEN & -2.955900 \\
-5d & Parametric Gaussian & 6 & 0.69\% & 0.328200 & 0.000300 & GREEN & -3.047900 \\
-5d & Static Copula & 2 & 0.23\% & 0.005900 & 0.001600 & GREEN & -2.900300 \\
-5d & Basel Sqrt Time & 3 & 0.34\% & 0.024400 & 0.000000 & GREEN & -3.006800 \\
-5d & Proposed Multiscale Copula & 2 & 0.23\% & 0.005900 & 0.001600 & GREEN & -2.900300 \\
-5d & H TCM Adjusted & 3 & 0.34\% & 0.024400 & 0.000000 & GREEN & -3.006800 \\
-20d & Historical Simulation & 0 & 0.00\% & 0.000000 & 1.000000 & GREEN & -2.392300 \\
-20d & Parametric Gaussian & 3 & 0.35\% & 0.027400 & 0.000000 & GREEN & -2.664400 \\
-20d & Static Copula & 0 & 0.00\% & 0.000000 & 1.000000 & GREEN & -2.307400 \\
-20d & Basel Sqrt Time & 0 & 0.00\% & 0.000000 & 1.000000 & GREEN & -2.466500 \\
-20d & Proposed Multiscale Copula & 0 & 0.00\% & 0.000000 & 1.000000 & GREEN & -2.094200 \\
-20d & H TCM Adjusted & 0 & 0.00\% & 0.000000 & 1.000000 & GREEN & -2.253300 \\
+1d & Historical Simulation & 875 & 6 & 0.69\% & 0.3219 & 0.0286 & GREEN & -3.7191 \\
+1d & Parametric Gaussian & 875 & 13 & 1.49\% & 0.1780 & 0.1824 & GREEN & -3.6786 \\
+1d & Static Copula & 875 & 5 & 0.57\% & 0.1659 & 0.0182 & GREEN & -3.6674 \\
+1d & Basel Sqrt Time & 875 & 6 & 0.69\% & 0.3219 & 0.0286 & GREEN & -3.7191 \\
+1d & Proposed Multiscale Copula & 875 & 5 & 0.57\% & 0.1659 & 0.0182 & GREEN & -3.6674 \\
+1d & H TCM Adjusted & 875 & 6 & 0.69\% & 0.3219 & 0.0286 & GREEN & -3.7191 \\
+5d & Historical Simulation & 871 & 2 & 0.23\% & 0.0059 & 0.0016 & GREEN & -2.9245 \\
+5d & Parametric Gaussian & 871 & 6 & 0.69\% & 0.3282 & 0.0003 & GREEN & -3.0778 \\
+5d & Static Copula & 871 & 2 & 0.23\% & 0.0059 & 0.0016 & GREEN & -2.8764 \\
+5d & Basel Sqrt Time & 871 & 3 & 0.34\% & 0.0244 & 0.0000 & GREEN & -2.9744 \\
+5d & Proposed Multiscale Copula & 871 & 2 & 0.23\% & 0.0059 & 0.0016 & GREEN & -2.8219 \\
+5d & H TCM Adjusted & 871 & 3 & 0.34\% & 0.0244 & 0.0000 & GREEN & -2.9261 \\
+20d & Historical Simulation & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & GREEN & -2.3530 \\
+20d & Parametric Gaussian & 856 & 3 & 0.35\% & 0.0274 & 0.0000 & GREEN & -2.6591 \\
+20d & Static Copula & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & GREEN & -2.2601 \\
+20d & Basel Sqrt Time & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & GREEN & -2.3963 \\
+20d & Proposed Multiscale Copula & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & GREEN & -2.2601 \\
+20d & H TCM Adjusted & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & GREEN & -2.3963 \\
 \bottomrule
 \end{tabular}
 \end{table}

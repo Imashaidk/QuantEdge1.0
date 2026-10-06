@@ -4,7 +4,7 @@ Tests:
 1. Wavelet filter scaling and MODWT energy normalization.
 2. Forward MODWT and Inverse MODWT (IMODWT) perfect reconstruction.
 3. Multiresolution Analysis (MRA) additive decomposition across all scales.
-4. Contract 2 compliance: decompose_multiscale output shapes, index alignment,
+4. Multi-asset decomposition: decompose_multiscale output shapes, index alignment,
    and exact additivity on real multi-asset financial data.
 5. Variance decomposition conservation and frequency hierarchy.
 6. Boundary extension handling (periodic vs reflection).
@@ -68,9 +68,7 @@ def synthetic_series() -> np.ndarray:
     return signal
 
 
-# ==============================================================================
-# 1. FILTER COEFFICIENT TESTS
-# ==============================================================================
+# Filter coefficient tests
 
 def test_wavelet_filter_normalization():
     """Verifies that MODWT filter coefficients satisfy energy scaling."""
@@ -101,9 +99,7 @@ def test_effective_filter_lengths():
     assert lengths["S5"] == 466
 
 
-# ==============================================================================
-# 2. FORWARD AND INVERSE MODWT TESTS
-# ==============================================================================
+# Forward and inverse MODWT tests
 
 def test_modwt_shapes_and_inversion(synthetic_series):
     """Verifies MODWT output dimensions and exact IMODWT reconstruction."""
@@ -130,9 +126,7 @@ def test_modwt_different_wavelets(synthetic_series):
         assert err < 1e-10
 
 
-# ==============================================================================
-# 3. ADDITIVE MULTIRESOLUTION ANALYSIS (MRA) TESTS
-# ==============================================================================
+# Additive multiresolution analysis (MRA) tests
 
 def test_mra_decompose_additivity_1d(synthetic_series):
     """Verifies exact additive identity: x = sum(D_j) + S_J on 1D series."""
@@ -157,12 +151,10 @@ def test_mra_boundary_modes(synthetic_series):
         assert err < 1e-10, f"Boundary mode '{boundary}' failed additivity with error {err:.4e}"
 
 
-# ==============================================================================
-# 4. CONTRACT 2 MULTI-ASSET DECOMPOSITION TESTS
-# ==============================================================================
+# Multi-asset decomposition tests
 
-def test_decompose_multiscale_contract(train_returns):
-    """Verifies Contract 2 compliance on multi-asset market returns."""
+def test_decompose_multiscale(train_returns):
+    """Verifies multiscale decomposition on multi-asset market returns."""
     level = 5
     decomposed = decompose_multiscale(
         train_returns, wavelet=WAVELET_FAMILY, level=level, boundary="periodic"
@@ -204,9 +196,7 @@ def test_scale_variance_decomposition(train_returns):
         assert pct_var.loc["D1", col] > 40.0, f"D1 variance for {col} unexpectedly low"
 
 
-# ==============================================================================
-# 5. INTEGRATION WITH MARGINS MODULE (CONTRACT 2 -> CONTRACT 3)
-# ==============================================================================
+# Integration with margins module
 
 def test_decomposed_scale_passes_to_margins(train_returns):
     """Verifies that scale DataFrames plug directly into fit_margins_and_transform_uniform."""
@@ -226,20 +216,24 @@ def test_decomposed_scale_passes_to_margins(train_returns):
     assert (u_d1.values < 1.0).all()
 
 
-# ==============================================================================
-# 6. ZERO LOOKAHEAD & ISOLATION TESTS
-# ==============================================================================
+# Zero lookahead and isolation tests
 
 def test_zero_lookahead_temporal_isolation():
-    """Verifies that in-sample decomposition is independent of future test data."""
+    """Verifies that in-sample decomposition strictly enforces temporal isolation."""
     df_train, df_test = load_and_split_data()
     lookahead_ok = verify_zero_lookahead(df_train, df_test, wavelet="sym8", level=5)
     assert lookahead_ok is True
 
 
-# ==============================================================================
-# 7. INPUT VALIDATION & ERROR HANDLING
-# ==============================================================================
+def test_deterministic_reproducibility(train_returns):
+    """Verifies that multiscale decomposition is bit-for-bit deterministic."""
+    dec1 = decompose_multiscale(train_returns, wavelet="sym8", level=5)
+    dec2 = decompose_multiscale(train_returns, wavelet="sym8", level=5)
+    for s in dec1:
+        assert np.allclose(dec1[s].values, dec2[s].values, atol=1e-14)
+
+
+# Input validation and error handling
 
 def test_input_validation_empty_and_nan():
     """Verifies that invalid inputs raise informative exceptions."""

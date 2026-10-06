@@ -1,16 +1,16 @@
 \begin{table}[htbp]
 \caption{Scale-Optimal Copula Tournament Leaderboard and Tail Dependence Parameters}
 \label{tab:copula_tournament}
-\begin{tabular}{llccccc}
+\begin{tabular}{llccccccc}
 \toprule
-Scale & Trading Horizon & Best Copula & Lower Tail ($\lambda_L$) & Upper Tail ($\lambda_U$) & TAR ($\Delta \lambda$) & BIC \\
+Scale & Trading Horizon & Best Copula & Theo. $\lambda_L$ & Theo. $\lambda_U$ & Emp. $\lambda_L$ & Emp. $\lambda_U$ & Emp. TAR & BIC \\
 \midrule
-D1 & 2 to 4 Days & Student-$t$ & 0.042 & 0.042 & +0.000 & -5907.6 \\
-D2 & 4 to 8 Days & Student-$t$ & 0.002 & 0.002 & +0.000 & -6408.3 \\
-D3 & 8 to 16 Days & Student-$t$ & 0.035 & 0.035 & +0.000 & -23601.4 \\
-D4 & 16 to 32 Days & Student-$t$ & 0.070 & 0.070 & +0.000 & -38799.7 \\
-D5 & 32 to 64 Days & Gumbel & 0.318 & 0.032 & +0.286 & -7140.6 \\
-S5 & >64 Days & Clayton & 0.001 & 0.394 & -0.394 & -1446.4 \\
+D1 & 2 to 4 Days & Student-$t$ & 0.020 & 0.020 & 0.189 & 0.187 & +0.002 & -5547.0 \\
+D2 & 4 to 8 Days & Student-$t$ & 0.024 & 0.024 & 0.201 & 0.214 & -0.013 & -4623.9 \\
+D3 & 8 to 16 Days & Student-$t$ & 0.005 & 0.005 & 0.176 & 0.168 & +0.008 & -4545.2 \\
+D4 & 16 to 32 Days & Student-$t$ & 0.000 & 0.000 & 0.081 & 0.057 & +0.025 & -2210.3 \\
+D5 & 32 to 64 Days & Student-$t$ & 0.000 & 0.000 & 0.052 & 0.064 & -0.012 & -1290.4 \\
+S5 & >64 Days & Student-$t$ & 0.046 & 0.046 & 0.178 & 0.118 & +0.060 & -4961.8 \\
 \bottomrule
 \end{tabular}
 \end{table}

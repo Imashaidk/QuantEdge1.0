@@ -1,14 +1,4 @@
-"""QuantEdge-MTR Semi-Parametric Margins Module: AR(1)-GJR-GARCH(1,1) + EVT-POT.
-
-Implements the two-stage semi-parametric marginal estimation framework:
-1. AR(1)-GJR-GARCH(1,1) filtering of conditional heteroskedasticity and leverage effects.
-2. Extreme Value Theory (EVT) Peaks-Over-Threshold (POT) using Generalized Pareto
-   Distribution (GPD) for upper/lower 10% tails with empirical CDF interior.
-3. Probability Integral Transform (PIT) mapping residuals to Uniform(0, 1) margins
-   validated via Kolmogorov-Smirnov goodness-of-fit testing.
-
-Satisfies Contract 3 of the QuantEdge-MTR architecture.
-"""
+"""Semi-parametric marginal models: AR(1)-GJR-GARCH(1,1) filtering + EVT-POT tails."""
 
 import sys
 from pathlib import Path
@@ -92,6 +82,8 @@ class GARCH_EVT_Margin:
         self.forecast_mu: float = 0.0
         self.forecast_sigma: float = 1.0
         self.garch_summary: Dict[str, float] = {}
+        self.model_type: str = "AR(1)-GJR-GARCH(1,1)"
+        self.fallback_used: bool = False
 
     def fit(self, series: Union[pd.Series, np.ndarray]) -> "GARCH_EVT_Margin":
         """Fits AR(1)-GJR-GARCH(1,1) + EVT-POT to the input series.
@@ -116,9 +108,7 @@ class GARCH_EVT_Margin:
         scale_factor = 100.0
         scaled_vals = raw_vals * scale_factor
 
-        # ----------------------------------------------------------------------
-        # Stage 1: Conditional Mean and Volatility Filtering (GJR-GARCH)
-        # ----------------------------------------------------------------------
+        # Fit AR(1)-GJR-GARCH(1,1) conditional mean and volatility
         z: np.ndarray
         mu_vec: np.ndarray
         sigma_vec: np.ndarray
@@ -163,6 +153,8 @@ class GARCH_EVT_Margin:
             f_var = forecast_res.variance.iloc[-1].values[0] / (scale_factor ** 2)
             self.forecast_sigma = float(np.sqrt(max(f_var, 1e-8)))
             self.forecast_mu = float(forecast_res.mean.iloc[-1].values[0] / scale_factor)
+            self.model_type = "AR(1)-GJR-GARCH(1,1)"
+            self.fallback_used = False
 
         except Exception:
             # Fallback model: Standard GARCH(1,1) or empirical normalization
@@ -186,6 +178,8 @@ class GARCH_EVT_Margin:
                 self.forecast_sigma = float(sigma_vec[-1])
                 self.forecast_mu = float(mu_vec[-1])
                 self.garch_summary = {k: float(v) for k, v in res_fb.params.items()}
+                self.model_type = "Standard-GARCH(1,1)"
+                self.fallback_used = True
             except Exception:
                 # Ultimate robust fallback: Sample mean and EWMA/rolling std
                 uncond_mu = float(np.mean(raw_vals))
@@ -196,6 +190,8 @@ class GARCH_EVT_Margin:
                 self.forecast_sigma = uncond_sigma
                 self.forecast_mu = uncond_mu
                 self.garch_summary = {"Const": uncond_mu, "omega": uncond_sigma ** 2}
+                self.model_type = "Empirical-Standardization"
+                self.fallback_used = True
 
         # Clean any remaining non-finite standardized residuals
         z = np.nan_to_num(z, nan=0.0, posinf=3.0, neginf=-3.0)
@@ -209,9 +205,9 @@ class GARCH_EVT_Margin:
             self.forecast_mu = uncond_mu
             self.garch_summary = {"Const": uncond_mu, "omega": uncond_sigma ** 2}
 
-        # ----------------------------------------------------------------------
-        # Stage 2: Extreme Value Theory (EVT-POT) Marginal Modeling
-        # ----------------------------------------------------------------------
+        self.z_filtered: np.ndarray = z.copy()
+
+        # Fit generalized Pareto distribution to tail residuals (EVT-POT)
         self.z_sorted = np.sort(z)
         N = len(self.z_sorted)
 
@@ -254,9 +250,7 @@ class GARCH_EVT_Margin:
             self.xi_U = 0.1
             self.beta_U = 1.0
 
-        # ----------------------------------------------------------------------
-        # Stage 3: PIT & Kolmogorov-Smirnov Uniformity Validation
-        # ----------------------------------------------------------------------
+        # Check uniformity of standardized residuals
         u_pit = self.transform(z)
         self.ks_stat, self.ks_pvalue = kstest(u_pit, "uniform")
 
@@ -405,8 +399,6 @@ def fit_margins_and_transform_uniform(
     Transforms return series into uniform margins U_i in (0, 1) via PIT
     and validates uniform distribution using Kolmogorov-Smirnov test.
 
-    Satisfies Contract 3 of QuantEdge-MTR architecture.
-
     Args:
         df_scale: DataFrame of returns or wavelet scale components
                   (columns: asset tickers, index: DatetimeIndex).
@@ -431,21 +423,9 @@ def fit_margins_and_transform_uniform(
         margin = GARCH_EVT_Margin(asset_name=col, tail_percentile=tail_percentile)
         margin.fit(series)
 
-        # Transform in-sample series to uniform margins
-        # Compute standardized residuals for this column
-        # Using margin's own fitted parameters
-        z = margin.ppf(margin.p_sorted)  # strictly calibrated
-        u_vals = margin.transform(margin.z_sorted)
-
-        # Map back to time order using original timestamps
-        # Rank-based PIT preserving time index
-        raw_vals = series.values
-        u_series = np.zeros(len(raw_vals), dtype=float)
-        # Using margin.cdf on filtered residuals or empirical ranks
-        # To maintain exact time alignment:
-        # Standardize using forecast mu/sigma or rolling model
-        z_time = (raw_vals - margin.forecast_mu) / max(margin.forecast_sigma, 1e-8)
-        u_series = margin.cdf(z_time)
+        # Transform in-sample series to uniform margins via Probability Integral Transform (PIT)
+        # using fitted semi-parametric EVT CDF on the chronological filtered standardized residuals:
+        u_series = margin.cdf(margin.z_filtered)
 
         u_dict[col] = u_series
         models_meta["models"][col] = margin
@@ -459,6 +439,9 @@ def fit_margins_and_transform_uniform(
             "xi_U": margin.xi_U,
             "beta_U": margin.beta_U,
         }
+
+    models_meta["model_types"] = {col: m.model_type for col, m in models_meta["models"].items()}
+    models_meta["fallback_status"] = {col: m.fallback_used for col, m in models_meta["models"].items()}
 
     u_df = pd.DataFrame(u_dict, index=df_scale.index)
     return u_df, models_meta

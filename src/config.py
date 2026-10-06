@@ -8,9 +8,7 @@ from pathlib import Path
 from typing import Dict, List
 import numpy as np
 
-# ==============================================================================
-# 1. DIRECTORY PATHS (Portable Relative Paths)
-# ==============================================================================
+# Directory paths
 ROOT_DIR: Path = Path(__file__).resolve().parent.parent
 DATA_DIR: Path = ROOT_DIR / "data"
 FIGURES_DIR: Path = ROOT_DIR / "figures"
@@ -21,14 +19,10 @@ REPORT_DIR: Path = ROOT_DIR / "report"
 for directory in [DATA_DIR, FIGURES_DIR, TABLES_DIR, REPORT_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
-# ==============================================================================
-# 2. DETERMINISTIC EXECUTION
-# ==============================================================================
+# Deterministic execution
 RANDOM_SEED: int = 42
 
-# ==============================================================================
-# 3. ASSET UNIVERSE & ECONOMIC ROLES
-# ==============================================================================
+# Asset universe and allocations
 TICKERS: List[str] = ["SPY", "QQQ", "TLT", "GLD", "HYG"]
 
 ASSET_DESCRIPTIONS: Dict[str, str] = {
@@ -39,22 +33,17 @@ ASSET_DESCRIPTIONS: Dict[str, str] = {
     "HYG": "High Yield Corporate Bond ETF (Credit & Liquidity)",
 }
 
-# Baseline Equal-Risk Diversified Portfolio Weights
-# Order matches TICKERS: [SPY, QQQ, TLT, GLD, HYG]
+# Baseline fixed diversified portfolio weights: [SPY, QQQ, TLT, GLD, HYG]
 DEFAULT_PORTFOLIO_WEIGHTS: np.ndarray = np.array([0.30, 0.20, 0.25, 0.15, 0.10])
 
-# ==============================================================================
-# 4. TEMPORAL PARTITIONING (ZERO LOOKAHEAD ENFORCEMENT)
-# ==============================================================================
+# Temporal partitioning
 TRAIN_START: str = "2015-01-01"
 TRAIN_END: str = "2022-12-31"
 
 TEST_START: str = "2023-01-01"
 TEST_END: str = "2026-06-30"
 
-# ==============================================================================
-# 5. WAVELET MULTIRESOLUTION ANALYSIS (MODWT)
-# ==============================================================================
+# Wavelet multiresolution analysis (MODWT)
 WAVELET_FAMILY: str = "sym8"
 WAVELET_LEVEL: int = 5
 SCALE_NAMES: List[str] = ["D1", "D2", "D3", "D4", "D5", "S5"]
@@ -68,9 +57,7 @@ SCALE_HORIZONS: Dict[str, str] = {
     "S5": ">64 Days (Macroeconomic Secular Trend)",
 }
 
-# ==============================================================================
-# 6. ECONOMETRIC MARGINS & COPULAS
-# ==============================================================================
+# Econometric margins and copulas
 EVT_TAIL_PERCENTILE: float = 0.10  # 10% upper and lower thresholds for GPD
 COPULA_FAMILIES: List[str] = [
     "gaussian",
@@ -81,12 +68,11 @@ COPULA_FAMILIES: List[str] = [
 ]
 COPULA_SIMULATION_SAMPLES: int = 10_000
 
-# ==============================================================================
-# 7. RISK & REGULATORY BACKTEST PARAMETERS
-# ==============================================================================
+# Risk and regulatory backtest parameters
 ALPHA_VAR_99: float = 0.99
 ALPHA_VAR_95: float = 0.95
-ALPHA_ES_975: float = 0.975
+ALPHA_ES_99: float = 0.99
+ALPHA_ES_975: float = 0.99  # Standardized alias matching alpha=0.99
 
 # Evaluation horizons in days
 BACKTEST_HORIZONS: List[int] = [1, 5, 20]

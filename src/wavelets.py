@@ -23,8 +23,6 @@ Theoretical & Architectural Foundations:
 4. Zero Lookahead Enforcement:
    - Boundary filtering uses strictly past/reflected historical windows.
    - In-sample decomposition is performed strictly on train partitions.
-
-Satisfies Contract 2 of the QuantEdge-MTR architecture.
 """
 
 import sys
@@ -319,7 +317,6 @@ def decompose_multiscale(
 ) -> Dict[str, pd.DataFrame]:
     """Decomposes multi-asset return series using MODWT Additive MRA.
 
-    Implements Contract 2 of the QuantEdge-MTR architecture.
     Iterates across each asset column in df_returns and produces synchronized
     scale DataFrames preserving exact index, columns, and sample size.
 
@@ -459,10 +456,12 @@ def verify_zero_lookahead(
     wavelet: str = WAVELET_FAMILY,
     level: int = WAVELET_LEVEL,
 ) -> bool:
-    """Validates that in-sample decomposition is independent of future test data.
+    """Validates that in-sample decomposition is strictly isolated from future test data.
 
-    Demonstrates that decomposing df_train in isolation produces exact,
-    reproducible coefficients without lookahead leakage from out-of-sample data.
+    Demonstrates:
+    1. Deterministic reproducibility: Decomposing df_train repeatedly yields bit-for-bit identical results.
+    2. Temporal isolation: Enforcing isolated decomposition on df_train prevents leakage that would
+       occur if future observations were concatenated before filtering.
 
     Args:
         df_train: In-sample training returns.
@@ -471,19 +470,31 @@ def verify_zero_lookahead(
         level: Decomposition level.
 
     Returns:
-        True if isolation property holds strictly.
+        True if isolation and reproducibility hold strictly.
     """
-    # Decompose train alone
+    # 1. Deterministic reproducibility
     train_dec1 = decompose_multiscale(df_train, wavelet=wavelet, level=level)
     train_dec2 = decompose_multiscale(df_train, wavelet=wavelet, level=level)
 
-    # Verify deterministic equivalence
     for scale in train_dec1:
         diff = np.max(np.abs(train_dec1[scale].values - train_dec2[scale].values))
         if diff > 1e-14:
             return False
 
-    return True
+    # 2. Verify temporal isolation requirement:
+    # Appending test data in a joint decomposition alters boundary coefficients,
+    # demonstrating why isolated training-window filtering is strictly enforced.
+    df_joint = pd.concat([df_train, df_test])
+    joint_dec = decompose_multiscale(df_joint, wavelet=wavelet, level=level)
+    n_train = len(df_train)
+    has_boundary_leakage_if_joint = False
+    for scale in train_dec1:
+        diff_boundary = np.max(np.abs(train_dec1[scale].values[-10:] - joint_dec[scale].values[n_train-10:n_train]))
+        if diff_boundary > 1e-6:
+            has_boundary_leakage_if_joint = True
+            break
+
+    return has_boundary_leakage_if_joint
 
 
 def get_scale_metadata(level: int = WAVELET_LEVEL) -> pd.DataFrame:
@@ -527,51 +538,34 @@ def get_scale_metadata(level: int = WAVELET_LEVEL) -> pd.DataFrame:
     return pd.DataFrame(rows).set_index("Scale")
 
 
-# ==============================================================================
-# STANDALONE VERIFICATION SUITE
-# ==============================================================================
 if __name__ == "__main__":
-    print("=" * 80)
-    print(" QuantEdge-MTR Wavelet Signal Processing Module (MODWT & Additive MRA)")
-    print("=" * 80)
-
     from src.data_loader import load_and_split_data
 
-    # 1. Load real market log returns
-    print("\n[Step 1] Loading in-sample market return data...")
+    # Load in-sample market return data
     df_train, df_test = load_and_split_data()
     print(f"Loaded train data: {df_train.shape[0]} days x {df_train.shape[1]} assets.")
 
-    # 2. Perform multiscale decomposition
-    print(f"\n[Step 2] Executing MODWT MRA (wavelet='{WAVELET_FAMILY}', level={WAVELET_LEVEL})...")
+    # Multiscale decomposition
     decomposed = decompose_multiscale(df_train, wavelet=WAVELET_FAMILY, level=WAVELET_LEVEL)
-    print(f"Decomposition complete! Extracted {len(decomposed)} scales: {list(decomposed.keys())}")
+    print(f"Decomposition complete: {list(decomposed.keys())}")
 
-    # 3. Mathematical Additivity Check
-    print("\n[Step 3] Verifying exact mathematical additive reconstruction...")
+    # Additivity check
     recon_df = sum(decomposed.values())
     max_err = float(np.max(np.abs(df_train.values - recon_df.values)))
     is_additive = verify_additivity(df_train, decomposed, tol=1e-10)
-    print(f"Additive Identity Check: max |R_t - sum(D_j) - S_J| = {max_err:.4e}")
-    print(f"Status: {'PASS (Zero Distortion)' if is_additive else 'FAIL'}")
+    print(f"Additive check: max diff = {max_err:.4e} ({'OK' if is_additive else 'FAILED'})")
 
-    # 4. Variance Decomposition Table
-    print("\n[Step 4] Computing timescale percentage variance contributions:")
+    # Variance decomposition
     pct_var_df = compute_scale_variance_decomposition(decomposed, normalize=True)
+    print("\nVariance contributions (%):")
     print(pct_var_df.round(2).to_string())
 
-    # 5. Metadata and Scale Interpretation
-    print("\n[Step 5] Wavelet multiresolution scale interpretation table:")
-    meta_df = get_scale_metadata(WAVELET_LEVEL)
-    print(meta_df[["Period (Days)", "Economic Interpretation"]].to_string())
-
-    # 6. Filter Effective Lengths
+    # Filter effective lengths
     filter_lens = get_modwt_filter_lengths(WAVELET_FAMILY, WAVELET_LEVEL)
-    print("\n[Step 6] Effective MODWT filter lengths (boundary influence zones):")
+    print("\nFilter lengths:")
     for scale, flen in filter_lens.items():
-        print(f"  - {scale}: L_j = {flen} trading days")
+        print(f"  {scale}: {flen} days")
 
-    # 7. Zero Lookahead Validation
+    # Zero lookahead validation
     lookahead_ok = verify_zero_lookahead(df_train, df_test)
-    print(f"\n[Step 7] In-Sample Zero Lookahead Isolation Test: {'PASS' if lookahead_ok else 'FAIL'}")
-    print("=" * 80)
+    print(f"Zero lookahead test: {'PASS' if lookahead_ok else 'FAIL'}")

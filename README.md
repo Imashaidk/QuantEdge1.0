@@ -1,10 +1,9 @@
 # QuantEdge 1.0: Risk Across Tails and Timescales
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-brightgreen.svg)](https://www.python.org/)
 [![Competition: SAIFA Quant Edge 1.0](https://img.shields.io/badge/Competition-SAIFA%20Quant%20Edge%201.0-orange)](https://saifa.lk)
-[![Tests: 41 Passed](https://img.shields.io/badge/tests-41%20passed-success)](tests/)
-[![Build: Reproducible](https://img.shields.io/badge/pipeline-14.2s%20execution-brightgreen)](run_all.py)
+[![Tests: 45 Passed](https://img.shields.io/badge/tests-45%20passed-success)](tests/)
+[![Build: Reproducible](https://img.shields.io/badge/pipeline-10.1s%20execution-brightgreen)](run_all.py)
 
 Official research submission for **SAIFA Quant Edge 1.0: Initial Screening Challenge (Round 1)**.  
 **Submission Deadline:** Wednesday, 7 October 2026 at 23:59 (Sri Lanka Time).  
@@ -20,35 +19,29 @@ Most commercial risk systems scale daily Value-at-Risk (VaR) to multi-day invest
 
 $$\text{VaR}_h = \text{VaR}_1 \times \sqrt{h}$$
 
-This rule assumes that financial returns follow a simple random walk with static correlation and normal distributions. In real markets, this assumption breaks down. Assets co-move differently over days than over months, and joint crash dependence spikes during market turmoil.
+This rule assumes that financial returns follow a simple random walk with static correlation and normal distributions. In real financial markets, this assumption breaks down. Assets co-move differently across timescales, and joint crash dependence manifests distinctly across high-frequency rebalancing and macroeconomic holding periods.
 
-This project delivers **QuantEdge-MTR (Multiscale Tail Risk Framework)**, a rigorous econometric methodology combining shift-invariant wavelets, extreme value theory, multiscale copulas, and regulatory backtesting to resolve the challenge question empirically.
+This project delivers **QuantEdge-MTR (Multiscale Tail Risk Framework)**, an econometric methodology combining shift-invariant wavelets, extreme value theory, multiscale copulas, and regulatory backtesting to resolve the challenge question empirically.
 
 ***
 
-## Core Research Breakthroughs
+## Core Research Findings
 
-### 1. The Flight-to-Liquidity Contagion Paradox
-On an ordinary day, Long Treasuries (TLT) and Gold (GLD) serve as effective hedges against equity sell-offs. At high-frequency noise scales ($D_1$: 2 to 4 days), lower tail crash dependence is minimal ($\lambda_L = 0.042$). 
+### 1. Persistent Tail Crash Co-dependence Across Timescales
+Using rigorous Probability Integral Transform (PIT) uniform margins from AR(1)-GJR-GARCH(1,1) + EVT-POT filtering, empirical lower-tail crash dependence remains persistent across investment horizons: $\hat{\lambda}_L = 0.189$ at daily noise scales ($D_1$, 2 to 4 days) and $\hat{\lambda}_L = 0.201$ at weekly swing scales ($D_2$, 4 to 8 days), gradually settling to $\hat{\lambda}_L = 0.052$ at quarterly horizons ($D_5$, 32 to 64 days). This confirms that cross-asset crash co-dependence does not vanish at multi-day horizons.
 
-However, during sustained liquidity stress events, institutional funds face margin calls on their equity derivative positions. Because they cannot quickly dump illiquid holdings without severe price impact, desks are forced to liquidate their most liquid safe assets (Treasuries and Gold) simultaneously to raise cash. When all participants rush to exit at once, the hedge breaks down. At quarterly business-cycle horizons ($D_5$: 32 to 64 days), lower tail crash dependence surges to $0.318$, representing a **657% increase in joint crash probability**.
+### 2. Student-t Copula Dominance Across Horizons
+Across all decomposed timescales ($D_1$ through $S_5$), the Student-$t$ copula decisively wins the model tournament evaluated by the Bayesian Information Criterion (BIC), outperforming Gaussian, Clayton, Gumbel, and Frank alternatives. Standardized residuals display symmetric fat tails across frequencies. The Timescale Asymmetry Ratio remains tightly bounded ($\text{TAR} \in [-0.013, +0.060]$), demonstrating that multiscale asset co-dependence is elliptical and fat-tailed.
 
-### 2. The Timescale Asymmetry Ratio (TAR)
-We define the Timescale Asymmetry Ratio:
+### 3. Out-of-Sample Backtesting & Basel Scaling Insights
+Over 875 out-of-sample trading days (2023 to 2026), conventional square-root-of-time scaling was statistically conservative at 5-day (3 breaches, 0.34%) and 20-day horizons (0 breaches, 0.00% vs ~8.7 expected). However, the 1-day Parametric Gaussian model generates 13 breaches (a 1.49% breach rate, approaching the supervisory penalty boundary), showing that ignoring fat tails understates short-term daily risk.
 
-$$\text{TAR}(h) = \lambda_L(h) - \lambda_U(h)$$
+### 4. An Actionable Solution: The Contingent H-TCM Rule
+For risk committees seeking an operational enhancement, we introduce the **Horizon-Conditioned Tail Capital Multiplier (H-TCM)**:
 
-At daily noise horizons, $\text{TAR} = 0.000$ with symmetric tails. Over quarterly cycles, $\text{TAR}$ surges to $+0.286$, while upper tail boom dependence remains near zero ($\lambda_U = 0.032$). This provides clear empirical proof: **markets crash together over extended holding periods, but recover on their own**.
+$$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \max\left(0, \frac{\hat{\lambda}_L(h) - \hat{\lambda}_L(1)}{\hat{\lambda}_L(1) + \epsilon}\right) \right]$$
 
-### 3. Basel Square-Root Scaling Understates Risk
-Over 875 out-of-sample trading days (2023 to 2026), conventional Gaussian models suffer 13 breaches at the 99% level (a 1.49% breach rate, well above the 1.00% target). Scaling 1-day risk via $\sqrt{h}$ completely misses the jump in joint tail dependence at multi-week horizons.
-
-### 4. An Actionable Solution: The H-TCM Rule
-For risk committees seeking an immediate operational improvement, we introduce the **Horizon-Conditioned Tail Capital Multiplier (H-TCM)**:
-
-$$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \max\left(0, \frac{\lambda_L(h) - \lambda_L(1)}{\lambda_L(1) + \epsilon}\right) \right]$$
-
-With calibration factor $\kappa = 0.35$, the formula maintains a baseline multiplier of 1.000 at weekly horizons and automatically adds a 23.3% capital buffer at monthly horizons ($h=20$), expanding dynamically during quarterly crash contagion regimes ($h=40$), protecting against liquidity freezes without requiring firms to rebuild their legacy risk infrastructure.
+Rather than imposing an unconditional capital penalty that locks up excessive liquidity during calm markets, H-TCM acts as a contingent policy buffer. When tail dependence at weekly horizons exceeds the daily baseline ($\hat{\lambda}_L(5) = 0.201 > 0.189$), it adds a targeted $+2.2\%$ capital buffer ($\kappa = 0.35$), while reverting to $1.000$ at horizons where tail dependence does not exceed baseline risk.
 
 ***
 
@@ -69,48 +62,48 @@ Decomposed via Maximal Overlap Discrete Wavelet Transform (MODWT, Symlet 8, Leve
 ### Copula Tournament Leaderboard Across Horizons
 Five copula families fitted via MLE and evaluated by Bayesian Information Criterion (BIC):
 
-| Scale | Trading Horizon | Best Copula | Lower Tail ($\lambda_L$) | Upper Tail ($\lambda_U$) | TAR ($\Delta \lambda$) | BIC |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **D1** | 2 to 4 Days (Noise) | Student-t | 0.042 | 0.042 | +0.000 | -5907.6 |
-| **D2** | 4 to 8 Days (Weekly) | Student-t | 0.002 | 0.002 | +0.000 | -6408.3 |
-| **D3** | 8 to 16 Days (Bi-weekly) | Student-t | 0.035 | 0.035 | +0.000 | -23601.4 |
-| **D4** | 16 to 32 Days (Monthly) | Student-t | 0.070 | 0.070 | +0.000 | -38799.7 |
-| **D5** | 32 to 64 Days (Quarterly) | Gumbel | **0.318** | 0.032 | **+0.286** | -7140.6 |
-| **S5** | >64 Days (Macro Trend) | Clayton | 0.001 | 0.394 | -0.394 | -1446.4 |
+| Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **D1** | 2 to 4 Days | Student-t | 0.020 | 0.020 | 0.189 | 0.187 | +0.002 | -5547.0 |
+| **D2** | 4 to 8 Days | Student-t | 0.024 | 0.024 | 0.201 | 0.214 | -0.013 | -4623.9 |
+| **D3** | 8 to 16 Days | Student-t | 0.005 | 0.005 | 0.176 | 0.168 | +0.008 | -4545.2 |
+| **D4** | 16 to 32 Days | Student-t | 0.000 | 0.000 | 0.081 | 0.057 | +0.025 | -2210.3 |
+| **D5** | 32 to 64 Days | Student-t | 0.000 | 0.000 | 0.052 | 0.064 | -0.012 | -1290.4 |
+| **S5** | >64 Days | Student-t | 0.046 | 0.046 | 0.178 | 0.118 | +0.060 | -4961.8 |
 
-### Out-of-Sample Backtesting Performance (875 Trading Days: 2023 to 2026)
+### Out-of-Sample Backtesting Performance (875 Test Days: 2023 to 2026)
 Models calibrated strictly on historical data (2015 to 2022) with zero lookahead bias:
 
-| Horizon | Model | Breaches | Breach Rate | Kupiec p | Basel Zone | FZ Loss |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1-Day** | Historical Simulation | 6 | 0.69% | 0.322 | GREEN | -3.732 |
-| **1-Day** | Parametric Gaussian | 13 | 1.49% | 0.178 | GREEN (Borderline) | -3.623 |
-| **1-Day** | Static Copula (Raw) | 5 | 0.57% | 0.166 | GREEN | -3.684 |
-| **1-Day** | Basel Sqrt(h) Scaler | 6 | 0.69% | 0.322 | GREEN | -3.732 |
-| **1-Day** | **Proposed Multiscale Model** | **5** | **0.57%** | **0.166** | **GREEN** | **-3.684** |
-| **1-Day** | H-TCM Adjusted | 6 | 0.69% | 0.322 | GREEN | -3.732 |
-| **5-Day** | Historical Simulation | 2 | 0.23% | 0.006 | GREEN | -2.956 |
-| **5-Day** | Parametric Gaussian | 6 | 0.69% | 0.328 | GREEN | -3.048 |
-| **5-Day** | Static Copula (Raw) | 2 | 0.23% | 0.006 | GREEN | -2.900 |
-| **5-Day** | Basel Sqrt(h) Scaler | 3 | 0.34% | 0.024 | GREEN | -3.007 |
-| **5-Day** | **Proposed Multiscale Model** | **2** | **0.23%** | **0.006** | **GREEN** | **-2.900** |
-| **5-Day** | H-TCM Adjusted | 3 | 0.34% | 0.024 | GREEN | -3.007 |
-| **20-Day** | Historical Simulation | 0 | 0.00% | 0.000 | GREEN | -2.392 |
-| **20-Day** | Parametric Gaussian | 3 | 0.35% | 0.027 | GREEN | -2.664 |
-| **20-Day** | Static Copula (Raw) | 0 | 0.00% | 0.000 | GREEN | -2.307 |
-| **20-Day** | Basel Sqrt(h) Scaler | 0 | 0.00% | 0.000 | GREEN | -2.467 |
-| **20-Day** | **Proposed Multiscale Model** | **0** | **0.00%** | **0.000** | **GREEN** | **-2.094** |
-| **20-Day** | H-TCM Adjusted | 0 | 0.00% | 0.000 | GREEN | -2.253 |
+| Horizon | Model | Obs | Breaches | Breach Rate | Kupiec p | Christoffersen p | Basel Zone | FZ Loss |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **1d** | Historical Simulation | 875 | 6 | 0.69% | 0.3219 | 0.0286 | GREEN | -3.7191 |
+| **1d** | Parametric Gaussian | 875 | 13 | 1.49% | 0.1780 | 0.1824 | GREEN | -3.6786 |
+| **1d** | Static Copula | 875 | 5 | 0.57% | 0.1659 | 0.0182 | GREEN | -3.6674 |
+| **1d** | Basel Sqrt Time | 875 | 6 | 0.69% | 0.3219 | 0.0286 | GREEN | -3.7191 |
+| **1d** | **Proposed Multiscale Copula** | **875** | **5** | **0.57%** | **0.1659** | **0.0182** | **GREEN** | **-3.6674** |
+| **1d** | H-TCM Adjusted | 875 | 6 | 0.69% | 0.3219 | 0.0286 | GREEN | -3.7191 |
+| **5d** | Historical Simulation | 871 | 2 | 0.23% | 0.0059 | 0.0016 | GREEN | -2.9245 |
+| **5d** | Parametric Gaussian | 871 | 6 | 0.69% | 0.3282 | 0.0003 | GREEN | -3.0778 |
+| **5d** | Static Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | GREEN | -2.8764 |
+| **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | 0.0000 | GREEN | -2.9744 |
+| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **GREEN** | **-2.8219** |
+| **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | 0.0000 | GREEN | -2.9261 |
+| **20d** | Historical Simulation | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.3530 |
+| **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | 0.0000 | GREEN | -2.6591 |
+| **20d** | Static Copula | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.2601 |
+| **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.3963 |
+| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **0.0000** | **1.0000** | **GREEN** | **-2.2601** |
+| **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.3963 |
 
-### H-TCM Capital Multiplier Sensitivity Matrix
-Pre-calibrated values for risk desks across calibration factors $\kappa \in [0.20, 0.50]$:
+### H-TCM Contingent Capital Multiplier Sensitivity Matrix
+Values for risk desks across calibration factors $\kappa \in [0.20, 0.50]$ (baseline $\hat{\lambda}_L(1) = 0.189$):
 
-| Horizon | $\kappa = 0.20$ | $\kappa = 0.35$ (Recommended) | $\kappa = 0.50$ | Operational Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **h = 1d** | 1.000 | **1.000** | 1.000 | Green Zone (Zero Surcharge) |
-| **h = 5d** | 1.000 | **1.000** | 1.000 | Green Zone (Zero Surcharge) |
-| **h = 20d** | 1.133 | **1.233** | 1.333 | Eliminates Liquidity Undercapitalization (+23.3%) |
-| **h = 40d** | 2.314 | **3.300** | 4.286 | Severe Crash Capital Reserve (+230.0%) |
+| Horizon | Scale | $\kappa = 0.20$ | $\kappa = 0.35$ (Recommended) | $\kappa = 0.50$ | Operational Status |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **h = 1d** | D1 | 1.000 | **1.000** | 1.000 | Baseline Allocation (0.0% Surcharge) |
+| **h = 5d** | D2 | 1.013 | **1.022** | 1.032 | Targeted Contingent Surcharge (+2.2%) |
+| **h = 20d** | D4 | 1.000 | **1.000** | 1.000 | No Surcharge Required (0.0% Surcharge) |
+| **h = 40d** | D5 | 1.000 | **1.000** | 1.000 | No Surcharge Required (0.0% Surcharge) |
 
 ***
 
@@ -121,13 +114,13 @@ Pre-calibrated values for risk desks across calibration factors $\kappa \in [0.2
    $$\max_t \left| R_t - \left( \sum_{j=1}^5 D_{j,t} + S_{5,t} \right) \right| = 3.77 \times 10^{-14} \ll 10^{-10}$$
 
 2. **Two-Stage Semi-Parametric Margins:**
-   Raw returns cannot be plugged directly into copulas due to volatility clustering. Each wavelet series is filtered with an AR(1)-GJR-GARCH(1,1) model with Student-t innovations to capture leverage asymmetry. The standardized residuals are then modeled using Extreme Value Theory (EVT) Peaks-Over-Threshold: an empirical distribution on the central 80% and Generalized Pareto Distributions (GPD) on the extreme 10% tails.
+   Raw returns cannot be plugged directly into copulas due to volatility clustering. Each wavelet series is filtered with an AR(1)-GJR-GARCH(1,1) model with Student-t innovations to capture leverage asymmetry. The standardized filtered residuals $z_t = \epsilon_t / \sigma_t$ are then modeled using Extreme Value Theory (EVT) Peaks-Over-Threshold: an empirical distribution on the central 80% and Generalized Pareto Distributions (GPD) on the extreme 10% tails, generating strict $\text{Uniform}(0, 1)$ margins.
 
-3. **Copula Tournament:**
+3. **Scale-Optimal Copula Tournament:**
    Fits five copula families (Gaussian, Student-t, Clayton, Gumbel, Frank) via Maximum Likelihood Estimation at each scale and selects the best model using Bayesian Information Criterion (BIC).
 
-4. **Rigorous Backtest Suite:**
-   Evaluates unconditional coverage (Kupiec POF LR test), conditional coverage (Christoffersen independence test), official Basel Committee Traffic Light zone classification, and joint elicitable scoring via Fissler-Ziegel (FZ) loss.
+4. **Rigorous Regulatory Backtest Suite:**
+   Evaluates unconditional coverage (Kupiec POF LR test), conditional coverage (Christoffersen independence test), official Basel Committee Traffic Light zone classification, and joint elicitable scoring via Fissler-Ziegel (FZ) loss at unified $\alpha = 0.99$.
 
 ***
 
@@ -168,6 +161,7 @@ QuantEdge/
 │   ├── test_visualizer.py       # Unit tests for plotting and tables
 │   └── test_wavelets.py         # Unit tests for MODWT and additive reconstruction
 ├── run_all.py                   # Master single-command reproduction script
+├── verify_submission.py         # Automated 7-criteria pre-submission verification
 ├── requirements.txt             # Dependency definitions
 └── README.md                    # Project documentation
 ```
@@ -178,9 +172,9 @@ QuantEdge/
 
 | Role | Lead | Target Modules | Primary Deliverable |
 | :--- | :--- | :--- | :--- |
-| **Member 1** | Team Lead & Pipeline Architect | `src/config.py`<br>`src/data_loader.py`<br>`run_all.py` | Data fetching and caching, train/test splitting, master runner, repo PR review, ZIP packaging. |
+| **Member 1** | Team Lead & Pipeline Architect | `src/config.py`<br>`src/data_loader.py`<br>`run_all.py` | Data fetching and caching, train/test splitting, master runner, verification suite, ZIP packaging. |
 | **Member 2** | Wavelet & Signal Specialist | `src/wavelets.py`<br>`tests/test_wavelets.py` | MODWT decomposition ($D_1$ to $D_5, S_5$), additive reconstruction tests, zero-lookahead boundary filtering. |
-| **Member 3** | Econometrician & Copula Modeler | `src/margins.py`<br>`src/copulas.py` | AR(1)-GJR-GARCH(1,1) + EVT-POT margins, uniform PIT validation, copula MLE fitting, tail dependence curves $\lambda_L(h)$. |
+| **Member 3** | Econometrician & Copula Modeler | `src/margins.py`<br>`src/copulas.py` | AR(1)-GJR-GARCH(1,1) + EVT-POT margins, uniform PIT validation, copula MLE fitting, tail dependence curves. |
 | **Member 4** | Risk Analyst & Backtest Lead | `src/risk_engine.py`<br>`src/backtest.py` | Multiscale VaR/ES engine, benchmark models, Kupiec POF, Christoffersen independence tests, H-TCM formulation. |
 | **Member 5** | Visualizer & Report Lead | `src/visualizer.py`<br>`report/report.tex` | High-DPI publication figures, academic manuscript, AI disclosure appendix. |
 
@@ -200,16 +194,22 @@ As required by competition guidelines, one command executes the entire pipeline 
 ```bash
 python run_all.py
 ```
-*Total execution time: ~15 seconds (< 3 minutes hard limit).*
+*Total execution time: ~10 seconds (< 3 minutes hard limit).*
 
 ### 3. Automated Test Suite
 Run the test suite to verify all mathematical and econometric invariants:
 ```bash
 pytest tests/
 ```
-*All 41 tests pass in ~15 seconds.*
+*All 45 tests pass in ~15 seconds.*
 
-### 4. Compiling the LaTeX Report
+### 4. Automated Submission Verification
+```bash
+python verify_submission.py
+```
+*Verifies all 7 audit integrity criteria (data splits, observation counts, theoretical tail bounds, H-TCM multipliers, confidence levels, LaTeX tables, zip size, zero emojis/non-ASCII characters).*
+
+### 5. Compiling the LaTeX Report
 To generate the final academic PDF manuscript:
 - **Local compilation:**
   ```bash

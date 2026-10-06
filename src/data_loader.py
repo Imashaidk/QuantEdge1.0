@@ -159,8 +159,6 @@ def load_and_split_data(
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """Loads cleaned log returns and enforces strict temporal train/test partitioning.
 
-    Satisfies Contract 1 of QuantEdge-MTR architecture.
-
     Args:
         tickers: List of ticker symbols.
         train_start: In-sample start date (inclusive).

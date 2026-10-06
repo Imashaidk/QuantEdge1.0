@@ -47,6 +47,7 @@ from src.config import (
 from src.copulas import run_scale_copula_tournament
 from src.data_loader import load_and_split_data
 from src.margins import fit_margins_and_transform_uniform
+from src.risk_engine import compute_htcm_multiplier
 from src.visualizer import generate_all_figures_and_tables
 from src.wavelets import (
     compute_scale_variance_decomposition,
@@ -63,23 +64,19 @@ def main() -> None:
     print(" Framework: QuantEdge-MTR (Multiscale Tail Risk Framework)")
     print("=" * 85)
 
-    # --------------------------------------------------------------------------
-    # STEP 1: DATA INGESTION & CACHING
-    # --------------------------------------------------------------------------
-    print("\n[STEP 1/6] Ingesting Multi-Asset Universe & Partitioning Dates...")
+    # Step 1: Data ingestion and caching
+    print("\n[Step 1/6] Ingesting multi-asset data...")
     t0 = time.time()
     df_train, df_test = load_and_split_data()
     t1 = time.time()
 
-    print(f"  [+] Multi-Asset Universe: {list(df_train.columns)}")
-    print(f"  [+] In-Sample  (Train): {TRAIN_START} to {TRAIN_END} ({len(df_train)} trading days)")
-    print(f"  [+] Out-of-Sample (Test): {TEST_START} to {TEST_END} ({len(df_test)} trading days)")
-    print(f"  [+] Step 1 Completed in {t1 - t0:.2f}s")
+    print(f"  Multi-asset universe: {list(df_train.columns)}")
+    print(f"  In-sample  (train): {TRAIN_START} to {TRAIN_END} ({len(df_train)} trading days)")
+    print(f"  Out-of-sample (test): {TEST_START} to {TEST_END} ({len(df_test)} trading days)")
+    print(f"  Step 1 completed in {t1 - t0:.2f}s")
 
-    # --------------------------------------------------------------------------
-    # STEP 2: MODWT WAVELET DECOMPOSITION
-    # --------------------------------------------------------------------------
-    print(f"\n[STEP 2/6] Executing MODWT Additive Multiresolution Analysis (Wavelet: {WAVELET_FAMILY}, Level: {WAVELET_LEVEL})...")
+    # Step 2: MODWT wavelet decomposition
+    print(f"\n[Step 2/6] Executing MODWT MRA (wavelet: {WAVELET_FAMILY}, level: {WAVELET_LEVEL})...")
     t0 = time.time()
     decomposed = decompose_multiscale(df_train, wavelet=WAVELET_FAMILY, level=WAVELET_LEVEL)
 
@@ -88,16 +85,14 @@ def main() -> None:
     var_decomp_df = compute_scale_variance_decomposition(decomposed, normalize=True)
     t1 = time.time()
 
-    print(f"  [+] Extracted Scales: {list(decomposed.keys())}")
-    print(f"  [+] Mathematical Additive Invariant Check: {'PASSED (Zero Distortion, max err < 1e-13)' if is_additive else 'FAILED'}")
-    print("  [+] Timescale Variance Contribution (% of return variance):")
+    print(f"  Extracted scales: {list(decomposed.keys())}")
+    print(f"  Additive invariant check: {'PASSED' if is_additive else 'FAILED'}")
+    print("  Timescale variance contribution (%):")
     print(var_decomp_df.round(1).to_string())
-    print(f"  [+] Step 2 Completed in {t1 - t0:.2f}s")
+    print(f"  Step 2 completed in {t1 - t0:.2f}s")
 
-    # --------------------------------------------------------------------------
-    # STEP 3: GARCH-EVT MARGINS & COPULA TOURNAMENT
-    # --------------------------------------------------------------------------
-    print("\n[STEP 3/6] Estimating AR(1)-GJR-GARCH(1,1) + EVT Margins & Running Scale-Optimal Copula Tournament...")
+    # Step 3: GARCH-EVT margins and copula tournament
+    print("\n[Step 3/6] Fitting margins and running copula tournament...")
     t0 = time.time()
     copula_results: dict = {}
     tournament_summary = []
@@ -124,21 +119,16 @@ def main() -> None:
         })
 
     t1 = time.time()
-    print("  [+] Scale-Optimal Copula Leaderboard Across Horizons:")
+    print("  Scale-optimal copula leaderboard:")
     print(pd.DataFrame(tournament_summary).to_string(index=False))
 
-    # Core empirical revelation check
-    lambda_1d = float(copula_results["D1"]["lambda_L"])
-    lambda_macro = float(copula_results["D5"]["lambda_L"])
-    growth_pct = ((lambda_macro - lambda_1d) / max(lambda_1d, 1e-4)) * 100.0
-    print(f"\n  [*] EMPIRICAL BREAKTHROUGH: Lower tail crash dependence spikes by {growth_pct:+.1f}% from daily (D1: {lambda_1d:.3f}) to macro cycles (D5: {lambda_macro:.3f})!")
-    print(f"  [*] Asymmetry Ratio surges to TAR = {copula_results['D5']['tar']:+.3f} (proving assets crash together but recover idiosyncratically).")
-    print(f"  [+] Step 3 Completed in {t1 - t0:.2f}s")
+    lambda_1d = float(copula_results["D1"]["lambda_L_emp"])
+    lambda_macro = float(copula_results["D5"]["lambda_L_emp"])
+    print(f"\n  Average pairwise lower tail dependence: D1={lambda_1d:.3f}, D5={lambda_macro:.3f}.")
+    print(f"  Step 3 completed in {t1 - t0:.2f}s")
 
-    # --------------------------------------------------------------------------
-    # STEP 4: OUT-OF-SAMPLE RISK BACKTESTING & BASEL TRAFFIC LIGHT
-    # --------------------------------------------------------------------------
-    print("\n[STEP 4/6] Running Out-of-Sample Backtesting & BCBS Basel Traffic Light Validation...")
+    # Step 4: Out-of-sample backtesting
+    print("\n[Step 4/6] Running out-of-sample backtesting...")
     t0 = time.time()
     backtest_df = run_out_of_sample_backtest(
         df_test=df_test,
@@ -150,15 +140,13 @@ def main() -> None:
     )
     t1 = time.time()
 
-    print("  [+] Out-of-Sample Performance Table (2023-2026):")
+    print("  Out-of-sample performance table (2023-2026):")
     display_cols = ["Horizon", "Model", "Breaches", "Breach_Rate", "Kupiec_p", "Basel_Zone", "FZ_Loss"]
     print(backtest_df[display_cols].to_string(index=False))
-    print(f"  [+] Step 4 Completed in {t1 - t0:.2f}s")
+    print(f"  Step 4 completed in {t1 - t0:.2f}s")
 
-    # --------------------------------------------------------------------------
-    # STEP 5: VISUALIZER & PUBLICATION EXPORT
-    # --------------------------------------------------------------------------
-    print("\n[STEP 5/6] Generating Publication-Quality 300 DPI Figures & LaTeX Tables...")
+    # Step 5: Visualizer and table export
+    print("\n[Step 5/6] Generating figures and LaTeX tables...")
     t0 = time.time()
     generate_all_figures_and_tables(
         wavelet_dict=decomposed,
@@ -173,56 +161,55 @@ def main() -> None:
     )
     t1 = time.time()
 
-    print("  [+] Exported Figures:")
-    for fig_name in [
-        "fig1_wavelet_mra_decomposition.png",
-        "fig2_tail_dependence_vs_horizon.png",
-        "fig3_backtest_var_exceedances.png",
-        "fig4_regulatory_traffic_light.png",
-    ]:
-        fpath = FIGURES_DIR / fig_name
-        size_kb = fpath.stat().st_size / 1024 if fpath.exists() else 0
-        print(f"    - {fpath.name} ({size_kb:.1f} KB, 300 DPI)")
+    print(f"  Figures exported to {FIGURES_DIR}")
+    print(f"  LaTeX tables exported to {TABLES_DIR}")
+    print(f"  Step 5 completed in {t1 - t0:.2f}s")
 
-    print("  [+] Exported LaTeX Tables:")
-    for tab_name in ["backtest_metrics.tex", "copula_tournament.tex", "variance_decomposition.tex"]:
-        tpath = TABLES_DIR / tab_name
-        print(f"    - {tpath.name}")
-    print(f"  [+] Step 5 Completed in {t1 - t0:.2f}s")
-
-    # --------------------------------------------------------------------------
-    # STEP 6: EXECUTIVE RECOMMENDATION & H-TCM REPORT
-    # --------------------------------------------------------------------------
+    # Step 6: Summary and H-TCM report
     t_end_total = time.time()
     total_time = t_end_total - t_start_total
 
-    print("\n" + "=" * 85)
-    print(" [STEP 6/6] EXECUTIVE RECOMMENDATION FOR RISK COMMITTEES & REGULATORS")
-    print("=" * 85)
-    print(
-        """
+    lL_1 = float(copula_results["D1"]["lambda_L_emp"])
+    lL_2 = float(copula_results["D2"]["lambda_L_emp"])
+    lL_4 = float(copula_results["D4"]["lambda_L_emp"])
+    lL_5 = float(copula_results["D5"]["lambda_L_emp"])
+    tar_5 = float(copula_results["D5"]["tar_emp"])
+
+    m_1 = compute_htcm_multiplier(lambda_L_h=lL_1, lambda_L_1=lL_1, kappa=HTCM_KAPPA)
+    m_5 = compute_htcm_multiplier(lambda_L_h=lL_2, lambda_L_1=lL_1, kappa=HTCM_KAPPA)
+    m_20 = compute_htcm_multiplier(lambda_L_h=lL_4, lambda_L_1=lL_1, kappa=HTCM_KAPPA)
+    m_40 = compute_htcm_multiplier(lambda_L_h=lL_5, lambda_L_1=lL_1, kappa=HTCM_KAPPA)
+
+    print("\n[Step 6/6] Summary & H-TCM Policy Analysis")
+
+    print(f"""
   THE CORE CHALLENGE ANSWER:
   "Does tail dependence change with the investment horizon, and what does ignoring
    this do to a portfolio's measured risk?"
 
-  1. YES: Tail dependence increases dramatically across timescales (lambda_L rises from 
-     0.042 at daily noise to 0.318 at quarterly horizons, with TAR surging to +0.286, a +657% surge).
-  2. IGNORING IT causes conventional models to underestimate multi-horizon crash risk,
-     leaving portfolios unprotected during market liquidity panics.
+  1. EMPIRICAL FINDING:
+     Average pairwise lower-tail dependence is persistent across timescales
+     (estimated lambda_L is {lL_1:.3f} at high frequencies and {lL_5:.3f} at macro horizons),
+     remaining within a stable band of ~0.05 to 0.20 rather than an explosive increase.
 
-  THE ACTIONABLE INSTITUTIONAL FORMULA:
-  Risk managers must drop the naive Basel sqrt(h) scaler and deploy the Horizon-Conditioned
-  Tail Capital Multiplier (H-TCM):
+  2. BACKTEST INSIGHT:
+     In out-of-sample backtesting (2023-2026), conventional square-root scaling was
+     statistically conservative at 5-day and 20-day horizons (achieving 0 to 3 breaches
+     versus ~8.7 expected), rather than understating risk.
 
-      VaR_h* = VaR_1 * sqrt(h) * [ 1 + kappa * ( (lambda_L(h) - lambda_L(1)) / (lambda_L(1) + epsilon) ) ]
+  3. ACTIONABLE INSTITUTIONAL RISK RECOMMENDATION:
+     Retain square-root-of-time scaling as the operational baseline for standard holding periods.
+     Implement the Horizon-Conditioned Tail Capital Multiplier (H-TCM) as a contingent policy
+     buffer that activates only when horizon-specific tail dependence exceeds baseline levels:
 
-  Empirical Calibration (kappa = 0.35, epsilon = 1e-6):
-    - Horizon h = 1d  : Multiplier = 1.000 (Green Zone, 0% capital surcharge)
-    - Horizon h = 5d  : Multiplier = 1.000 (Green Zone, 0% capital surcharge)
-    - Horizon h = 20d : Multiplier = 1.233 (Green Zone, +23.3% capital buffer)
-    - Horizon h = 40d : Multiplier = 3.300 (Macro Crash Reserve, +230.0% capital buffer)
-        """
-    )
+         VaR_h* = VaR_1 * sqrt(h) * [ 1 + kappa * max(0, (lambda_L(h) - lambda_L(1)) / (lambda_L(1) + epsilon)) ]
+
+     Contingent Overlay Status (kappa = {HTCM_KAPPA:.2f}, baseline lambda_L(1) = {lL_1:.3f}):
+       - Horizon h = 1d  (D1): Multiplier = {m_1:.3f} (Baseline allocation, 0% capital surcharge)
+       - Horizon h = 5d  (D2): Multiplier = {m_5:.3f} (Surcharge = +{(m_5 - 1.0) * 100.0:.1f}%)
+       - Horizon h = 20d (D4): Multiplier = {m_20:.3f} (Surcharge = +{(m_20 - 1.0) * 100.0:.1f}%)
+       - Horizon h = 40d (D5): Multiplier = {m_40:.3f} (Surcharge = +{(m_40 - 1.0) * 100.0:.1f}%)
+    """)
     print("=" * 85)
     print(f" [OK] PIPELINE REPRODUCTION COMPLETE IN {total_time:.1f} SECONDS (< 3 Minutes Hard Limit)!")
     print("=" * 85)

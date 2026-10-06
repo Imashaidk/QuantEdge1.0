@@ -52,9 +52,7 @@ def fitted_margins(real_data):
     return u_df, models_meta
 
 
-# ==============================================================================
-# 1. MARGINAL GARCH-EVT TESTS
-# ==============================================================================
+# Marginal GARCH-EVT tests
 
 def test_single_margin_garch_evt_fit(real_data):
     """Verifies that GARCH_EVT_Margin fits correctly on SPY return series."""
@@ -90,8 +88,8 @@ def test_margin_invertibility_roundtrip(fitted_margins):
         assert max_error < 1e-6, f"CDF-PPF roundtrip error too large for {ticker}: {max_error:.4e}"
 
 
-def test_fit_margins_and_transform_uniform_contract(real_data, fitted_margins):
-    """Verifies Contract 3 interface and data invariants."""
+def test_fit_margins_and_transform_uniform(real_data, fitted_margins):
+    """Verifies uniform margins interface and data invariants."""
     u_df, models_meta = fitted_margins
 
     # Dimensional invariants
@@ -105,9 +103,7 @@ def test_fit_margins_and_transform_uniform_contract(real_data, fitted_margins):
     assert not np.isnan(u_df.values).any(), "No NaN values allowed in uniform margins."
 
 
-# ==============================================================================
-# 2. INDIVIDUAL COPULA FAMILY TESTS
-# ==============================================================================
+# Copula family tests
 
 def test_gaussian_copula(fitted_margins):
     """Verifies Gaussian copula estimation, zero tail dependence, and simulation."""
@@ -186,16 +182,14 @@ def test_frank_copula(fitted_margins):
     assert samples.shape == (500, 5)
 
 
-# ==============================================================================
-# 3. SCALE-OPTIMAL TOURNAMENT & SIMULATION TESTS
-# ==============================================================================
+# Scale-optimal tournament and simulation tests
 
 def test_copula_tournament_selection(fitted_margins):
     """Verifies that run_scale_copula_tournament selects a valid winner and returns all metrics."""
     u_df, _ = fitted_margins
     res = run_scale_copula_tournament(u_df, scale_name="D1_Test")
 
-    # Contract 3 dictionary keys check
+    # Check dictionary keys
     expected_keys = [
         "scale",
         "best_copula",
@@ -210,7 +204,7 @@ def test_copula_tournament_selection(fitted_margins):
         "empirical_tail_dep",
     ]
     for key in expected_keys:
-        assert key in res, f"Tournament result missing required contract key: {key}"
+        assert key in res, f"Tournament result missing required key: {key}"
 
     assert res["scale"] == "D1_Test"
     assert res["best_copula"] in ["gaussian", "student_t", "clayton", "gumbel", "frank"]
@@ -275,3 +269,44 @@ def test_deterministic_simulation_seed(fitted_margins):
         sim_2.values,
         err_msg="Simulation results with same seed must be identical bit-for-bit.",
     )
+
+
+def test_copula_theoretical_vs_empirical_separation(fitted_margins):
+    """Verifies that theoretical tail bounds are strictly preserved and empirical metrics separated."""
+    # 1. Theoretical bounds on individual copulas
+    gumbel = GumbelCopula()
+    assert gumbel.lambda_L == 0.0, "Theoretical Gumbel lower tail dependence must be strictly 0."
+
+    clayton = ClaytonCopula()
+    assert clayton.lambda_U == 0.0, "Theoretical Clayton upper tail dependence must be strictly 0."
+
+    gaussian = GaussianCopula()
+    assert gaussian.lambda_L == 0.0 and gaussian.lambda_U == 0.0, "Gaussian tail dependence must be strictly 0."
+
+    # 2. Tournament results store both theoretical and empirical parameters
+    u_df, _ = fitted_margins
+    res = run_scale_copula_tournament(u_df, scale_name="InSample")
+    assert "lambda_L_theo" in res, "lambda_L_theo must be stored in tournament results"
+    assert "lambda_U_theo" in res, "lambda_U_theo must be stored in tournament results"
+    assert "lambda_L_emp" in res, "lambda_L_emp must be stored in tournament results"
+    assert "lambda_U_emp" in res, "lambda_U_emp must be stored in tournament results"
+
+
+def test_uniform_margins_pit_uniformity(fitted_margins):
+    """Verifies that PIT transformation produces genuine Uniform(0,1) margins."""
+    u_df, _ = fitted_margins
+    u_vals = u_df.values
+    # Bottom 5% share should be close to 0.05 (between 0.035 and 0.065)
+    share_below_5 = np.mean(u_vals <= 0.05, axis=0)
+    assert np.all((share_below_5 >= 0.035) & (share_below_5 <= 0.065)), (
+        f"Marginal PIT shares below 0.05 must be ~5%, got {share_below_5}"
+    )
+
+
+def test_empirical_tail_dependence_bounds(fitted_margins):
+    """Verifies that empirical tail dependence coefficients are strictly bounded in [0, 1]."""
+    u_df, _ = fitted_margins
+    lam_L, lam_U, tar = compute_empirical_tail_dependence(u_df.values, q=0.05)
+    assert 0.0 <= lam_L <= 1.0, f"Empirical lambda_L must be in [0, 1], got {lam_L}"
+    assert 0.0 <= lam_U <= 1.0, f"Empirical lambda_U must be in [0, 1], got {lam_U}"
+    assert -1.0 <= tar <= 1.0, f"TAR must be in [-1, 1], got {tar}"

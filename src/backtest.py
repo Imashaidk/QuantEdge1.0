@@ -1,14 +1,11 @@
-"""QuantEdge-MTR Quantitative Risk Backtesting & Regulatory Validation Module.
+"""Quantitative risk backtesting and regulatory validation module.
 
-Implements rigorous statistical hypothesis testing and supervisory validation
+Implements statistical hypothesis testing and supervisory validation
 for out-of-sample portfolio Value-at-Risk (VaR) and Expected Shortfall (ES):
-1. Kupiec POF Likelihood Ratio Test: Unconditional coverage of tail exceptions.
-2. Christoffersen Independence Test: Conditional coverage and crash clustering.
-3. Official Basel Committee on Banking Supervision (BCBS) Traffic Light Matrix:
-   Green (< 5 breaches per 250d), Yellow (5-9 breaches), Red (>= 10 breaches).
-4. Fissler-Ziegel (FZ) Strictly Consistent Joint Loss Function for (VaR, ES).
-
-Satisfies Contract 4 of the QuantEdge-MTR architecture.
+- Kupiec POF Likelihood Ratio Test (unconditional coverage)
+- Christoffersen Independence Test (conditional coverage)
+- Basel Committee on Banking Supervision (BCBS) Traffic Light Matrix
+- Fissler-Ziegel (FZ) joint scoring function for (VaR, ES)
 """
 
 import sys
@@ -26,6 +23,7 @@ from scipy.stats import binom, chi2
 
 from src.config import (
     ALPHA_ES_975,
+    ALPHA_ES_99,
     ALPHA_VAR_95,
     ALPHA_VAR_99,
     BACKTEST_HORIZONS,
@@ -208,8 +206,10 @@ def classify_basel_traffic_light(
         desc = "Model Approved (No Capital Penalty)"
     elif scaled_breaches <= 9.5:
         zone = "YELLOW"
-        # Basel penalty schedule for 5-9 breaches
-        k_offset = min(0.85, 0.40 + 0.10 * max(0, int(np.round(scaled_breaches)) - 5))
+        # Official BCBS penalty schedule for 5 to 9 breaches
+        n_b = min(9, max(5, int(np.round(scaled_breaches))))
+        schedule = {5: 0.40, 6: 0.50, 7: 0.65, 8: 0.75, 9: 0.85}
+        k_offset = schedule.get(n_b, 0.40)
         multiplier = 3.00 + k_offset
         desc = "Supervisory Monitoring / Capital Surcharge Applied"
     else:
@@ -326,14 +326,13 @@ def run_out_of_sample_backtest(
     copula_results: Optional[Dict[str, Any]] = None,
     h_horizons: List[int] = BACKTEST_HORIZONS,
     alpha_var: float = ALPHA_VAR_99,
-    alpha_es: float = ALPHA_ES_975,
+    alpha_es: float = ALPHA_ES_99,
     df_train: Optional[pd.DataFrame] = None,
     sim_returns_raw: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
-    """Runs comprehensive out-of-sample backtesting across models and horizons.
+    """Runs out-of-sample backtesting across models and horizons.
 
-    Fulfills Contract 4 of the QuantEdge-MTR architecture.
-    Compares 5 models + H-TCM across horizons h in {1, 5, 20} days.
+    Compares models across horizons h in {1, 5, 20} days.
 
     Args:
         df_test: Out-of-sample test log returns (2023-2026).
@@ -341,12 +340,12 @@ def run_out_of_sample_backtest(
         copula_results: Scale-optimal copula tournament results.
         h_horizons: List of horizons in trading days [1, 5, 20].
         alpha_var: VaR confidence level (0.99).
-        alpha_es: ES confidence level (0.975).
+        alpha_es: ES confidence level (0.99).
         df_train: In-sample train log returns (2015-2022). If None, loads from cache.
         sim_returns_raw: Simulated joint returns from raw copula. If None, generated.
 
     Returns:
-        pd.DataFrame matching Contract 4 schema:
+        pd.DataFrame of evaluation metrics:
             ['Horizon', 'Model', 'VaR_Level', 'Total_Obs', 'Breaches', 'Breach_Rate',
              'Kupiec_LR', 'Kupiec_p', 'Christoffersen_p', 'Basel_Zone', 'FZ_Loss']
     """
@@ -385,7 +384,7 @@ def run_out_of_sample_backtest(
         weights=weights,
         alpha_var_99=alpha_var,
         alpha_var_95=ALPHA_VAR_95,
-        alpha_es_975=alpha_es,
+        alpha_es=alpha_es,
         kappa=HTCM_KAPPA,
     )
 
@@ -412,7 +411,7 @@ def run_out_of_sample_backtest(
 
         for model_name, preds in model_predictions.items():
             var_pred = preds["VaR_99"]
-            es_pred = preds["ES_975"]
+            es_pred = preds.get("ES_99", preds.get("ES_975"))
 
             metrics = compute_backtest_metrics(
                 losses=losses_h,
@@ -442,14 +441,7 @@ def run_out_of_sample_backtest(
     return result_df
 
 
-# ==============================================================================
-# STANDALONE VERIFICATION SUITE
-# ==============================================================================
 if __name__ == "__main__":
-    print("=" * 85)
-    print(" QuantEdge-MTR Risk Backtesting & Official Basel Validation Suite ")
-    print("=" * 85)
-
     from src.data_loader import load_and_split_data
 
     # 1. Load Data

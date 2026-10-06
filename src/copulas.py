@@ -1,19 +1,4 @@
-"""QuantEdge-MTR Scale-Optimal Copula Tournament & Simulation Module.
-
-Implements the multi-family copula selection tournament across multiscale
-decomposition levels (D1 to D5, S5, and full-spectrum raw returns):
-1. Gaussian Copula (Benchmark: Zero tail dependence, linear correlation).
-2. Student-t Copula (Symmetric tail dependence: lambda_L = lambda_U > 0).
-3. Clayton Copula (Asymmetric lower-tail crash dependence: lambda_L = 2^(-1/theta) > 0, lambda_U = 0).
-4. Gumbel Copula (Asymmetric upper-tail boom dependence: lambda_U = 2 - 2^(1/theta) > 0, lambda_L = 0).
-5. Frank Copula (Radial symmetry, zero tail dependence).
-
-Computes theoretical and empirical tail dependence coefficients (lambda_L, lambda_U)
-and the Timescale Asymmetry Ratio:
-    TAR(h) = lambda_L(h) - lambda_U(h)
-
-Satisfies Contract 3 of the QuantEdge-MTR architecture.
-"""
+"""Copula models (Gaussian, Student-t, Clayton, Gumbel, Frank) and scale tournament."""
 
 import sys
 from abc import ABC, abstractmethod
@@ -39,9 +24,7 @@ from src.config import (
 )
 
 
-# ==============================================================================
-# 1. BASE COPULA ABSTRACT INTERFACE
-# ==============================================================================
+# --- Base Copula ---
 
 class BaseCopula(ABC):
     """Abstract Base Class for all parametric copula families."""
@@ -79,9 +62,7 @@ class BaseCopula(ABC):
             self.bic = np.inf
 
 
-# ==============================================================================
-# 2. GAUSSIAN COPULA IMPLEMENTATION
-# ==============================================================================
+# --- Gaussian Copula ---
 
 class GaussianCopula(BaseCopula):
     """Multivariate Gaussian Copula.
@@ -140,9 +121,7 @@ class GaussianCopula(BaseCopula):
         return np.clip(U_sim, 1e-6, 1.0 - 1e-6)
 
 
-# ==============================================================================
-# 3. STUDENT-T COPULA IMPLEMENTATION
-# ==============================================================================
+# --- Student-t Copula ---
 
 class StudentTCopula(BaseCopula):
     """Multivariate Student-t Copula.
@@ -240,9 +219,7 @@ class StudentTCopula(BaseCopula):
         return np.clip(U_sim, 1e-6, 1.0 - 1e-6)
 
 
-# ==============================================================================
-# 4. CLAYTON COPULA IMPLEMENTATION
-# ==============================================================================
+# --- Clayton Copula ---
 
 class ClaytonCopula(BaseCopula):
     """Archimedean Clayton Copula.
@@ -311,9 +288,7 @@ class ClaytonCopula(BaseCopula):
         return np.clip(U_sim, 1e-6, 1.0 - 1e-6)
 
 
-# ==============================================================================
-# 5. GUMBEL COPULA IMPLEMENTATION
-# ==============================================================================
+# --- Gumbel Copula ---
 
 class GumbelCopula(BaseCopula):
     """Archimedean Gumbel Copula.
@@ -390,9 +365,7 @@ class GumbelCopula(BaseCopula):
         return np.clip(U_sim, 1e-6, 1.0 - 1e-6)
 
 
-# ==============================================================================
-# 6. FRANK COPULA IMPLEMENTATION
-# ==============================================================================
+# --- Frank Copula ---
 
 class FrankCopula(BaseCopula):
     """Archimedean Frank Copula.
@@ -426,7 +399,7 @@ class FrankCopula(BaseCopula):
                 e_u1 = np.expm1(-theta_val * u1)
                 e_u2 = np.expm1(-theta_val * u2)
                 denom = e_theta + e_u1 * e_u2
-                if np.any(denom <= 0):
+                if np.any(np.abs(denom) < 1e-12):
                     return 1e9
                 log_num = np.log(abs(theta_val)) + np.log(abs(e_theta)) - theta_val * (u1 + u2)
                 log_den = 2.0 * np.log(abs(denom))
@@ -469,9 +442,7 @@ class FrankCopula(BaseCopula):
         return np.clip(U_out, 1e-6, 1.0 - 1e-6)
 
 
-# ==============================================================================
-# 7. EMPIRICAL TAIL DEPENDENCE & TOURNAMENT ORCHESTRATION
-# ==============================================================================
+# --- Empirical Tail Dependence & Scale Tournament ---
 
 def compute_empirical_tail_dependence(
     U: np.ndarray,
@@ -501,8 +472,8 @@ def compute_empirical_tail_dependence(
         for j in range(i + 1, d):
             u1 = U[:, i]
             u2 = U[:, j]
-            l_L = np.mean((u1 <= q) & (u2 <= q)) / q
-            l_U = np.mean((u1 >= 1.0 - q) & (u2 >= 1.0 - q)) / q
+            l_L = float(np.clip(np.mean((u1 <= q) & (u2 <= q)) / q, 0.0, 1.0))
+            l_U = float(np.clip(np.mean((u1 >= 1.0 - q) & (u2 >= 1.0 - q)) / q, 0.0, 1.0))
             l_lower_list.append(l_L)
             l_upper_list.append(l_U)
 
@@ -532,8 +503,8 @@ def compute_pairwise_tail_matrix(
         for j in range(i + 1, len(cols)):
             a1, a2 = cols[i], cols[j]
             u1, u2 = u_df[a1].values, u_df[a2].values
-            lL = float(np.mean((u1 <= q) & (u2 <= q)) / q)
-            lU = float(np.mean((u1 >= 1.0 - q) & (u2 >= 1.0 - q)) / q)
+            lL = float(np.clip(np.mean((u1 <= q) & (u2 <= q)) / q, 0.0, 1.0))
+            lU = float(np.clip(np.mean((u1 >= 1.0 - q) & (u2 >= 1.0 - q)) / q, 0.0, 1.0))
             records.append({
                 "Asset_1": a1,
                 "Asset_2": a2,
@@ -550,8 +521,6 @@ def run_scale_copula_tournament(
     scale_name: str,
 ) -> Dict[str, Any]:
     """Fits 5 copula families via MLE and selects the best model by BIC.
-
-    Satisfies Contract 3 of QuantEdge-MTR architecture.
 
     Families tested:
         1. Gaussian
@@ -608,18 +577,37 @@ def run_scale_copula_tournament(
     # Model-free empirical tail dependence
     emp_lL, emp_lU, emp_tar = compute_empirical_tail_dependence(U, q=0.05)
 
-    # Use the winning copula's theoretical parameters, but if zero (e.g. Gaussian),
-    # provide empirical tail metrics for risk engine scaling
-    lambda_L = best_copula_obj.lambda_L if best_copula_obj.lambda_L > 0 else emp_lL
-    lambda_U = best_copula_obj.lambda_U if best_copula_obj.lambda_U > 0 else emp_lU
-    tar = lambda_L - lambda_U
+    # Theoretical copula tail dependence parameters (strictly from model definition)
+    theo_lL = float(best_copula_obj.lambda_L)
+    theo_lU = float(best_copula_obj.lambda_U)
+    theo_tar = float(theo_lL - theo_lU)
+
+    # Empirical tail dependence parameters
+    emp_lL = float(emp_lL)
+    emp_lU = float(emp_lU)
+    emp_tar = float(emp_tar)
+
+    # For H-TCM scale-based risk overlay:
+    # Use theoretical parameters for elliptical models (Student-t).
+    # For models where the theoretical coefficient is strictly zero by family definition
+    # (e.g. Gumbel lower tail or Clayton upper tail), provide the empirical tail estimate
+    # as the scale-level empirical risk parameter.
+    scale_lL = theo_lL if theo_lL > 0 else emp_lL
+    scale_lU = theo_lU if theo_lU > 0 else emp_lU
+    scale_tar = scale_lL - scale_lU
 
     return {
         "scale": scale_name,
         "best_copula": best_copula_name,
-        "lambda_L": float(lambda_L),
-        "lambda_U": float(lambda_U),
-        "tar": float(tar),
+        "lambda_L_theo": theo_lL,
+        "lambda_U_theo": theo_lU,
+        "tar_theo": theo_tar,
+        "lambda_L_emp": emp_lL,
+        "lambda_U_emp": emp_lU,
+        "tar_emp": emp_tar,
+        "lambda_L": float(scale_lL),
+        "lambda_U": float(scale_lU),
+        "tar": float(scale_tar),
         "bic_scores": bic_scores,
         "aic_scores": aic_scores,
         "log_likelihoods": ll_scores,
@@ -640,8 +628,6 @@ def simulate_copula_joint_returns(
     seed: int = RANDOM_SEED,
 ) -> pd.DataFrame:
     """Simulates synthetic uniform draws from copula and inverts via EVT-GARCH margins.
-
-    Satisfies Contract 3 of QuantEdge-MTR architecture.
 
     Args:
         fitted_copula_obj: Fitted copula instance with .sample() method.
@@ -669,10 +655,6 @@ def simulate_copula_joint_returns(
 
     return pd.DataFrame(simulated_returns, columns=cols)
 
-
-# ==============================================================================
-# 8. STANDALONE VERIFICATION EXECUTION BLOCK
-# ==============================================================================
 
 if __name__ == "__main__":
     print("=" * 75)
