@@ -194,6 +194,15 @@ class GARCH_EVT_Margin:
 
         # Clean any remaining non-finite standardized residuals
         z = np.nan_to_num(z, nan=0.0, posinf=3.0, neginf=-3.0)
+        z_std = float(np.std(z, ddof=1))
+        if z_std > 2.5 or z_std < 0.4 or not np.isfinite(z_std):
+            # Enforce exact empirical standardization if GARCH optimization produces ill-scaled volatility
+            uncond_mu = float(np.mean(raw_vals))
+            uncond_sigma = float(max(np.std(raw_vals, ddof=1), 1e-8))
+            z = (raw_vals - uncond_mu) / uncond_sigma
+            self.forecast_sigma = uncond_sigma
+            self.forecast_mu = uncond_mu
+            self.garch_summary = {"Const": uncond_mu, "omega": uncond_sigma ** 2}
 
         # ----------------------------------------------------------------------
         # Stage 2: Extreme Value Theory (EVT-POT) Marginal Modeling
