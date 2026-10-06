@@ -19,6 +19,7 @@ ROOT_PATH = Path(__file__).resolve().parent.parent
 if str(ROOT_PATH) not in sys.path:
     sys.path.insert(0, str(ROOT_PATH))
 
+import warnings
 import numpy as np
 import pandas as pd
 from arch import arch_model
@@ -124,17 +125,19 @@ class GARCH_EVT_Margin:
 
         try:
             # Primary model: AR(1)-GJR-GARCH(1,1) with Student-t errors
-            am = arch_model(
-                scaled_vals,
-                mean="AR",
-                lags=1,
-                vol="GARCH",
-                p=1,
-                o=1,
-                q=1,
-                dist="StudentsT",
-            )
-            res = am.fit(disp="off", show_warning=False)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                am = arch_model(
+                    scaled_vals,
+                    mean="AR",
+                    lags=1,
+                    vol="GARCH",
+                    p=1,
+                    o=1,
+                    q=1,
+                    dist="StudentsT",
+                )
+                res = am.fit(disp="off", show_warning=False)
             
             # Extract conditional mean and volatility, re-scaling back to original scale
             cond_vol = res.conditional_volatility / scale_factor
@@ -164,15 +167,17 @@ class GARCH_EVT_Margin:
         except Exception:
             # Fallback model: Standard GARCH(1,1) or empirical normalization
             try:
-                am_fallback = arch_model(
-                    scaled_vals,
-                    mean="Constant",
-                    vol="GARCH",
-                    p=1,
-                    q=1,
-                    dist="Normal",
-                )
-                res_fb = am_fallback.fit(disp="off", show_warning=False)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    am_fallback = arch_model(
+                        scaled_vals,
+                        mean="Constant",
+                        vol="GARCH",
+                        p=1,
+                        q=1,
+                        dist="Normal",
+                    )
+                    res_fb = am_fallback.fit(disp="off", show_warning=False)
                 cond_vol = res_fb.conditional_volatility / scale_factor
                 resid = res_fb.resid / scale_factor
                 sigma_vec = np.maximum(cond_vol, 1e-8)

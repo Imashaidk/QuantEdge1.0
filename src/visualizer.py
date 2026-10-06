@@ -265,7 +265,7 @@ def plot_fig3_backtest_exceedances(
         ax.scatter(dates[proposed_breach_idx], losses[proposed_breach_idx] * 100.0, color="#2B6CB0", marker="o", s=70, facecolors="none", edgecolors="#2B6CB0", linewidth=1.8, zorder=6, label=f"Proposed Breaches (N={len(proposed_breach_idx)})")
 
     ax.set_ylabel("Portfolio Loss / Threshold (%)", fontsize=10, fontweight="bold")
-    ax.set_xlabel("Out-of-Sample Date (2023–2026)", fontsize=10, fontweight="bold")
+    ax.set_xlabel("Out-of-Sample Date (2023-2026)", fontsize=10, fontweight="bold")
     ax.xaxis.set_major_locator(mdates.MonthLocator(interval=4))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
     ax.grid(True)
@@ -344,7 +344,7 @@ def plot_fig4_regulatory_traffic_light(
         ax.text(w + 0.3, bar.get_y() + bar.get_height() / 2, f"{int(w)} [{zone}]", va="center", ha="left", fontsize=8, fontweight="bold")
 
     ax.legend(loc="lower right", framealpha=0.95, fontsize=8.5)
-    plt.title("Figure 4: BCBS Basel Traffic Light Backtest Matrix (Out-of-Sample 2023–2026)", fontsize=12, fontweight="bold", pad=12)
+    plt.title("Figure 4: BCBS Basel Traffic Light Backtest Matrix (Out-of-Sample 2023-2026)", fontsize=12, fontweight="bold", pad=12)
     plt.tight_layout()
     plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
     plt.close()
@@ -367,6 +367,14 @@ def export_latex_tables(
     valid_cols = [c for c in bt_cols if c in backtest_df.columns]
     tex_df = backtest_df[valid_cols].copy()
     tex_df["Model"] = tex_df["Model"].str.replace("_", " ")
+    tex_df["Breach_Rate"] = tex_df["Breach_Rate"].str.replace("%", "\\%")
+    tex_df = tex_df.rename(columns={
+        "Breach_Rate": "Breach Rate",
+        "Kupiec_p": "Kupiec $p$",
+        "Christoffersen_p": "Christoffersen $p$",
+        "Basel_Zone": "Basel Zone",
+        "FZ_Loss": "FZ Loss",
+    })
 
     bt_path = out_dir / "backtest_metrics.tex"
     tex_code = tex_df.to_latex(
@@ -375,6 +383,7 @@ def export_latex_tables(
         label="tab:backtest_metrics",
         column_format="llcccccc",
         position="htbp",
+        escape=False,
     )
     with open(bt_path, "w", encoding="utf-8") as f:
         f.write(tex_code)
@@ -387,7 +396,11 @@ def export_latex_tables(
     for s in ["D1", "D2", "D3", "D4", "D5", "S5"]:
         if s in copula_tournament_results:
             res = copula_tournament_results[s]
-            best_c = res.get("best_copula", "N/A").capitalize()
+            raw_c = res.get("best_copula", "N/A")
+            if raw_c.lower() == "student_t":
+                best_c = "Student-$t$"
+            else:
+                best_c = raw_c.capitalize()
             lL = float(res.get("lambda_L", 0.0))
             lU = float(res.get("lambda_U", 0.0))
             tar = float(res.get("tar", lL - lU))
@@ -412,6 +425,7 @@ def export_latex_tables(
             label="tab:copula_tournament",
             column_format="llccccc",
             position="htbp",
+            escape=False,
         )
         with open(c_path, "w", encoding="utf-8") as f:
             f.write(c_tex)
@@ -426,6 +440,7 @@ def export_latex_tables(
             caption="Wavelet Multiresolution Percentage Variance Contribution Across Assets",
             label="tab:variance_decomposition",
             position="htbp",
+            float_format="%.2f",
         )
         with open(var_path, "w", encoding="utf-8") as f:
             f.write(var_tex)

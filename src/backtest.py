@@ -5,7 +5,7 @@ for out-of-sample portfolio Value-at-Risk (VaR) and Expected Shortfall (ES):
 1. Kupiec POF Likelihood Ratio Test: Unconditional coverage of tail exceptions.
 2. Christoffersen Independence Test: Conditional coverage and crash clustering.
 3. Official Basel Committee on Banking Supervision (BCBS) Traffic Light Matrix:
-   Green (< 5 breaches per 250d), Yellow (5–9 breaches), Red (>= 10 breaches).
+   Green (< 5 breaches per 250d), Yellow (5-9 breaches), Red (>= 10 breaches).
 4. Fissler-Ziegel (FZ) Strictly Consistent Joint Loss Function for (VaR, ES).
 
 Satisfies Contract 4 of the QuantEdge-MTR architecture.
@@ -336,13 +336,13 @@ def run_out_of_sample_backtest(
     Compares 5 models + H-TCM across horizons h in {1, 5, 20} days.
 
     Args:
-        df_test: Out-of-sample test log returns (2023–2026).
+        df_test: Out-of-sample test log returns (2023-2026).
         weights: Portfolio asset weights.
         copula_results: Scale-optimal copula tournament results.
         h_horizons: List of horizons in trading days [1, 5, 20].
         alpha_var: VaR confidence level (0.99).
         alpha_es: ES confidence level (0.975).
-        df_train: In-sample train log returns (2015–2022). If None, loads from cache.
+        df_train: In-sample train log returns (2015-2022). If None, loads from cache.
         sim_returns_raw: Simulated joint returns from raw copula. If None, generated.
 
     Returns:

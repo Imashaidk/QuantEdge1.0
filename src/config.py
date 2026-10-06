@@ -60,11 +60,11 @@ WAVELET_LEVEL: int = 5
 SCALE_NAMES: List[str] = ["D1", "D2", "D3", "D4", "D5", "S5"]
 
 SCALE_HORIZONS: Dict[str, str] = {
-    "D1": "2–4 Days (Microstructure Noise / Daily Rebalancing)",
-    "D2": "4–8 Days (Weekly Swing / Momentum)",
-    "D3": "8–16 Days (Bi-weekly Sentiment)",
-    "D4": "16–32 Days (Monthly Portfolio Rebalancing)",
-    "D5": "32–64 Days (Quarterly Business / Earnings Cycle)",
+    "D1": "2 to 4 Days (Microstructure Noise / Daily Rebalancing)",
+    "D2": "4 to 8 Days (Weekly Swing / Momentum)",
+    "D3": "8 to 16 Days (Bi-weekly Sentiment)",
+    "D4": "16 to 32 Days (Monthly Portfolio Rebalancing)",
+    "D5": "32 to 64 Days (Quarterly Business / Earnings Cycle)",
     "S5": ">64 Days (Macroeconomic Secular Trend)",
 }
 
