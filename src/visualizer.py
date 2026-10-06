@@ -358,7 +358,7 @@ def export_latex_tables(
     """Exports structured LaTeX tables for inclusion in report/report.tex."""
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. Backtest Metrics Table (tables/backtest_metrics.tex)
+    # 1. Backtest Metrics Table (tables/backtest_metrics.tex and .md)
     bt_cols = ["Horizon", "Model", "Total_Obs", "Breaches", "Breach_Rate", "Kupiec_p", "Christoffersen_p", "Basel_Zone", "FZ_Loss"]
     valid_cols = [c for c in bt_cols if c in backtest_df.columns]
     tex_df = backtest_df[valid_cols].copy()
@@ -370,19 +370,26 @@ def export_latex_tables(
         tex_df["Christoffersen_p"] = tex_df["Christoffersen_p"].apply(lambda x: f"{float(x):.4f}")
     if "FZ_Loss" in tex_df.columns:
         tex_df["FZ_Loss"] = tex_df["FZ_Loss"].apply(lambda x: f"{float(x):.4f}")
+    
+    # Basel-style for 1d and Diagnostic for 5d/20d
+    tex_df["Status_Diag"] = tex_df.apply(
+        lambda r: f"{r['Basel_Zone']} (Basel)" if r["Horizon"] == "1d" else f"{r['Basel_Zone']} (Diag)",
+        axis=1,
+    )
+    tex_df = tex_df.drop(columns=["Basel_Zone"])
     tex_df = tex_df.rename(columns={
         "Total_Obs": "Obs",
         "Breach_Rate": "Breach Rate",
         "Kupiec_p": "Kupiec $p$",
         "Christoffersen_p": "Christoffersen $p$",
-        "Basel_Zone": "Basel Zone",
+        "Status_Diag": "Status / Diagnostic",
         "FZ_Loss": "FZ Loss",
     })
 
     bt_path = out_dir / "backtest_metrics.tex"
     tex_code = tex_df.to_latex(
         index=False,
-        caption="Out-of-Sample Risk Model Evaluation and Basel Traffic Light Performance",
+        caption="Out-of-Sample Risk Model Evaluation: Basel-style (1d) and Breach Diagnostic (5d, 20d)",
         label="tab:backtest_metrics",
         column_format="llccccccc",
         position="htbp",
@@ -390,7 +397,10 @@ def export_latex_tables(
     )
     with open(bt_path, "w", encoding="utf-8") as f:
         f.write(tex_code)
-    print(f"[Visualizer] Exported LaTeX Table -> {bt_path}")
+    rep_tables_dir = ROOT_PATH / "report" / "tables"
+    rep_tables_dir.mkdir(parents=True, exist_ok=True)
+    with open(rep_tables_dir / "backtest_metrics.tex", "w", encoding="utf-8") as f:
+        f.write(tex_code)
 
     # 2. Copula Tournament Leaderboard Table (tables/copula_tournament.tex)
     c_rows = []
@@ -405,6 +415,8 @@ def export_latex_tables(
             lL_theo = float(res.get("lambda_L_theo", res.get("lambda_L", 0.0)))
             lU_theo = float(res.get("lambda_U_theo", res.get("lambda_U", 0.0)))
             lL_emp = float(res.get("lambda_L_emp", res.get("lambda_L", 0.0)))
+            gauss_bench = float(res.get("lambda_gauss_bench", 0.0))
+            excess_lL = float(res.get("excess_lambda_L", lL_emp - gauss_bench))
             lU_emp = float(res.get("lambda_U_emp", res.get("lambda_U", 0.0)))
             tar_emp = float(res.get("tar_emp", lL_emp - lU_emp))
             bic = res.get("bic_scores", {}).get(res.get("best_copula", ""), 0.0)
@@ -416,6 +428,8 @@ def export_latex_tables(
                 "Theo. $\\lambda_L$": f"{lL_theo:.3f}",
                 "Theo. $\\lambda_U$": f"{lU_theo:.3f}",
                 "Emp. $\\lambda_L$": f"{lL_emp:.3f}",
+                "Gauss Bench": f"{gauss_bench:.3f}",
+                "Excess $\\lambda_L$": f"{excess_lL:+.3f}",
                 "Emp. $\\lambda_U$": f"{lU_emp:.3f}",
                 "Emp. TAR": f"{tar_emp:+.3f}",
                 "BIC": f"{bic:.1f}",
@@ -426,13 +440,15 @@ def export_latex_tables(
         c_path = out_dir / "copula_tournament.tex"
         c_tex = c_df.to_latex(
             index=False,
-            caption="Scale-Optimal Copula Tournament Leaderboard and Tail Dependence Parameters",
+            caption="Scale-Optimal Copula Tournament Leaderboard, Tail Dependence, and Gaussian Benchmarks",
             label="tab:copula_tournament",
-            column_format="llccccccc",
+            column_format="llccccccccc",
             position="htbp",
             escape=False,
         )
         with open(c_path, "w", encoding="utf-8") as f:
+            f.write(c_tex)
+        with open(rep_tables_dir / "copula_tournament.tex", "w", encoding="utf-8") as f:
             f.write(c_tex)
         print(f"[Visualizer] Exported LaTeX Table -> {c_path}")
 
@@ -446,6 +462,8 @@ def export_latex_tables(
             float_format="%.2f",
         )
         with open(var_path, "w", encoding="utf-8") as f:
+            f.write(var_tex)
+        with open(rep_tables_dir / "variance_decomposition.tex", "w", encoding="utf-8") as f:
             f.write(var_tex)
         print(f"[Visualizer] Exported LaTeX Table -> {var_path}")
 

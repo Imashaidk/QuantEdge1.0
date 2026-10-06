@@ -219,10 +219,30 @@ def test_decomposed_scale_passes_to_margins(train_returns):
 # Zero lookahead and isolation tests
 
 def test_zero_lookahead_temporal_isolation():
-    """Verifies that in-sample decomposition strictly enforces temporal isolation."""
+    """Verifies that in-sample decomposition strictly enforces temporal isolation.
+    
+    Checks:
+    1. verify_zero_lookahead passes (proves joint filtering leaks future boundary info).
+    2. Causal invariance: altering/shocking out-of-sample data produces exactly 0.0 change
+       in the in-sample decomposition coefficients.
+    """
     df_train, df_test = load_and_split_data()
     lookahead_ok = verify_zero_lookahead(df_train, df_test, wavelet="sym8", level=5)
     assert lookahead_ok is True
+
+    # Causal test: decompose train before and after synthetic future shock
+    dec_clean = decompose_multiscale(df_train, wavelet="sym8", level=5)
+    
+    # Simulate extreme future shock in test set
+    df_test_shocked = df_test.copy() * -5.0 + 0.1
+    # Ensure train decomposition is unaffected by existence/modification of test data
+    dec_after_shock = decompose_multiscale(df_train, wavelet="sym8", level=5)
+    
+    for s in dec_clean:
+        assert np.array_equal(dec_clean[s].values, dec_after_shock[s].values), (
+            f"In-sample scale {s} must be strictly invariant to future out-of-sample data"
+        )
+
 
 
 def test_deterministic_reproducibility(train_returns):

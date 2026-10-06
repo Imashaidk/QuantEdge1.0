@@ -6,25 +6,25 @@ In compliance with the official **SAIFA Quant Edge 1.0** competition guidelines:
 
 ---
 
-### Statement of AI Assistance
+### Transparent Disclosure of AI Assistance
 
-In accordance with competition rules and academic publishing standards (e.g., CFA Institute, IEEE):
+In the spirit of complete scientific integrity, academic honesty, and adherence to competition guidelines:
 
-1. **Scope of AI Tool Usage:**
-   - AI tools (LLM assistants and code completion tools) were utilized strictly as **productivity and software development aids**. Specifically, they assisted with:
-     - Python syntax scaffolding and PEP 8 formatting.
-     - Auto-generation of code docstrings and unit test templates.
-     - LaTeX table formatting and typographic drafting assistance.
+#### 1. Scope and Material Use of Generative AI Tools
+Generative AI tools (including Large Language Model assistants and agentic coding tools such as Claude, ChatGPT, and Antigravity) were utilized materially throughout this research project as quantitative programming partners, research accelerators, and technical assistants. Specifically, AI tools contributed to:
 
-2. **Human Authorship & Methodological Ownership:**
-   - **All core quantitative and econometric design choices were originated and decided exclusively by the human team members**, including:
-     - Selection and economic justification of the 5-asset liquidity portfolio (`SPY`, `QQQ`, `TLT`, `GLD`, `HYG`).
-     - Selection of the Maximal Overlap Discrete Wavelet Transform (**MODWT**) and wavelets filter bank parameters.
-     - Formulation of the semi-parametric **AR(1)-GJR-GARCH(1,1) + EVT-POT** marginal distribution model.
-     - Mathematical specification of the **Scale-Optimal Copula Tournament** and the **Timescale Asymmetry Ratio (TAR)**.
-     - Out-of-sample backtesting methodology and Basel Traffic Light evaluation.
-     - Derivation and calibration of the **Horizon-Conditioned Tail Capital Multiplier (H-TCM)**.
+- **Econometric & Mathematical Synthesis:** Exploring and synthesizing relevant literature on multiscale frequency decomposition (Maximal Overlap Discrete Wavelet Transform, MODWT), semi-parametric marginal filtering (AR(1)-GJR-GARCH(1,1) with EVT Peaks-Over-Threshold tails), parametric copula theory (Gaussian, Student-$t$, Clayton, Gumbel, Frank), and supervisory backtesting frameworks (Kupiec POF, Christoffersen Independence, Fissler-Ziegel scoring).
+- **Code Generation & Architecture:** Drafting and refactoring modular Python code across the `src/` modules, including data ingestion and caching, wavelet pyramid filtering, copula maximum likelihood estimation, multiscale risk simulation, and automated visualization pipelines.
+- **Debugging & Numerical Optimization:** Identifying and resolving numerical edge cases, such as handling convergence and parameter scaling in GARCH estimation on smooth wavelet details, boundary handling in circular convolution, and ensuring strict probability integral transform uniformity.
+- **Drafting & Documentation:** Drafting initial narrative text for the academic manuscript (`report.tex`, `REPORT.md`), structuring LaTeX tables, and preparing technical documentation.
 
-3. **Verification & Live Defense Readiness:**
-   - Every line of code, statistical calculation, and empirical metric has been independently verified, run, and audited by the human team.
-   - The team is fully prepared to explain, modify, or reproduce any calculation live during Round 2.
+#### 2. Human Direction, Auditing, and Critical Validation
+The human team maintained active direction, editorial control, and rigorous review throughout all stages:
+
+- **Project Direction & Scope:** The human team selected the research question, chosen asset universe (SPY, QQQ, TLT, GLD, HYG), portfolio weighting scheme, and out-of-sample evaluation horizons (1-day, 5-day, 20-day).
+- **Rigorous Verification & Auditing:** The human team ran independent local executions, compared fresh runs against report outputs, detected and corrected numerical discrepancies across different library environments, and ensured all automated test suites pass.
+- **Econometric Scrutiny & Reality Checks:** The human team critically challenged model claims--specifically insisting on the introduction of the Gaussian copula benchmark to isolate genuine excess tail dependence from background linear correlation, and demanding an honest, unvarnished evaluation of H-TCM performance during calm out-of-sample periods.
+- **Removal of Fabricated Artifacts:** The human team ensured the complete removal of any synthetic roles, exaggerated claims, or unsubstantiated marketing language, presenting a truthful and scientifically defensible report.
+
+#### 3. Authorship and Accountability
+In strict compliance with competition rules, the human team has thoroughly reviewed and understands every model, formula, algorithm, and figure. We accept full and undivided responsibility for every methodological decision, line of code, statistical calculation, and policy statement contained in this submission.

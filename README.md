@@ -2,11 +2,9 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-brightgreen.svg)](https://www.python.org/)
 [![Competition: SAIFA Quant Edge 1.0](https://img.shields.io/badge/Competition-SAIFA%20Quant%20Edge%201.0-orange)](https://saifa.lk)
-[![Tests: 45 Passed](https://img.shields.io/badge/tests-45%20passed-success)](tests/)
 [![Build: Reproducible](https://img.shields.io/badge/pipeline-10.1s%20execution-brightgreen)](run_all.py)
 
 Official research submission for **SAIFA Quant Edge 1.0: Initial Screening Challenge (Round 1)**.  
-**Submission Deadline:** Wednesday, 7 October 2026 at 23:59 (Sri Lanka Time).  
 **Repository:** [https://github.com/Imashaidk/QuantEdge1.0.git](https://github.com/Imashaidk/QuantEdge1.0.git)
 
 ***
@@ -60,50 +58,54 @@ Decomposed via Maximal Overlap Discrete Wavelet Transform (MODWT, Symlet 8, Leve
 | **S5** | >64 Days (Macro Trend) | 2.56% | 2.41% | 3.03% | 3.18% | 2.77% |
 
 ### Copula Tournament Leaderboard Across Horizons
-Five copula families fitted via MLE and evaluated by Bayesian Information Criterion (BIC):
+Five copula families fitted via MLE and evaluated by Bayesian Information Criterion (BIC), benchmarked against a bivariate Gaussian copula with matched correlation:
 
-| Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **D1** | 2 to 4 Days | Student-t | 0.020 | 0.020 | 0.189 | 0.187 | +0.002 | -5547.0 |
-| **D2** | 4 to 8 Days | Student-t | 0.024 | 0.024 | 0.201 | 0.214 | -0.013 | -4623.9 |
-| **D3** | 8 to 16 Days | Student-t | 0.005 | 0.005 | 0.176 | 0.168 | +0.008 | -4545.2 |
-| **D4** | 16 to 32 Days | Student-t | 0.000 | 0.000 | 0.081 | 0.057 | +0.025 | -2210.3 |
-| **D5** | 32 to 64 Days | Student-t | 0.000 | 0.000 | 0.052 | 0.064 | -0.012 | -1290.4 |
-| **S5** | >64 Days | Student-t | 0.046 | 0.046 | 0.178 | 0.118 | +0.060 | -4961.8 |
+| Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | Gauss Bench | Excess $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **D1** | 2 to 4 Days | Student-t | 0.020 | 0.020 | 0.189 | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
+| **D2** | 4 to 8 Days | Student-t | 0.024 | 0.024 | 0.201 | 0.171 | +0.030 | 0.214 | -0.013 | -4623.9 |
+| **D3** | 8 to 16 Days | Student-t | 0.005 | 0.005 | 0.176 | 0.166 | +0.009 | 0.168 | +0.008 | -4545.2 |
+| **D4** | 16 to 32 Days | Student-t | 0.000 | 0.000 | 0.081 | 0.101 | -0.020 | 0.057 | +0.025 | -2210.3 |
+| **D5** | 32 to 64 Days | Student-t | 0.000 | 0.000 | 0.052 | 0.049 | +0.003 | 0.064 | -0.012 | -1290.4 |
+| **S5** | >64 Days | Student-t | 0.046 | 0.046 | 0.178 | 0.136 | +0.042 | 0.118 | +0.060 | -4961.8 |
 
-### Out-of-Sample Backtesting Performance (875 Test Days: 2023 to 2026)
+> **Gaussian Benchmark Finding:** At high-frequency noise scales ($D_1$), the empirical co-exceedance $\hat{\lambda}_L = 0.189$ is almost entirely accounted for by background linear correlation (Gaussian benchmark $0.185$, excess $+0.004$). True non-linear crash clustering peaks at weekly swing frequencies ($D_2$, excess $+0.030$) and secular macroeconomic cycles ($S_5$, excess $+0.042$).
+
+### Out-of-Sample Performance (875 Test Days: 2023 to 2026)
 Models calibrated strictly on historical data (2015 to 2022) with zero lookahead bias:
 
-| Horizon | Model | Obs | Breaches | Breach Rate | Kupiec p | Christoffersen p | Basel Zone | FZ Loss |
+| Horizon | Model | Obs | Breaches | Breach Rate | Kupiec p | Christoffersen p | FZ Loss | Status / Diagnostic |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1d** | Historical Simulation | 875 | 6 | 0.69% | 0.3219 | 0.0286 | GREEN | -3.7191 |
-| **1d** | Parametric Gaussian | 875 | 13 | 1.49% | 0.1780 | 0.1824 | GREEN | -3.6786 |
-| **1d** | Static Copula | 875 | 5 | 0.57% | 0.1659 | 0.0182 | GREEN | -3.6674 |
-| **1d** | Basel Sqrt Time | 875 | 6 | 0.69% | 0.3219 | 0.0286 | GREEN | -3.7191 |
-| **1d** | **Proposed Multiscale Copula** | **875** | **5** | **0.57%** | **0.1659** | **0.0182** | **GREEN** | **-3.6674** |
-| **1d** | H-TCM Adjusted | 875 | 6 | 0.69% | 0.3219 | 0.0286 | GREEN | -3.7191 |
-| **5d** | Historical Simulation | 871 | 2 | 0.23% | 0.0059 | 0.0016 | GREEN | -2.9245 |
-| **5d** | Parametric Gaussian | 871 | 6 | 0.69% | 0.3282 | 0.0003 | GREEN | -3.0778 |
-| **5d** | Static Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | GREEN | -2.8764 |
-| **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | 0.0000 | GREEN | -2.9744 |
-| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **GREEN** | **-2.8219** |
-| **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | 0.0000 | GREEN | -2.9261 |
-| **20d** | Historical Simulation | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.3530 |
-| **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | 0.0000 | GREEN | -2.6591 |
-| **20d** | Static Copula | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.2601 |
-| **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.3963 |
-| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **0.0000** | **1.0000** | **GREEN** | **-2.2601** |
-| **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.3963 |
+| **1d** | Historical Simulation | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
+| **1d** | Parametric Gaussian | 875 | 13 | 1.49% | 0.1780 | 0.1824 | -3.6786 | GREEN (Basel) |
+| **1d** | Static Copula | 875 | 5 | 0.57% | 0.1659 | 0.0182 | -3.6674 | GREEN (Basel) |
+| **1d** | Basel Sqrt Time | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
+| **1d** | **Proposed Multiscale Copula** | **875** | **5** | **0.57%** | **0.1659** | **0.0182** | **-3.6674** | **GREEN (Basel)** |
+| **1d** | H-TCM Adjusted | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
+| **5d** | Historical Simulation | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.9245 | GREEN (Diag) |
+| **5d** | Parametric Gaussian | 871 | 6 | 0.69% | 0.3282 | 0.0003 | -3.0778 | GREEN (Diag) |
+| **5d** | Static Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.8764 | GREEN (Diag) |
+| **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | 0.0000 | -2.9744 | GREEN (Diag) |
+| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **-2.8219** | **GREEN (Diag)** |
+| **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | 0.0000 | -2.9261 | GREEN (Diag) |
+| **20d** | Historical Simulation | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3530 | GREEN (Diag) |
+| **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | 0.0000 | -2.6591 | GREEN (Diag) |
+| **20d** | Static Copula | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.2601 | GREEN (Diag) |
+| **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3963 | GREEN (Diag) |
+| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **0.0000** | **1.0000** | **-2.2601** | **GREEN (Diag)** |
+| **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3963 | GREEN (Diag) |
 
 ### H-TCM Contingent Capital Multiplier Sensitivity Matrix
 Values for risk desks across calibration factors $\kappa \in [0.20, 0.50]$ (baseline $\hat{\lambda}_L(1) = 0.189$):
 
 | Horizon | Scale | $\kappa = 0.20$ | $\kappa = 0.35$ (Recommended) | $\kappa = 0.50$ | Operational Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **h = 1d** | D1 | 1.000 | **1.000** | 1.000 | Baseline Allocation (0.0% Surcharge) |
-| **h = 5d** | D2 | 1.013 | **1.022** | 1.032 | Targeted Contingent Surcharge (+2.2%) |
-| **h = 20d** | D4 | 1.000 | **1.000** | 1.000 | No Surcharge Required (0.0% Surcharge) |
-| **h = 40d** | D5 | 1.000 | **1.000** | 1.000 | No Surcharge Required (0.0% Surcharge) |
+| **h = 1d** | D1 | 1.000 | **1.000** | 1.000 | Basel-style Green Zone (Baseline Allocation) |
+| **h = 5d** | D2 | 1.013 | **1.022** | 1.032 | Precautionary Buffer (+2.2% Contingent Overlay) |
+| **h = 20d** | D4 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
+| **h = 40d** | D5 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
+
+> **Candid H-TCM Backtest Evaluation:** During the calm 2023-2026 backtest window, standard square-root scaling was already conservative (3 breaches at 5d vs ~8.7 expected). H-TCM incurred the same 3 breaches while holding extra capital, producing a slightly higher Fissler-Ziegel loss (-2.9261 vs -2.9744). The +2.2% buffer operates as an asymmetric contingent safety buffer for stressed crisis regimes, and remains untested out-of-sample in a severe historical liquidity shock.
 
 ***
 
@@ -168,15 +170,14 @@ QuantEdge/
 
 ***
 
-## Team Work Breakdown Matrix
+## Authorship, Project Governance & AI Disclosure
 
-| Role | Lead | Target Modules | Primary Deliverable |
-| :--- | :--- | :--- | :--- |
-| **Member 1** | Team Lead & Pipeline Architect | `src/config.py`<br>`src/data_loader.py`<br>`run_all.py` | Data fetching and caching, train/test splitting, master runner, verification suite, ZIP packaging. |
-| **Member 2** | Wavelet & Signal Specialist | `src/wavelets.py`<br>`tests/test_wavelets.py` | MODWT decomposition ($D_1$ to $D_5, S_5$), additive reconstruction tests, zero-lookahead boundary filtering. |
-| **Member 3** | Econometrician & Copula Modeler | `src/margins.py`<br>`src/copulas.py` | AR(1)-GJR-GARCH(1,1) + EVT-POT margins, uniform PIT validation, copula MLE fitting, tail dependence curves. |
-| **Member 4** | Risk Analyst & Backtest Lead | `src/risk_engine.py`<br>`src/backtest.py` | Multiscale VaR/ES engine, benchmark models, Kupiec POF, Christoffersen independence tests, H-TCM formulation. |
-| **Member 5** | Visualizer & Report Lead | `src/visualizer.py`<br>`report/report.tex` | High-DPI publication figures, academic manuscript, AI disclosure appendix. |
+This project represents the joint quantitative submission of the **QuantEdge Research Team** for the **SAIFA Quant Edge 1.0: Round 1 Challenge**.
+
+In strict compliance with competition rules:
+- Generative AI tools (including Claude, ChatGPT, and Antigravity) were utilized materially as quantitative research accelerators, assisting with mathematical literature synthesis, Python code drafting and refactoring, numerical optimization debugging, and LaTeX table formatting.
+- The human team directed project scoping, selected the multi-asset universe, audited every code module and test suite, conducted econometric reality checks (including formulating the Gaussian copula benchmark and candid H-TCM limitations), and accepts full intellectual and mathematical responsibility for every result.
+- For complete details, see our formal [AI Disclosure Statement](docs/AI_DISCLOSURE.md).
 
 ***
 

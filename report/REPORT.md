@@ -16,13 +16,13 @@ This rule assumes that financial returns are i.i.d. normal and that joint depend
 In this study, we answer the competition question directly: **tail dependence is persistent and horizon-dependent**. Assets that appear weakly correlated in daily noise series maintain non-trivial crash co-dependence across multi-day and multi-week investment horizons.
 
 ### Key Discoveries:
-1. **Persistent Tail Crash Co-dependence Across Timescales:** Using filtered residuals transformed to strict $\text{Uniform}(0, 1)$ margins via the Probability Integral Transform (PIT), empirical lower-tail crash dependence remains non-zero across all timescales: $\hat{\lambda}_L = 0.189$ at high-frequency noise scales ($D_1$, 2 to 4 days) and $\hat{\lambda}_L = 0.201$ at weekly swing scales ($D_2$, 4 to 8 days), gradually stabilizing at $\hat{\lambda}_L = 0.052$ at quarterly business-cycle horizons ($D_5$, 32 to 64 days).
-2. **Student-t Copula Dominance:** The Student-$t$ copula decisively wins the model tournament across all timescales by Bayesian Information Criterion (BIC), outperforming Gaussian, Clayton, Gumbel, and Frank alternatives. This demonstrates that multi-asset joint tail risk is characterized by symmetric, fat-tailed extreme co-movements across all investment horizons.
-3. **The Timescale Asymmetry Ratio ($\text{TAR} = \hat{\lambda}_L - \hat{\lambda}_U$):** Across all decomposed scales, empirical tail asymmetry remains tightly bounded around zero ($\text{TAR} \in [-0.013, +0.060]$), confirming that cross-asset extreme co-movement is elliptical and fat-tailed rather than purely asymmetric.
-4. **Out-of-Sample Backtesting & Basel Scaling Insights:** In out-of-sample backtesting across 875 trading days (2023 to 2026), conventional square-root-of-time scaling was statistically conservative at 5-day (3 breaches, 0.34%) and 20-day horizons (0 breaches, 0.00% vs ~8.7 expected). However, the Parametric Gaussian model generates 13 breaches at the 1-day horizon (a 1.49% breach rate, approaching the supervisory penalty boundary), demonstrating that assuming normality understates short-term tail risk.
+1. **Multiscale Tail Dependence & The Gaussian Benchmark:** Empirical lower-tail crash dependence varies across timescales: peaking at weekly swing scales ($D_2$, 4 to 8 days, $\hat{\lambda}_L = 0.201$), dropping at intermediate monthly cycles ($D_4, D_5$, $\hat{\lambda}_L \approx 0.052 - 0.081$), and rebounding at secular macro horizons ($S_5$, $>64$ days, $\hat{\lambda}_L = 0.178$). Crucially, benchmarking against a Gaussian copula with matched correlation reveals that high-frequency co-exceedance ($D_1$, $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$) is almost entirely linear correlation (excess $+0.004$). Genuine excess tail crash risk peaks at weekly horizons ($D_2$, excess $+0.030$) and macro trends ($S_5$, excess $+0.042$).
+2. **Student-t Copula Dominance:** The Student-$t$ copula decisively wins the model tournament across all timescales by Bayesian Information Criterion (BIC), indicating that multi-asset joint tail risk is characterized by symmetric, elliptical fat-tailed extreme co-movements rather than Archimedean asymmetry.
+3. **The Timescale Asymmetry Ratio ($\text{TAR} = \hat{\lambda}_L - \hat{\lambda}_U$):** Across all decomposed scales, empirical tail asymmetry remains tightly bounded around zero ($\text{TAR} \in [-0.013, +0.060]$), confirming that cross-asset extreme co-movement is elliptical and fat-tailed rather than single-parameter asymmetric.
+4. **Out-of-Sample Backtesting & Basel Scaling Insights:** In out-of-sample backtesting across 875 trading days (2023 to 2026), conventional square-root-of-time scaling was statistically conservative at 5-day (3 breaches, 0.34%) and 20-day horizons (0 breaches, 0.00% vs ~8.7 expected). However, the Parametric Gaussian model generates 13 breaches at the 1-day horizon (a 1.49% breach rate vs 1.00% expected). While failing to reject at 5% significance under Kupiec POF ($p = 0.178$), it generates 2.6x the breaches of copula models (5 breaches), showing that assuming normality understates short-term tail risk.
 5. **Actionable Fix for Risk Desks (The Contingent H-TCM Rule):** We introduce the **Horizon-Conditioned Tail Capital Multiplier (H-TCM)**:
    $$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \max\left(0, \frac{\hat{\lambda}_L(h) - \hat{\lambda}_L(1)}{\hat{\lambda}_L(1) + \epsilon}\right) \right]$$
-   Rather than imposing an unconditional capital surcharge that unnecessarily locks up capital during quiet markets, H-TCM operates as a contingent policy buffer. When tail dependence at weekly horizons exceeds the daily baseline ($\hat{\lambda}_L(5) = 0.201 > 0.189$), it adds a targeted $+2.2\%$ capital buffer ($\kappa = 0.35$), while reverting to $1.000$ at horizons where tail dependence does not exceed baseline levels.
+   H-TCM operates as a contingent macroprudential buffer. When tail dependence at weekly horizons exceeds the daily baseline ($\hat{\lambda}_L(5) = 0.201 > 0.189$), it adds a targeted $+2.2\%$ precautionary capital buffer ($\kappa = 0.35$), while reverting to $1.000$ at horizons where tail dependence does not exceed baseline levels.
 
 ***
 
@@ -95,18 +95,22 @@ Decomposed via MODWT (Symlet 8, Level 5):
 High-frequency noise ($D_1$) accounts for 53% to 64% of total return variance, while quarterly and macroeconomic cycles ($D_5$ and $S_5$) account for 5% to 6%.
 
 ### 3.2 Copula Tournament Leaderboard Across Horizons
-Five copula families fitted via MLE and evaluated by Bayesian Information Criterion (BIC):
+Five copula families fitted via MLE and evaluated by Bayesian Information Criterion (BIC), benchmarked against a bivariate Gaussian copula with matched linear correlation:
 
-| Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **D1** | 2 to 4 Days | Student-t | 0.020 | 0.020 | 0.189 | 0.187 | +0.002 | -5547.0 |
-| **D2** | 4 to 8 Days | Student-t | 0.024 | 0.024 | 0.201 | 0.214 | -0.013 | -4623.9 |
-| **D3** | 8 to 16 Days | Student-t | 0.005 | 0.005 | 0.176 | 0.168 | +0.008 | -4545.2 |
-| **D4** | 16 to 32 Days | Student-t | 0.000 | 0.000 | 0.081 | 0.057 | +0.025 | -2210.3 |
-| **D5** | 32 to 64 Days | Student-t | 0.000 | 0.000 | 0.052 | 0.064 | -0.012 | -1290.4 |
-| **S5** | >64 Days | Student-t | 0.046 | 0.046 | 0.178 | 0.118 | +0.060 | -4961.8 |
+| Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | Gauss Bench | Excess $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **D1** | 2 to 4 Days | Student-t | 0.020 | 0.020 | 0.189 | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
+| **D2** | 4 to 8 Days | Student-t | 0.024 | 0.024 | 0.201 | 0.171 | +0.030 | 0.214 | -0.013 | -4623.9 |
+| **D3** | 8 to 16 Days | Student-t | 0.005 | 0.005 | 0.176 | 0.166 | +0.009 | 0.168 | +0.008 | -4545.2 |
+| **D4** | 16 to 32 Days | Student-t | 0.000 | 0.000 | 0.081 | 0.101 | -0.020 | 0.057 | +0.025 | -2210.3 |
+| **D5** | 32 to 64 Days | Student-t | 0.000 | 0.000 | 0.052 | 0.049 | +0.003 | 0.064 | -0.012 | -1290.4 |
+| **S5** | >64 Days | Student-t | 0.046 | 0.046 | 0.178 | 0.136 | +0.042 | 0.118 | +0.060 | -4961.8 |
 
-**Core Finding:** The Student-$t$ copula is selected across all scales, indicating that multiscale asset dependencies are governed by elliptical fat tails rather than asymmetric Archimedean structures. Empirical lower tail dependence remains persistent between $0.052$ and $0.201$, confirming that cross-asset tail co-dependence is an enduring feature across investment horizons.
+**Disentangling Tail Dependence from Linear Correlation:**
+At a $5\%$ quantile threshold ($q = 0.05$), assets governed by a Gaussian copula produce positive co-exceedance due to linear correlation $\rho$. By benchmarking against the bivariate normal integral $\lambda_{\text{Gauss}}(0.05; \rho) = \Phi_2(z_{0.05}, z_{0.05}; \rho) / 0.05$, we find:
+- At $D_1$, empirical $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$ (excess $+0.004$), proving that daily co-exceedance is primarily linear correlation.
+- At $D_2$, empirical $\hat{\lambda}_L = 0.201$ vs Gaussian benchmark $0.171$ (excess $+0.030$), indicating genuine non-linear crash clustering at weekly holding periods.
+- At $S_5$, excess tail dependence reaches $+0.042$, capturing secular macro co-dependence.
 
 ***
 
@@ -114,30 +118,32 @@ Five copula families fitted via MLE and evaluated by Bayesian Information Criter
 
 We evaluate models across out-of-sample trading days (January 2023 to June 2026) for horizons $h \in \{1, 5, 20\}$ days, calibrated strictly on in-sample data from 2015 to 2022:
 
-| Horizon | Model | Obs | Breaches | Breach Rate | Kupiec p | Christoffersen p | Basel Zone | FZ Loss |
+| Horizon | Model | Obs | Breaches | Breach Rate | Kupiec p | Christoffersen p | FZ Loss | Status / Diagnostic |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1d** | Historical Simulation | 875 | 6 | 0.69% | 0.3219 | 0.0286 | GREEN | -3.7191 |
-| **1d** | Parametric Gaussian | 875 | 13 | 1.49% | 0.1780 | 0.1824 | GREEN | -3.6786 |
-| **1d** | Static Copula | 875 | 5 | 0.57% | 0.1659 | 0.0182 | GREEN | -3.6674 |
-| **1d** | Basel Sqrt Time | 875 | 6 | 0.69% | 0.3219 | 0.0286 | GREEN | -3.7191 |
-| **1d** | **Proposed Multiscale Copula** | **875** | **5** | **0.57%** | **0.1659** | **0.0182** | **GREEN** | **-3.6674** |
-| **1d** | H-TCM Adjusted | 875 | 6 | 0.69% | 0.3219 | 0.0286 | GREEN | -3.7191 |
-| **5d** | Historical Simulation | 871 | 2 | 0.23% | 0.0059 | 0.0016 | GREEN | -2.9245 |
-| **5d** | Parametric Gaussian | 871 | 6 | 0.69% | 0.3282 | 0.0003 | GREEN | -3.0778 |
-| **5d** | Static Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | GREEN | -2.8764 |
-| **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | 0.0000 | GREEN | -2.9744 |
-| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **GREEN** | **-2.8219** |
-| **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | 0.0000 | GREEN | -2.9261 |
-| **20d** | Historical Simulation | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.3530 |
-| **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | 0.0000 | GREEN | -2.6591 |
-| **20d** | Static Copula | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.2601 |
-| **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.3963 |
-| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **0.0000** | **1.0000** | **GREEN** | **-2.2601** |
-| **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | 0.0000 | 1.0000 | GREEN | -2.3963 |
+| **1d** | Historical Simulation | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
+| **1d** | Parametric Gaussian | 875 | 13 | 1.49% | 0.1780 | 0.1824 | -3.6786 | GREEN (Basel) |
+| **1d** | Static Copula | 875 | 5 | 0.57% | 0.1659 | 0.0182 | -3.6674 | GREEN (Basel) |
+| **1d** | Basel Sqrt Time | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
+| **1d** | **Proposed Multiscale Copula** | **875** | **5** | **0.57%** | **0.1659** | **0.0182** | **-3.6674** | **GREEN (Basel)** |
+| **1d** | H-TCM Adjusted | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
+| **5d** | Historical Simulation | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.9245 | GREEN (Diag) |
+| **5d** | Parametric Gaussian | 871 | 6 | 0.69% | 0.3282 | 0.0003 | -3.0778 | GREEN (Diag) |
+| **5d** | Static Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.8764 | GREEN (Diag) |
+| **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | 0.0000 | -2.9744 | GREEN (Diag) |
+| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **-2.8219** | **GREEN (Diag)** |
+| **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | 0.0000 | -2.9261 | GREEN (Diag) |
+| **20d** | Historical Simulation | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3530 | GREEN (Diag) |
+| **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | 0.0000 | -2.6591 | GREEN (Diag) |
+| **20d** | Static Copula | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.2601 | GREEN (Diag) |
+| **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3963 | GREEN (Diag) |
+| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **0.0000** | **1.0000** | **-2.2601** | **GREEN (Diag)** |
+| **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3963 | GREEN (Diag) |
 
-The Parametric Gaussian model generates 13 breaches at the 1-day horizon (1.49% vs 1.00% expected, Kupiec $p = 0.178$). While within the Basel Green Zone scaled over 250 days (3.71 breaches per 250 days), it approaches the supervisory penalty threshold, showing that assuming normal distributions understates risk.
-
-At 5-day and 20-day horizons, conventional square-root scaling was statistically conservative (0 to 3 breaches vs ~8.7 expected), rather than understating risk. This empirical finding reflects the persistent upward trend of market indices during 2023 to 2026 combined with overlapping rolling returns. The multiscale copula framework consistently achieves optimal Fissler-Ziegel joint scores without excessive capital over-allocation.
+**Backtest Insights & Model Comparison:**
+- At 1-day, the Parametric Gaussian model produces 13 breaches (1.49% failure rate vs 1.00% expected). While failing to reject at 5% significance under Kupiec POF ($p = 0.178$), it generates 2.6x the breach count of copula models (5 breaches), demonstrating substantial tail vulnerability. The Proposed Multiscale Copula is identical to Static Copula at 1-day (5 breaches, FZ loss -3.6674).
+- At 5-day, the Proposed Multiscale Copula ties with Historical Simulation for lowest breach count (2 breaches each, both Green zone).
+- At 20-day, the Proposed Multiscale Copula matches Static Copula (0 breaches, FZ loss -2.2601) and ties with Historical Simulation and Basel scaling at 0 breaches.
+- Multi-day square-root scaling was statistically conservative (0 to 3 breaches vs ~8.7 expected), rather than understating risk, due to the steady upward equity trend and overlapping rolling returns.
 
 ***
 
@@ -149,32 +155,38 @@ $$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \
 ### Sensitivity Table Across Horizons ($\kappa \in [0.20, 0.50]$):
 | Horizon | Scale | $\kappa = 0.20$ | $\kappa = 0.35$ (Recommended) | $\kappa = 0.50$ | Operational Status |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **$h = 1$d** | D1 | 1.000 | **1.000** | 1.000 | Baseline Allocation (0.0% Surcharge) |
-| **$h = 5$d** | D2 | 1.013 | **1.022** | 1.032 | Targeted Contingent Surcharge (+2.2%) |
-| **$h = 20$d** | D4 | 1.000 | **1.000** | 1.000 | No Surcharge Required (0.0% Surcharge) |
-| **$h = 40$d** | D5 | 1.000 | **1.000** | 1.000 | No Surcharge Required (0.0% Surcharge) |
+| **$h = 1$d** | D1 | 1.000 | **1.000** | 1.000 | Basel-style Green Zone (Baseline Allocation) |
+| **$h = 5$d** | D2 | 1.013 | **1.022** | 1.032 | Precautionary Buffer (+2.2% Contingent Overlay) |
+| **$h = 20$d** | D4 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
+| **$h = 40$d** | D5 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
 
-With $\kappa = 0.35$, the formula acts as a contingent overlay: when weekly tail co-dependence exceeds the daily baseline ($\hat{\lambda}_L(5) = 0.201 > 0.189$), it adds a targeted $+2.2\%$ capital buffer, while avoiding unnecessary capital lockup at horizons where tail dependence does not exceed baseline levels.
+**Candid Evaluation & Empirical Scope:**
+1. **Precautionary Buffer vs Noise:** The +2.2% buffer reflects an empirical difference of $\hat{\lambda}_L(D_2) - \hat{\lambda}_L(D_1) = 0.201 - 0.189 = 0.012$, which operates as a precautionary safety margin rather than a statistically separated divergence.
+2. **Calm Market Performance:** In the 2023-2026 backtest, standard scaling was already conservative (3 breaches at 5d). H-TCM held extra capital without reducing breaches below 3, incurring a slightly higher Fissler-Ziegel loss (-2.9261 vs -2.9744).
+3. **Long Horizon Behavior:** At 20d and 40d, the multiplier floors at 1.000, identical to standard scaling.
+4. **Crisis Positioning:** H-TCM is a contingent stress buffer for systemic crises (such as 2008 or March 2020), and remains untested out-of-sample in a severe historical liquidity shock.
 
 ***
 
-## 6. Reproduction & Verification
+## 6. Reproduction, Verification & AI Disclosure
 
 1. **Master Pipeline Reproduction:**
    ```bash
    python run_all.py
    ```
-   Execution completes in ~10 seconds (< 3 minutes hard limit) and regenerates all figures and tables.
+   Execution completes in ~15-20 seconds (< 3 minutes hard limit) and regenerates all figures and LaTeX tables.
 2. **Automated Unit Tests:**
    ```bash
    pytest tests/
    ```
-   All 45 unit tests pass in ~15 seconds.
+   All 45 unit/integration tests pass in ~15 seconds.
 3. **Automated Verification:**
    ```bash
    python verify_submission.py
    ```
-   Verifies all 7 audit integrity criteria.
+   Verifies all submission integrity criteria.
+4. **Transparent AI Disclosure:**
+   In compliance with competition guidelines, generative AI tools were used materially for technical literature synthesis, Python code drafting/refactoring across `src/`, numerical optimization debugging, and LaTeX table formatting. The human team directed project scoping, audited all code, conducted econometric reality checks (including formulating the Gaussian benchmark and candid H-TCM evaluation), and accepts full intellectual responsibility (see `docs/AI_DISCLOSURE.md`).
 
 ***
 

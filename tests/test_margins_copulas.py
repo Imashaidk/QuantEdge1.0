@@ -310,3 +310,15 @@ def test_empirical_tail_dependence_bounds(fitted_margins):
     assert 0.0 <= lam_L <= 1.0, f"Empirical lambda_L must be in [0, 1], got {lam_L}"
     assert 0.0 <= lam_U <= 1.0, f"Empirical lambda_U must be in [0, 1], got {lam_U}"
     assert -1.0 <= tar <= 1.0, f"TAR must be in [-1, 1], got {tar}"
+
+
+def test_empirical_tail_dependence_with_gaussian_benchmark(fitted_margins):
+    """Verifies Gaussian benchmark and excess tail dependence calculations."""
+    u_df, _ = fitted_margins
+    lam_L, lam_U, tar, g_bench, excess = compute_empirical_tail_dependence(
+        u_df.values, q=0.05, return_benchmark=True
+    )
+    assert 0.0 <= g_bench <= 1.0, f"Gaussian benchmark must be in [0, 1], got {g_bench}"
+    assert -1.0 <= excess <= 1.0, f"Excess tail dependence must be in [-1, 1], got {excess}"
+    assert abs(excess - (lam_L - g_bench)) < 1e-9
+

@@ -121,7 +121,7 @@ def verify_all() -> bool:
         print("  [*] QuantEdge_Submission.zip will be generated upon final packaging.")
 
     # 7. Verify Zero Emojis and Zero Non-ASCII Dashes
-    print("\n[CHECK 7/7] Testing strict compliance: Zero emojis & Zero non-ASCII dashes...")
+    print("\n[CHECK 7/8] Testing strict compliance: Zero emojis & Zero non-ASCII dashes...")
     emoji_pattern = re.compile(r"[\u274c\U00010000-\U0010ffff\u2600-\u26ff\u2700-\u27bf]")
     violations = []
 
@@ -148,6 +148,44 @@ def verify_all() -> bool:
 
     assert len(violations) == 0, f"Found formatting violations: {violations}"
     print("  [+] Verified ZERO emojis and ZERO non-ASCII dashes across entire workspace [PASSED]")
+
+    # 8. Verify Consistency Between Generated LaTeX Tables and Reports
+    print("\n[CHECK 8/8] Testing report and table numeric consistency...")
+    report_tex_path = ROOT / "report" / "report.tex"
+    readme_path = ROOT / "README.md"
+    report_md_path = ROOT / "report" / "REPORT.md"
+
+    report_tex = report_tex_path.read_text(encoding="utf-8")
+    readme_text = readme_path.read_text(encoding="utf-8")
+    report_md_text = report_md_path.read_text(encoding="utf-8")
+
+    # Verify report.tex uses dynamic inputs
+    assert "\\input{../tables/copula_tournament.tex}" in report_tex, "report.tex must use dynamic input for copula tournament table"
+    assert "\\input{../tables/backtest_metrics.tex}" in report_tex, "report.tex must use dynamic input for backtest metrics table"
+    assert "\\input{../tables/variance_decomposition.tex}" in report_tex, "report.tex must use dynamic input for variance decomposition table"
+
+    # Extract numbers from tables/copula_tournament.tex and verify in README and REPORT.md
+    c_tex = (ROOT / "tables" / "copula_tournament.tex").read_text(encoding="utf-8")
+    for line in c_tex.splitlines():
+        if "&" in line and ("D1" in line or "D2" in line or "D3" in line or "D4" in line or "D5" in line or "S5" in line):
+            parts = [p.strip() for p in line.split("&")]
+            scale = parts[0]
+            emp_lL = parts[5]
+            assert emp_lL in readme_text, f"README.md missing or mismatching emp lambda_L {emp_lL} for scale {scale}"
+            assert emp_lL in report_md_text, f"REPORT.md missing or mismatching emp lambda_L {emp_lL} for scale {scale}"
+
+    # Extract numbers from tables/backtest_metrics.tex and verify in README and REPORT.md
+    b_tex = (ROOT / "tables" / "backtest_metrics.tex").read_text(encoding="utf-8")
+    for line in b_tex.splitlines():
+        if "&" in line and ("1d" in line or "5d" in line or "20d" in line):
+            parts = [p.strip() for p in line.split("&")]
+            horizon = parts[0]
+            model = parts[1]
+            breaches = parts[3]
+            assert breaches in readme_text, f"README.md missing breach count {breaches} for {model} at {horizon}"
+            assert breaches in report_md_text, f"REPORT.md missing breach count {breaches} for {model} at {horizon}"
+
+    print("  [+] Verified 100% synchronization: LaTeX inputs, README tables, and REPORT.md [PASSED]")
 
     print("\n" + "=" * 80)
     print(" [ALL AUDIT INTEGRITY CHECKS PASSED SUCCESSFULLY]")

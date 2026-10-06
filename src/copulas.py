@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import minimize_scalar
 from scipy.special import gammaln
-from scipy.stats import norm, t
+from scipy.stats import multivariate_normal, norm, t
 
 from src.config import (
     COPULA_FAMILIES,
@@ -447,22 +447,27 @@ class FrankCopula(BaseCopula):
 def compute_empirical_tail_dependence(
     U: np.ndarray,
     q: float = 0.05,
-) -> Tuple[float, float, float]:
-    """Computes model-free non-parametric tail dependence and TAR.
+    return_benchmark: bool = False,
+) -> Union[Tuple[float, float, float], Tuple[float, float, float, float, float]]:
+    """Computes model-free non-parametric tail dependence, Gaussian benchmark, and excess tail dependence.
 
     Formulas:
         lambda_L(q) = P(U1 <= q, U2 <= q) / q
         lambda_U(q) = P(U1 >= 1-q, U2 >= 1-q) / q
         TAR(q) = lambda_L(q) - lambda_U(q)
+        lambda_Gauss(q; rho) = P_Gauss(U1 <= q, U2 <= q; rho) / q
+        Excess_lambda_L(q) = lambda_L(q) - lambda_Gauss(q)
 
     Averages across all pairwise off-diagonal combinations in matrix U.
 
     Args:
         U: Uniform marginal data (N x d).
         q: Tail quantile threshold (e.g. 0.05 for 5% tail).
+        return_benchmark: If True, returns (lambda_L, lambda_U, TAR, lambda_Gauss, excess_lambda_L).
+                          If False, returns (lambda_L, lambda_U, TAR) for backward compatibility.
 
     Returns:
-        Tuple: (lambda_L, lambda_U, TAR).
+        Tuple of tail dependence metrics.
     """
     N, d = U.shape
     l_lower_list = []
@@ -480,7 +485,28 @@ def compute_empirical_tail_dependence(
     mean_l_L = float(np.mean(l_lower_list))
     mean_l_U = float(np.mean(l_upper_list))
     tar = mean_l_L - mean_l_U
-    return mean_l_L, mean_l_U, tar
+
+    if not return_benchmark:
+        return mean_l_L, mean_l_U, tar
+
+    # Gaussian benchmark for tail co-exceedance at quantile q
+    z_q = float(norm.ppf(q))
+    U_clipped = np.clip(U, 1e-6, 1.0 - 1e-6)
+    X_norm = norm.ppf(U_clipped)
+    R_norm = np.corrcoef(X_norm, rowvar=False)
+
+    gauss_list = []
+    for i in range(d):
+        for j in range(i + 1, d):
+            rho = float(R_norm[i, j])
+            cov = [[1.0, rho], [rho, 1.0]]
+            p_joint = float(multivariate_normal.cdf([z_q, z_q], mean=[0.0, 0.0], cov=cov))
+            gauss_list.append(np.clip(p_joint / q, 0.0, 1.0))
+
+    mean_gauss = float(np.mean(gauss_list)) if gauss_list else 0.0
+    excess_l_L = float(mean_l_L - mean_gauss)
+
+    return mean_l_L, mean_l_U, tar, mean_gauss, excess_l_L
 
 
 def compute_pairwise_tail_matrix(
@@ -540,11 +566,13 @@ def run_scale_copula_tournament(
             - 'lambda_L': lower tail dependence
             - 'lambda_U': upper tail dependence
             - 'tar': Timescale Asymmetry Ratio (lambda_L - lambda_U)
+            - 'lambda_gauss_bench': Gaussian copula benchmark at 5% threshold
+            - 'excess_lambda_L': Excess tail crash dependence (emp_lL - gauss_bench)
             - 'bic_scores': Dict of BIC values per family
             - 'aic_scores': Dict of AIC values per family
             - 'log_likelihoods': Dict of Log-Likelihood values per family
             - 'fitted_copula_obj': fitted winning copula instance
-            - 'empirical_tail_dep': empirical lambda_L, lambda_U, and TAR
+            - 'empirical_tail_dep': empirical lambda_L, lambda_U, TAR, and benchmarks
     """
     U = u_df.values
     copula_candidates: Dict[str, BaseCopula] = {
@@ -574,8 +602,10 @@ def run_scale_copula_tournament(
     best_copula_name = min(bic_scores, key=bic_scores.get)
     best_copula_obj = copula_candidates[best_copula_name]
 
-    # Model-free empirical tail dependence
-    emp_lL, emp_lU, emp_tar = compute_empirical_tail_dependence(U, q=0.05)
+    # Model-free empirical tail dependence and Gaussian benchmark
+    emp_lL, emp_lU, emp_tar, gauss_bench, excess_lL = compute_empirical_tail_dependence(
+        U, q=0.05, return_benchmark=True
+    )
 
     # Theoretical copula tail dependence parameters (strictly from model definition)
     theo_lL = float(best_copula_obj.lambda_L)
@@ -605,6 +635,8 @@ def run_scale_copula_tournament(
         "lambda_L_emp": emp_lL,
         "lambda_U_emp": emp_lU,
         "tar_emp": emp_tar,
+        "lambda_gauss_bench": float(gauss_bench),
+        "excess_lambda_L": float(excess_lL),
         "lambda_L": float(scale_lL),
         "lambda_U": float(scale_lU),
         "tar": float(scale_tar),
@@ -617,6 +649,8 @@ def run_scale_copula_tournament(
             "lambda_L": emp_lL,
             "lambda_U": emp_lU,
             "tar": emp_tar,
+            "lambda_gauss_bench": float(gauss_bench),
+            "excess_lambda_L": float(excess_lL),
         },
     }
 
