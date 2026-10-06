@@ -50,7 +50,7 @@ QuantEdge-MTR Pipeline Architecture
                     Additive Error: max |R - sum(D_j) - S_5| = 3.77e-14
                            │
                            ▼
- [Margin Layer]     ARMA(1,1)-GJR-GARCH(1,1) + EVT-POT (GPD Tails) + PIT
+ [Margin Layer]     AR(1)-GJR-GARCH(1,1) + EVT-POT (GPD Tails) + PIT
                            │
                            ▼
  [Copula Layer]     Scale-Optimal Tournament (Gaussian, t, Clayton, Gumbel, Frank)
@@ -71,7 +71,7 @@ Instead, we use the **Maximal Overlap Discrete Wavelet Transform (MODWT)**. MODW
 ### 2.2 Why We Clean Volatility with GARCH and EVT First
 If you calculate correlation directly on raw returns, volatility clustering distorts your numbers. A volatile month makes assets look correlated even if their underlying dependence has not changed. 
 
-We filter each asset detail series with an $\text{ARMA}(1,1)\text{-GJR-GARCH}(1,1)$ model to remove volatility clustering and capture the leverage effect (bad news creating larger volatility spikes than good news). Then we use Extreme Value Theory (EVT) Peaks-Over-Threshold: we fit Generalized Pareto Distributions to the worst 10% and best 10% tails, while using the empirical distribution for the middle 80%. This isolates pure uniform margins for copula fitting.
+We filter each asset detail series with an $\text{AR}(1)\text{-GJR-GARCH}(1,1)$ model to remove volatility clustering and capture the leverage effect (bad news creating larger volatility spikes than good news). Then we use Extreme Value Theory (EVT) Peaks-Over-Threshold: we fit Generalized Pareto Distributions to the worst 10% and best 10% tails, while using the empirical distribution for the middle 80%. This isolates pure uniform margins for copula fitting.
 
 ***
 
@@ -111,16 +111,24 @@ We evaluate models across 875 out-of-sample trading days (January 2023 to June 2
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **1-Day** | Historical Simulation | 6 | 0.69% | 0.322 | **GREEN** | -3.732 |
 | **1-Day** | Parametric Gaussian | 13 | 1.49% | 0.178 | **GREEN (Borderline)** | -3.623 |
+| **1-Day** | Static Copula (Raw) | 5 | 0.57% | 0.166 | **GREEN** | -3.684 |
 | **1-Day** | Basel $\sqrt{h}$ Scaler | 6 | 0.69% | 0.322 | **GREEN** | -3.732 |
-| **1-Day** | **Proposed Multiscale Model** | **6** | **0.69%** | **0.322** | **GREEN** | **-3.732** |
+| **1-Day** | **Proposed Multiscale Model** | **5** | **0.57%** | **0.166** | **GREEN** | **-3.684** |
+| **1-Day** | H-TCM Adjusted | 6 | 0.69% | 0.322 | **GREEN** | -3.732 |
 | **5-Day** | Historical Simulation | 2 | 0.23% | 0.006 | **GREEN** | -2.956 |
 | **5-Day** | Parametric Gaussian | 6 | 0.69% | 0.328 | **GREEN** | -3.048 |
+| **5-Day** | Static Copula (Raw) | 2 | 0.23% | 0.006 | **GREEN** | -2.900 |
 | **5-Day** | Basel $\sqrt{h}$ Scaler | 3 | 0.34% | 0.024 | **GREEN** | -3.007 |
-| **5-Day** | **Proposed Multiscale Model** | **3** | **0.34%** | **0.024** | **GREEN** | **-3.007** |
+| **5-Day** | **Proposed Multiscale Model** | **2** | **0.23%** | **0.006** | **GREEN** | **-2.900** |
+| **5-Day** | H-TCM Adjusted | 3 | 0.34% | 0.024 | **GREEN** | -3.007 |
+| **20-Day** | Historical Simulation | 0 | 0.00% | 0.000 | **GREEN** | -2.392 |
+| **20-Day** | Parametric Gaussian | 3 | 0.35% | 0.027 | **GREEN** | -2.664 |
+| **20-Day** | Static Copula (Raw) | 0 | 0.00% | 0.000 | **GREEN** | -2.307 |
 | **20-Day** | Basel $\sqrt{h}$ Scaler | 0 | 0.00% | 0.000 | **GREEN** | -2.467 |
-| **20-Day** | **Proposed Multiscale Model** | **0** | **0.00%** | **0.000** | **GREEN** | **-2.457** |
+| **20-Day** | **Proposed Multiscale Model** | **0** | **0.00%** | **0.000** | **GREEN** | **-2.094** |
+| **20-Day** | H-TCM Adjusted | 0 | 0.00% | 0.000 | **GREEN** | -2.253 |
 
-The Parametric Gaussian model generates 13 breaches at the 1-day horizon (1.49%), nearly double what a 99% confidence level allows, showing that assuming normal distributions understates risk.
+The Parametric Gaussian model generates 13 breaches at the 1-day horizon (1.49% vs 1.00% expected, Kupiec $p = 0.178$). While within the Basel Green Zone scaled over 250 days (3.71 breaches per 250 days), it approaches the supervisory penalty threshold, showing that assuming normal distributions understates risk.
 
 ***
 
@@ -133,10 +141,11 @@ $$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \
 | Horizon | $\kappa = 0.20$ | $\kappa = 0.35$ (Recommended) | $\kappa = 0.50$ | Operational Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **$h = 1$d** | 1.000 | **1.000** | 1.000 | Green Zone (No extra buffer) |
-| **$h = 5$d** | 1.050 | **1.088** | 1.125 | Green Zone (Prudent buffer) |
-| **$h = 20$d** | 1.140 | **1.245** | 1.350 | Eliminates liquidity undercapitalization |
+| **$h = 5$d** | 1.000 | **1.000** | 1.000 | Green Zone (No extra buffer) |
+| **$h = 20$d** | 1.133 | **1.233** | 1.333 | Eliminates liquidity undercapitalization (+23.3%) |
+| **$h = 40$d** | 2.314 | **3.300** | 4.286 | Severe Crash Capital Reserve (+230.0%) |
 
-With $\kappa = 0.35$, the desk automatically adds an 8.8% capital buffer at weekly horizons and a 24.5% buffer at monthly horizons. A risk team can implement this directly without touching their core database architecture.
+With $\kappa = 0.35$, the desk automatically maintains a baseline multiplier of 1.000 at weekly horizons where lower tail dependence remains low, while adding a 23.3% capital buffer at monthly horizons ($h=20$) and expanding dynamically during quarterly crash regimes ($h=40$). A risk team can implement this directly without touching their core database architecture.
 
 ***
 

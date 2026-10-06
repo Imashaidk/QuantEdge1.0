@@ -218,8 +218,9 @@ def main() -> None:
 
   Empirical Calibration (kappa = 0.35, epsilon = 1e-6):
     - Horizon h = 1d  : Multiplier = 1.000 (Green Zone, 0% capital surcharge)
-    - Horizon h = 5d  : Multiplier = 1.088 (Green Zone, +8.8% capital expansion)
-    - Horizon h = 20d : Multiplier = 1.245 (Green Zone, +24.5% capital buffer)
+    - Horizon h = 5d  : Multiplier = 1.000 (Green Zone, 0% capital surcharge)
+    - Horizon h = 20d : Multiplier = 1.233 (Green Zone, +23.3% capital buffer)
+    - Horizon h = 40d : Multiplier = 3.300 (Macro Crash Reserve, +230.0% capital buffer)
         """
     )
     print("=" * 85)

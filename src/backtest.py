@@ -328,6 +328,7 @@ def run_out_of_sample_backtest(
     alpha_var: float = ALPHA_VAR_99,
     alpha_es: float = ALPHA_ES_975,
     df_train: Optional[pd.DataFrame] = None,
+    sim_returns_raw: Optional[pd.DataFrame] = None,
 ) -> pd.DataFrame:
     """Runs comprehensive out-of-sample backtesting across models and horizons.
 
@@ -342,6 +343,7 @@ def run_out_of_sample_backtest(
         alpha_var: VaR confidence level (0.99).
         alpha_es: ES confidence level (0.975).
         df_train: In-sample train log returns (2015–2022). If None, loads from cache.
+        sim_returns_raw: Simulated joint returns from raw copula. If None, generated.
 
     Returns:
         pd.DataFrame matching Contract 4 schema:
@@ -364,6 +366,19 @@ def run_out_of_sample_backtest(
             t_res = run_scale_copula_tournament(u_s, scale_name=scale)
             t_res["models_meta"] = m_s
             copula_results[scale] = t_res
+
+    # Generate genuine raw copula simulation if not provided
+    if sim_returns_raw is None:
+        from src.margins import fit_margins_and_transform_uniform
+        from src.copulas import StudentTCopula, simulate_copula_joint_returns
+        from src.config import COPULA_SIMULATION_SAMPLES, RANDOM_SEED
+
+        u_raw, meta_raw = fit_margins_and_transform_uniform(df_train)
+        copula_raw = StudentTCopula()
+        copula_raw.fit(u_raw)
+        sim_returns_raw = simulate_copula_joint_returns(
+            copula_raw, meta_raw, n_samples=COPULA_SIMULATION_SAMPLES, seed=RANDOM_SEED
+        )
 
     # Initialize risk engine
     engine = RiskEngine(
@@ -391,6 +406,7 @@ def run_out_of_sample_backtest(
         model_predictions = engine.compute_all_models_for_horizon(
             df_train=df_train,
             copula_tournament_results=copula_results,
+            sim_returns_raw=sim_returns_raw,
             horizon=h,
         )
 

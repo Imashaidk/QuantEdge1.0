@@ -232,8 +232,7 @@ def compute_htcm_multiplier(
     """
     delta_lambda = max(0.0, float(lambda_L_h) - float(lambda_L_1))
     relative_increase = delta_lambda / (float(lambda_L_1) + float(epsilon))
-    # Cap multiplier to prevent extreme capital over-provisioning
-    multiplier = 1.0 + kappa * min(relative_increase, 10.0)
+    multiplier = 1.0 + kappa * relative_increase
     return float(multiplier)
 
 
@@ -410,12 +409,15 @@ class RiskEngine:
             v1_raw_95, _ = compute_var_es_from_loss(
                 -r_sim_raw, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es_975
             )
-            # Scaled by sqrt(h)
+            # Scaled across horizons by Basel sqrt(h)
             vh_raw_99, esh_raw = compute_basel_scaled_var(v1_raw_99, es1_raw, horizon)
             vh_raw_95, _ = compute_basel_scaled_var(v1_raw_95, es1_raw, horizon)
         else:
-            vh_raw_99, esh_raw = compute_basel_scaled_var(v1_hist_99 * 1.05, es1_hist_975 * 1.05, horizon)
-            vh_raw_95 = vh_raw_99 * 0.75
+            # Baseline from historical if simulation not supplied
+            v1_raw_99, es1_raw = v1_hist_99, es1_hist_975
+            v1_raw_95 = v1_hist_95
+            vh_raw_99, esh_raw = compute_basel_scaled_var(v1_raw_99, es1_raw, horizon)
+            vh_raw_95, _ = compute_basel_scaled_var(v1_raw_95, es1_raw, horizon)
 
         results["Static_Copula"] = {
             "VaR_99": vh_raw_99,
@@ -435,27 +437,13 @@ class RiskEngine:
         }
 
         # ----------------------------------------------------------------------
-        # Model 5: Proposed Multiscale Wavelet-Copula Model
+        # Model 5: Proposed Multiscale Wavelet-Copula Model (H-TCM Scaling)
         # ----------------------------------------------------------------------
-        if sim_returns_multiscale is not None and not sim_returns_multiscale.empty:
-            r_sim_multi = compute_portfolio_returns(sim_returns_multiscale, self.weights)
-            v1_multi_99, es1_multi = compute_var_es_from_loss(
-                -r_sim_multi, alpha_var=self.alpha_var_99, alpha_es=self.alpha_es_975
-            )
-            v1_multi_95, _ = compute_var_es_from_loss(
-                -r_sim_multi, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es_975
-            )
-            # Multiscale horizon activation factor reflects tail dependence growth:
-            m_factor = np.sqrt(horizon) * (1.0 + self.kappa * (lambda_L_h - lambda_L_1))
-            vh_multi_99 = v1_multi_99 * m_factor
-            vh_multi_95 = v1_multi_95 * m_factor
-            esh_multi = es1_multi * m_factor
-        else:
-            # Calibrate from empirical tail dependence multiplier
-            m_factor = np.sqrt(horizon) * (1.0 + self.kappa * max(0.0, lambda_L_h - lambda_L_1))
-            vh_multi_99 = v1_hist_99 * m_factor
-            vh_multi_95 = v1_hist_95 * m_factor
-            esh_multi = es1_hist_975 * m_factor
+        # Scales 1-day copula risk by the Horizon-Conditioned Tail Capital Multiplier
+        mult_factor = compute_htcm_multiplier(lambda_L_h, lambda_L_1, self.kappa)
+        vh_multi_99 = v1_raw_99 * np.sqrt(horizon) * mult_factor
+        vh_multi_95 = v1_raw_95 * np.sqrt(horizon) * mult_factor
+        esh_multi = es1_raw * np.sqrt(horizon) * mult_factor
 
         results["Proposed_Multiscale_Copula"] = {
             "VaR_99": vh_multi_99,
