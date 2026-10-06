@@ -14,6 +14,8 @@
 \usepackage{tabularx}
 \usepackage{cite}
 
+\graphicspath{{../figures/}{figures/}}
+
 \hypersetup{
     colorlinks=true,
     linkcolor=blue!70!black,
@@ -134,7 +136,7 @@ Fitting copulas directly on raw returns violates Sklar's theorem because financi
 
 We solve this using a two-stage semi-parametric filter:
 \begin{enumerate}
-    \item \textbf{Volatility Filtering:} For each asset detail series $D_j$, we fit an $\text{AR}(1)\text{-GJR-GARCH}(1,1)$ model with Student-$t$ innovations:
+    \item \textbf{Volatility Filtering:} For each asset detail series $D_j$, we fit an $\text{AR}(1)\text{-GJR-GARCH}(1,1)$ model with Student-$t$ innovations \cite{gjr1993}:
     \begin{align}
     r_t &= \mu + \phi r_{t-1} + \epsilon_t, \quad \epsilon_t = \sigma_t z_t \\
     \sigma_t^2 &= \omega + (\alpha + \gamma I_{\{\epsilon_{t-1} < 0\}}) \epsilon_{t-1}^2 + \beta \sigma_{t-1}^2
@@ -152,7 +154,7 @@ We solve this using a two-stage semi-parametric filter:
 \end{enumerate}
 
 \subsection{Scale-Optimal Copula Tournament}
-According to Sklar's Theorem, any multivariate distribution $F(x_1, \dots, x_d)$ decomposes uniquely into its marginal CDFs and a copula function $C$:
+According to Sklar's Theorem \cite{sklar1959, embrechts2002}, any multivariate distribution $F(x_1, \dots, x_d)$ decomposes uniquely into its marginal CDFs and a copula function $C$:
 \begin{equation}
 F(x_1, \dots, x_d) = C(F_1(x_1), \dots, F_d(x_d))
 \end{equation}
@@ -261,11 +263,11 @@ To evaluate what happens when a risk desk ignores horizon-dependent tail depende
 \subsection{Supervisory Hypothesis Testing}
 We evaluate model performance through four established supervisory criteria:
 \begin{enumerate}
-    \item \textbf{Kupiec POF Likelihood Ratio Test:} Tests whether the observed breach count $x$ over $N$ observations matches the expected nominal rate ($H_0: p = 0.01$).
+    \item \textbf{Kupiec POF Likelihood Ratio Test:} Tests whether the observed breach count $x$ over $N$ observations matches the expected nominal rate ($H_0: p = 0.01$) \cite{kupiec1995}:
     \begin{equation}
     \text{LR}_{\text{POF}} = -2 \ln \left[ \frac{(1-p_0)^{N-x} p_0^x}{(1 - \hat{p})^{N-x} \hat{p}^x} \right] \sim \chi^2(1)
     \end{equation}
-    \item \textbf{Christoffersen Independence Test:} Tests whether breaches cluster together in consecutive time windows:
+    \item \textbf{Christoffersen Independence Test:} Tests whether breaches cluster together in consecutive time windows \cite{christoffersen1998}:
     \begin{equation}
     \text{LR}_{\text{ind}} = -2 \ln \left[ \frac{L(\pi)}{L(\pi_{01}, \pi_{11})} \right] \sim \chi^2(1)
     \end{equation}
@@ -377,10 +379,15 @@ In accordance with competition rules:
 
 \begin{thebibliography}{99}
 \bibitem{basel1996} Basel Committee on Banking Supervision (1996). \textit{Supervisory framework for the use of `backtesting' in conjunction with the internal models approach to market risk capital requirements}. Bank for International Settlements.
+\bibitem{christoffersen1998} Christoffersen, P. F. (1998). Evaluating interval forecasts. \textit{International Economic Review}, 39(4), 841--862.
+\bibitem{embrechts2002} Embrechts, P., McNeil, A., \& Straumann, D. (2002). Correlation and dependence in risk management: properties and pitfalls. \textit{Risk Management: Value at Risk and Beyond}, Cambridge University Press, 176--223.
 \bibitem{fissler2016} Fissler, T., \& Ziegel, J. F. (2016). Higher order elicitability and prediction markets of higher order. \textit{The Annals of Statistics}, 44(5), 2153--2181.
 \bibitem{gencay2001} Gencay, R., Selcuk, F., \& Whitcher, B. (2001). \textit{An Introduction to Wavelets and Other Filtering Methods in Finance and Economics}. Academic Press.
+\bibitem{gjr1993} Glosten, L. R., Jagannathan, R., \& Runkle, D. E. (1993). On the relation between the expected value and the volatility of the nominal excess return on stocks. \textit{The Journal of Finance}, 48(5), 1779--1801.
+\bibitem{kupiec1995} Kupiec, P. H. (1995). Techniques for verifying the accuracy of risk measurement models. \textit{The Journal of Derivatives}, 3(2), 73--84.
 \bibitem{mcneil2015} McNeil, A. J., Frey, R., \& Embrechts, P. (2015). \textit{Quantitative Risk Management: Concepts, Techniques and Tools}. Princeton University Press.
 \bibitem{percival2000} Percival, D. B., \& Walden, A. T. (2000). \textit{Wavelet Methods for Time Series Analysis}. Cambridge University Press.
+\bibitem{sklar1959} Sklar, A. (1959). Fonctions de r\'epartition \`a $n$ dimensions et leurs marges. \textit{Publ. Inst. Statist. Univ. Paris}, 8, 229--231.
 \end{thebibliography}
 
 \end{document}
