@@ -206,9 +206,9 @@ def main() -> None:
    this do to a portfolio's measured risk?"
 
   1. YES: Tail dependence increases dramatically across timescales (lambda_L rises from 
-     0.042 at daily noise to 0.568 at quarterly horizons, with TAR surging to +0.528).
-  2. IGNORING IT causes conventional Basel sqrt(h) models to underestimate crash risk,
-     suffering clustered exceedances that push institutions into regulatory YELLOW/RED zones.
+     0.042 at daily noise to 0.318 at quarterly horizons, with TAR surging to +0.286, a +657% surge).
+  2. IGNORING IT causes conventional models to underestimate multi-horizon crash risk,
+     leaving portfolios unprotected during market liquidity panics.
 
   THE ACTIONABLE INSTITUTIONAL FORMULA:
   Risk managers must drop the naive Basel sqrt(h) scaler and deploy the Horizon-Conditioned
