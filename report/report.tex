@@ -142,7 +142,7 @@ We solve this using a two-stage semi-parametric filter:
     \sigma_t^2 &= \omega + (\alpha + \gamma I_{\{\epsilon_{t-1} < 0\}}) \epsilon_{t-1}^2 + \beta \sigma_{t-1}^2
     \end{align}
     where the parameter $\gamma$ captures the leverage effect (bad news generating higher volatility than good news).
-    \item \textbf{EVT Peaks-Over-Threshold (POT):} Standardized residuals $z_t = \epsilon_t / \sigma_t$ are modeled using the empirical cumulative distribution function (CDF) for the central body ($10\% \le u \le 90\%$) and Generalized Pareto Distributions ($\text{GPD}$) for the extreme $10\%$ tails:
+    \item \textbf{EVT Peaks-Over-Threshold (POT):} Standardized residuals $z_t = \epsilon_t / \sigma_t$ are modeled using the empirical cumulative distribution function (CDF) for the central body ($10\% \le u \le 90\%$) and Generalized Pareto Distributions ($\text{GPD}$) \cite{pickands1975} for the extreme $10\%$ tails:
     \begin{equation}
     F(z) = \begin{cases}
     q_L \left( 1 + \xi_L \frac{u_L - z}{\beta_L} \right)^{-1/\xi_L}, & z < u_L \\
@@ -378,16 +378,17 @@ In accordance with competition rules:
 \end{itemize}
 
 \begin{thebibliography}{99}
-\bibitem{basel1996} Basel Committee on Banking Supervision (1996). \textit{Supervisory framework for the use of `backtesting' in conjunction with the internal models approach to market risk capital requirements}. Bank for International Settlements.
+\bibitem{basel1996} Basel Committee on Banking Supervision. (1996). \textit{Supervisory Framework for the Use of ``Backtesting'' in Conjunction with the Internal Models Approach to Market Risk Capital Requirements}. Basel: Bank for International Settlements.
 \bibitem{christoffersen1998} Christoffersen, P. F. (1998). Evaluating interval forecasts. \textit{International Economic Review}, 39(4), 841--862.
-\bibitem{embrechts2002} Embrechts, P., McNeil, A., \& Straumann, D. (2002). Correlation and dependence in risk management: properties and pitfalls. \textit{Risk Management: Value at Risk and Beyond}, Cambridge University Press, 176--223.
+\bibitem{embrechts2002} Embrechts, P., McNeil, A., \& Straumann, D. (2002). Correlation and dependence in risk management: Properties and pitfalls. In M. A. H. Dempster (Ed.), \textit{Risk Management: Value at Risk and Beyond} (pp. 176--223). Cambridge: Cambridge University Press.
 \bibitem{fissler2016} Fissler, T., \& Ziegel, J. F. (2016). Higher order elicitability and prediction markets of higher order. \textit{The Annals of Statistics}, 44(5), 2153--2181.
-\bibitem{gencay2001} Gencay, R., Selcuk, F., \& Whitcher, B. (2001). \textit{An Introduction to Wavelets and Other Filtering Methods in Finance and Economics}. Academic Press.
+\bibitem{gencay2001} Gencay, R., Selcuk, F., \& Whitcher, B. (2001). \textit{An Introduction to Wavelets and Other Filtering Methods in Finance and Economics}. San Diego: Academic Press.
 \bibitem{gjr1993} Glosten, L. R., Jagannathan, R., \& Runkle, D. E. (1993). On the relation between the expected value and the volatility of the nominal excess return on stocks. \textit{The Journal of Finance}, 48(5), 1779--1801.
 \bibitem{kupiec1995} Kupiec, P. H. (1995). Techniques for verifying the accuracy of risk measurement models. \textit{The Journal of Derivatives}, 3(2), 73--84.
-\bibitem{mcneil2015} McNeil, A. J., Frey, R., \& Embrechts, P. (2015). \textit{Quantitative Risk Management: Concepts, Techniques and Tools}. Princeton University Press.
-\bibitem{percival2000} Percival, D. B., \& Walden, A. T. (2000). \textit{Wavelet Methods for Time Series Analysis}. Cambridge University Press.
-\bibitem{sklar1959} Sklar, A. (1959). Fonctions de r\'epartition \`a $n$ dimensions et leurs marges. \textit{Publ. Inst. Statist. Univ. Paris}, 8, 229--231.
+\bibitem{mcneil2015} McNeil, A. J., Frey, R., \& Embrechts, P. (2015). \textit{Quantitative Risk Management: Concepts, Techniques and Tools} (Revised ed.). Princeton, NJ: Princeton University Press.
+\bibitem{percival2000} Percival, D. B., \& Walden, A. T. (2000). \textit{Wavelet Methods for Time Series Analysis}. Cambridge: Cambridge University Press.
+\bibitem{pickands1975} Pickands, J. (1975). Statistical inference using extreme order statistics. \textit{The Annals of Statistics}, 3(1), 119--131.
+\bibitem{sklar1959} Sklar, A. (1959). Fonctions de r\'epartition \`a $n$ dimensions et leurs marges. \textit{Publications de l'Institut de Statistique de l'Universit\'e de Paris}, 8, 229--231.
 \end{thebibliography}
 
 \end{document}
