@@ -63,8 +63,8 @@ def collect_key_numbers(
     k["TailLevel"] = _pct(TAIL_QUANTILE, signed=False).replace(".0", "")
     k["Sims"] = f"{VAR_SIMULATIONS:,}"
 
-    k["SampleStart"] = returns.index[0].strftime("%-d %B %Y")
-    k["SampleEnd"] = returns.index[-1].strftime("%-d %B %Y")
+    k["SampleStart"] = f"{returns.index[0].day} {returns.index[0].strftime('%B %Y')}"
+    k["SampleEnd"] = f"{returns.index[-1].day} {returns.index[-1].strftime('%B %Y')}"
     k["SampleDays"] = f"{len(returns):,}"
     k["ForecastStart"] = forecasts["date"].min().strftime("%B %Y")
     k["ForecastDays"] = f"{forecasts['date'].nunique():,}"
