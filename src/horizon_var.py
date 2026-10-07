@@ -77,17 +77,24 @@ class AssetGarch:
     last_eps: float
 
     def update(self, r_pct: float) -> None:
-        """Rolls the variance forward one day after observing return r_pct."""
+        """Rolls the variance forward one day after observing return r_pct.
+        
+        sigma^2(t+1) = omega + (alpha + gamma * I[eps < 0]) * eps^2 + beta * sigma^2(t)
+        using the newly observed residual eps = r_pct - mu.
+        """
         eps = r_pct - self.mu
-        neg = 1.0 if self.last_eps < 0 else 0.0
-        self.last_sigma2 = self.omega + (self.alpha + self.gamma * neg) * self.last_eps ** 2 + self.beta * self.last_sigma2
+        neg = 1.0 if eps < 0.0 else 0.0
+        self.last_sigma2 = self.omega + (self.alpha + self.gamma * neg) * (eps ** 2) + self.beta * self.last_sigma2
         self.last_eps = eps
 
     def horizon_variance(self, h: int) -> float:
-        """Sum of the expected daily variances over the next h days."""
-        neg = 1.0 if self.last_eps < 0 else 0.0
-        s2 = self.omega + (self.alpha + self.gamma * neg) * self.last_eps ** 2 + self.beta * self.last_sigma2
+        """Sum of the expected daily variances over the next h days.
+        
+        last_sigma2 holds the 1-step ahead conditional variance for day 1.
+        Future days mean-revert according to GJR persistence.
+        """
         persistence = self.alpha + 0.5 * self.gamma + self.beta
+        s2 = self.last_sigma2
         total = 0.0
         for _ in range(h):
             total += s2
@@ -104,15 +111,21 @@ def fit_asset_garch(r: np.ndarray) -> Tuple[AssetGarch, np.ndarray]:
     p = res.params
     sigma = np.asarray(res.conditional_volatility, dtype=float)
     resid = np.asarray(res.resid, dtype=float)
-    # last_sigma2 / last_eps hold the state at the end of the sample, so the first
-    # update() call produces the variance for the following day.
+    
+    # 1-step ahead conditional variance for the day following the sample
+    neg = 1.0 if resid[-1] < 0.0 else 0.0
+    s2_next = float(
+        p["omega"]
+        + (p["alpha[1]"] + p["gamma[1]"] * neg) * (resid[-1] ** 2)
+        + p["beta[1]"] * (sigma[-1] ** 2)
+    )
     garch = AssetGarch(
         mu=float(p["mu"]),
         omega=float(p["omega"]),
         alpha=float(p["alpha[1]"]),
         gamma=float(p["gamma[1]"]),
         beta=float(p["beta[1]"]),
-        last_sigma2=float(sigma[-1] ** 2),
+        last_sigma2=s2_next,
         last_eps=float(resid[-1]),
     )
     return garch, resid / sigma

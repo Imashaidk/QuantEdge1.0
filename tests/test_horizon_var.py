@@ -34,6 +34,33 @@ def test_garch_horizon_variance_reverts_to_long_run():
     assert g.horizon_variance(2000) / 2000 == pytest.approx(long_run, rel=0.05)
 
 
+def test_garch_state_update_uses_current_residual():
+    """Verifies that AssetGarch.update uses the newly observed residual, not the lagged one."""
+    mu = 0.02
+    omega = 0.05
+    alpha = 0.08
+    gamma = 0.12
+    beta = 0.82
+    prior_sigma2 = 2.5
+    old_eps = 0.3
+
+    g = AssetGarch(mu=mu, omega=omega, alpha=alpha, gamma=gamma, beta=beta,
+                   last_sigma2=prior_sigma2, last_eps=old_eps)
+
+    new_r = -1.5
+    new_eps = new_r - mu
+    assert new_eps < 0.0
+
+    expected_sigma2 = omega + (alpha + gamma) * (new_eps ** 2) + beta * prior_sigma2
+    buggy_sigma2 = omega + alpha * (old_eps ** 2) + beta * prior_sigma2
+
+    g.update(new_r)
+
+    assert g.last_sigma2 == pytest.approx(expected_sigma2, rel=1e-6)
+    assert g.last_eps == pytest.approx(new_eps, rel=1e-6)
+    assert abs(g.last_sigma2 - buggy_sigma2) > 0.1
+
+
 def test_one_day_models_agree(window):
     model = HorizonVaRModel.fit(window, [1, 5], n_sims=4000)
     fc = model.forecast(1, 0.99)
