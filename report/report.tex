@@ -173,27 +173,16 @@ We evaluate model performance using standard tests: the Kupiec coverage test \ci
 \textbf{Choice} & \textbf{Reason} \\
 \hline
 MODWT, not DWT & Keeps every daily observation at all scales and avoids downsampling; results do not depend on which calendar day we start. \\
-\hline
 sym8, level 5 & Nearly symmetric filter that prevents time shifts; level 5 spans roughly 64 days (one quarter) while preserving enough data for estimation. \\
-\hline
 Reflection boundary & Mirrors the ends rather than wrapping them around, preventing artificial jumps at the edge of each rolling window. \\
-\hline
 Cumulative horizon views & A trader holding for $h$ days experiences all slower movements combined, not an isolated frequency band. \\
-\hline
 Ranks, not GARCH-filtered views & Fitting GARCH on smooth series is unstable; ranks give pure copula margins and are completely reproducible. \\
-\hline
 $q = \TailLevel{}$ co-exceedance & Yields roughly 240 observations in each marginal tail, balancing statistical stability with genuine tail focus. \\
-\hline
 Block bootstrap, \BootBlock{} days & Preserves the strong serial correlation of smoothed returns, giving valid confidence intervals. \\
-\hline
 GJR-GARCH-$t$ + EVT margins & Industry standard: captures asymmetric volatility shocks (leverage effect) and heavy tails at the 99\% level. \\
-\hline
 Summed GARCH variance & Accounts for volatility mean reversion over time, which the rigid $\sqrt{h}$ rule misses. \\
-\hline
 $t$ copula & Best fit across asset pairs, winning \TWins{} of \CopulaFits{} BIC comparisons. \\
-\hline
 Rolling \RollingWindow-day window & Four years of daily data: long enough to fit heavy tails reliably, short enough to adapt to changing markets. \\
-\hline
 FZ0 score and DM test & Simple breach tests lack statistical power at 20 days; the FZ score evaluates every day and tests VaR and ES together. \\
 \hline
 \end{tabularx}

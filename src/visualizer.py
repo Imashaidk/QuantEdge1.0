@@ -164,8 +164,8 @@ def export_tail_table(
         "\\begin{table}[H]",
         "\\centering",
         "\\footnotesize",
-        "\\setlength{\\tabcolsep}{3.5pt}",
-        "\\begin{tabular}{|l|ccccccccc|}",
+        "\\setlength{\\tabcolsep}{3pt}",
+        "\\begin{tabular}{|l|c|c|c|c|c|c|c|c|c|}",
         "\\hline",
         "\\textbf{Horizon} & \\textbf{Risky vs hedge} & \\textbf{Change vs daily} & \\textbf{Gaussian} & \\textbf{SPY-HYG} & \\textbf{SPY-TLT} & \\textbf{SPY-GLD} & \\textbf{SPY-QQQ} & \\textbf{TLT-HYG} & \\textbf{TLT-GLD} \\\\",
         "\\hline",
@@ -181,8 +181,8 @@ def export_tail_table(
             f"{_get_lambda('SPY-HYG')} & {_get_lambda('SPY-TLT')} & {_get_lambda('SPY-GLD')} & "
             f"{_get_lambda('SPY-QQQ')} & {_get_lambda('TLT-HYG')} & {_get_lambda('TLT-GLD')} \\\\"
         )
-        lines.append("\\hline")
     lines += [
+        "\\hline",
         "\\end{tabular}",
         "\\caption{Lower-tail co-exceedance at the 5\\% level by horizon view. Brackets are 90\\% moving block bootstrap intervals.}",
         "\\label{tab:tail_by_horizon}",
@@ -297,8 +297,8 @@ def export_rolling_backtest_table(
         "\\begin{table}[H]",
         "\\centering",
         "\\footnotesize",
-        "\\setlength{\\tabcolsep}{4pt}",
-        "\\begin{tabular}{|llccccccc|}",
+        "\\setlength{\\tabcolsep}{3.5pt}",
+        "\\begin{tabular}{|l|l|c|c|c|c|c|c|c|}",
         "\\hline",
         "\\textbf{$h$} & \\textbf{Model} & \\textbf{Breaches / exp.} & \\textbf{Kupiec $p$} & \\textbf{Christ. $p$} & \\textbf{FZ} & \\textbf{$\\Delta$FZ ($p$)} & \\textbf{Avg VaR} & \\textbf{Basel} \\\\",
         "\\hline",
@@ -318,7 +318,7 @@ def export_rolling_backtest_table(
                 f"{h}d & {label} & {r['breaches']} / {r['expected']:.1f} & {r['kupiec_p']:.2f} & "
                 f"{r['christoffersen_p']:.2f} & {r['fz']:.3f} & {dfz} & {r['avg_var'] * 100:.2f}\\% & {zone} \\\\"
             )
-            lines.append("\\hline")
+        lines.append("\\hline")
     lines += [
         "\\end{tabular}",
         "\\caption{Rolling out-of-sample backtest of 99\\% VaR and ES. Coverage tests use non-overlapping windows. "
@@ -337,7 +337,7 @@ def export_variance_table(variance_decomp_df: pd.DataFrame, out_dir: Path = TABL
     caption = "Share of each asset's return variance in each MODWT scale (\\%)."
     label = "tab:variance_decomposition"
     cols = list(variance_decomp_df.columns)
-    col_spec = "|l|" + "r" * len(cols) + "|"
+    col_spec = "|" + "l|" + "|".join(["r"] * len(cols)) + "|"
     lines = [
         "\\begin{table}[H]",
         "\\centering",
@@ -350,8 +350,8 @@ def export_variance_table(variance_decomp_df: pd.DataFrame, out_dir: Path = TABL
     for idx, row in variance_decomp_df.round(1).iterrows():
         vals = " & ".join([f"{v:.1f}" for v in row])
         lines.append(f"{idx} & {vals} \\\\")
-        lines.append("\\hline")
     lines += [
+        "\\hline",
         "\\end{tabular}",
         f"\\caption{{{caption}}}",
         f"\\label{{{label}}}",
