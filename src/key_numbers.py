@@ -9,7 +9,7 @@ Author: Sameera Ekanayaka
 
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 ROOT_PATH = Path(__file__).resolve().parent.parent
 if str(ROOT_PATH) not in sys.path:
