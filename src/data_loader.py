@@ -37,7 +37,7 @@ from src.config import (
 
 def fetch_or_load_prices(
     tickers: List[str] = TICKERS,
-    start_date: str = "2014-12-20",  # extra days to ensure first return on 2015-01-01
+    start_date: str = "2007-04-01",  # HYG starts trading on 2007-04-11
     end_date: str = "2026-07-01",
     cache_path: Path = DATA_DIR / "raw_prices.csv",
 ) -> pd.DataFrame:
@@ -78,8 +78,9 @@ def fetch_or_load_prices(
     else:
         df_prices = raw[tickers]
 
-    # Clean missing values: forward fill then backward fill
-    df_prices = df_prices.ffill().bfill().dropna()
+    # Forward fill the odd missing day, then start where every asset has a price.
+    # A backward fill would copy later HYG prices into the days before it existed.
+    df_prices = df_prices.ffill().dropna()
     df_prices.index = pd.to_datetime(df_prices.index)
     df_prices.index.name = "Date"
 
