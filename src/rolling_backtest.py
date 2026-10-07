@@ -11,9 +11,9 @@ Coverage tests (Kupiec, Christoffersen) need independent observations, so for h 
 they use every h-th forecast, which makes the loss windows non-overlapping.
 The FZ score is a plain average and uses every forecast.
 
-We also compare the proposed horizon copula against the daily copula with a
-Diebold-Mariano test on the FZ score, using Newey-West standard errors because
-overlapping h-day losses are autocorrelated.
+We also compare the proposed horizon copula against the daily copula and the
+sqrt(h) rule with a Diebold-Mariano test on the FZ score, using Newey-West
+standard errors because overlapping h-day losses are autocorrelated.
 
 Author: Sameera Ekanayaka
 """
@@ -147,17 +147,16 @@ def basel_worst_zone(f: pd.DataFrame, alpha: float) -> str:
     return classify_basel_traffic_light(worst, 250, alpha=alpha)["zone"]
 
 
-def compare_to_daily_copula(forecasts: pd.DataFrame, alpha: float = ALPHA_VAR_99) -> pd.DataFrame:
-    """Diebold-Mariano test of every model's FZ score against the daily copula.
+def compare_fz(forecasts: pd.DataFrame, alpha: float = ALPHA_VAR_99, base: str = "daily_copula") -> pd.DataFrame:
+    """Diebold-Mariano test of every model's FZ score against a base model.
 
-    A negative mean difference means the model scores better than the daily copula.
+    A negative mean difference means the model scores better than the base.
     """
     rows = []
     for h, fh in forecasts.groupby("h"):
-        base = fh[fh["model"] == "daily_copula"].sort_values("date")
-        s_base = fz_scores(base, alpha)
+        s_base = fz_scores(fh[fh["model"] == base].sort_values("date"), alpha)
         for name in ALL_MODELS:
-            if name == "daily_copula":
+            if name == base:
                 continue
             other = fh[fh["model"] == name].sort_values("date")
             d = fz_scores(other, alpha) - s_base
@@ -165,6 +164,7 @@ def compare_to_daily_copula(forecasts: pd.DataFrame, alpha: float = ALPHA_VAR_99
             t = newey_west_tstat(d, lags)
             rows.append({
                 "horizon": int(h),
+                "base": base,
                 "model": name,
                 "mean_fz_diff": float(d.mean()),
                 "t_stat": t,

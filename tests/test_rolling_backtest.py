@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from src.rolling_backtest import (
-    compare_to_daily_copula,
+    compare_fz,
     evaluate_forecasts,
     newey_west_tstat,
     run_rolling_forecasts,
@@ -40,7 +40,7 @@ def test_evaluation_uses_non_overlapping_windows(forecasts):
 
 
 def test_dm_is_zero_for_identical_one_day_models(forecasts):
-    dm = compare_to_daily_copula(forecasts)
+    dm = compare_fz(forecasts)
     row = dm[(dm["horizon"] == 1) & (dm["model"] == "horizon_copula")].iloc[0]
     assert row["mean_fz_diff"] == 0.0
 
@@ -49,3 +49,9 @@ def test_newey_west_matches_plain_t_without_lags():
     d = np.random.default_rng(0).normal(0.1, 1.0, 2000)
     plain = d.mean() / (d.std(ddof=0) / np.sqrt(len(d)))
     assert newey_west_tstat(d, 0) == pytest.approx(plain)
+
+
+def test_dm_against_another_base(forecasts):
+    dm = compare_fz(forecasts, base="daily_sqrt")
+    assert set(dm["base"]) == {"daily_sqrt"}
+    assert "daily_sqrt" not in set(dm["model"])
