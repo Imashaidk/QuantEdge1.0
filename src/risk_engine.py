@@ -340,15 +340,23 @@ class RiskEngine:
             r_port_train, horizon=1, alpha_var=self.alpha_var_95, alpha_es=self.alpha_es
         )
 
-        # Retrieve tail dependence parameters
+        # Retrieve tail dependence parameters (using empirical lower-tail co-exceedance)
         scale_key = map_horizon_to_wavelet_scale(horizon)
-        lambda_L_1 = 0.042  # default or from D1
+        lambda_L_1 = 0.189  # default baseline empirical lower tail
         if "D1" in copula_tournament_results:
-            lambda_L_1 = float(copula_tournament_results["D1"]["lambda_L"])
+            lambda_L_1 = float(
+                copula_tournament_results["D1"].get(
+                    "lambda_L_emp", copula_tournament_results["D1"].get("lambda_L", 0.189)
+                )
+            )
 
         lambda_L_h = lambda_L_1
         if scale_key in copula_tournament_results:
-            lambda_L_h = float(copula_tournament_results[scale_key]["lambda_L"])
+            lambda_L_h = float(
+                copula_tournament_results[scale_key].get(
+                    "lambda_L_emp", copula_tournament_results[scale_key].get("lambda_L", lambda_L_1)
+                )
+            )
 
         results: Dict[str, Dict[str, float]] = {}
 
@@ -416,7 +424,7 @@ class RiskEngine:
             "ES_975": es_basel,
         }
 
-        # Model 5: Multiscale wavelet-copula model (H-TCM scaling)
+        # Model 5: Multiscale Tail-Adjusted Copula Overlay (H-TCM scaling applied to full-spectrum EVT copula)
         mult_factor = compute_htcm_multiplier(lambda_L_h, lambda_L_1, self.kappa)
         vh_multi_99 = v1_raw_99 * np.sqrt(horizon) * mult_factor
         vh_multi_95 = v1_raw_95 * np.sqrt(horizon) * mult_factor

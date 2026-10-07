@@ -364,10 +364,19 @@ def export_latex_tables(
     tex_df = backtest_df[valid_cols].copy()
     tex_df["Model"] = tex_df["Model"].str.replace("_", " ")
     tex_df["Breach_Rate"] = tex_df["Breach_Rate"].str.replace("%", "\\%")
+    def _fmt_p(x: Any) -> str:
+        try:
+            val = float(x)
+            if val < 0.0001:
+                return "$<0.0001$"
+            return f"{val:.4f}"
+        except Exception:
+            return str(x)
+
     if "Kupiec_p" in tex_df.columns:
-        tex_df["Kupiec_p"] = tex_df["Kupiec_p"].apply(lambda x: f"{float(x):.4f}")
+        tex_df["Kupiec_p"] = tex_df["Kupiec_p"].apply(_fmt_p)
     if "Christoffersen_p" in tex_df.columns:
-        tex_df["Christoffersen_p"] = tex_df["Christoffersen_p"].apply(lambda x: f"{float(x):.4f}")
+        tex_df["Christoffersen_p"] = tex_df["Christoffersen_p"].apply(_fmt_p)
     if "FZ_Loss" in tex_df.columns:
         tex_df["FZ_Loss"] = tex_df["FZ_Loss"].apply(lambda x: f"{float(x):.4f}")
     
@@ -394,6 +403,13 @@ def export_latex_tables(
         column_format="llccccccc",
         position="htbp",
         escape=False,
+    )
+    tex_code = tex_code.replace(
+        "\\begin{tabular}",
+        "\\centering\n\\resizebox{\\textwidth}{!}{\\begin{tabular}"
+    ).replace(
+        "\\end{tabular}",
+        "\\end{tabular}}"
     )
     with open(bt_path, "w", encoding="utf-8") as f:
         f.write(tex_code)
@@ -446,6 +462,13 @@ def export_latex_tables(
             position="htbp",
             escape=False,
         )
+        c_tex = c_tex.replace(
+            "\\begin{tabular}",
+            "\\centering\n\\resizebox{\\textwidth}{!}{\\begin{tabular}"
+        ).replace(
+            "\\end{tabular}",
+            "\\end{tabular}}"
+        )
         with open(c_path, "w", encoding="utf-8") as f:
             f.write(c_tex)
         with open(rep_tables_dir / "copula_tournament.tex", "w", encoding="utf-8") as f:
@@ -456,7 +479,7 @@ def export_latex_tables(
     if variance_decomp_df is not None and not variance_decomp_df.empty:
         var_path = out_dir / "variance_decomposition.tex"
         var_tex = variance_decomp_df.round(2).to_latex(
-            caption="Wavelet Multiresolution Percentage Variance Contribution Across Assets",
+            caption="Wavelet Multiresolution Normalized Variance Share (\\%) Across Assets",
             label="tab:variance_decomposition",
             position="htbp",
             float_format="%.2f",

@@ -1,7 +1,8 @@
 \begin{table}[htbp]
 \caption{Out-of-Sample Risk Model Evaluation: Basel-style (1d) and Breach Diagnostic (5d, 20d)}
 \label{tab:backtest_metrics}
-\begin{tabular}{llccccccc}
+\centering
+\resizebox{\textwidth}{!}{\begin{tabular}{llccccccc}
 \toprule
 Horizon & Model & Obs & Breaches & Breach Rate & Kupiec $p$ & Christoffersen $p$ & FZ Loss & Status / Diagnostic \\
 \midrule
@@ -14,15 +15,15 @@ Horizon & Model & Obs & Breaches & Breach Rate & Kupiec $p$ & Christoffersen $p$
 5d & Historical Simulation & 871 & 2 & 0.23\% & 0.0059 & 0.0016 & -2.9245 & GREEN (Diag) \\
 5d & Parametric Gaussian & 871 & 6 & 0.69\% & 0.3282 & 0.0003 & -3.0778 & GREEN (Diag) \\
 5d & Static Copula & 871 & 2 & 0.23\% & 0.0059 & 0.0016 & -2.8764 & GREEN (Diag) \\
-5d & Basel Sqrt Time & 871 & 3 & 0.34\% & 0.0244 & 0.0000 & -2.9744 & GREEN (Diag) \\
-5d & Proposed Multiscale Copula & 871 & 2 & 0.23\% & 0.0059 & 0.0016 & -2.8219 & GREEN (Diag) \\
-5d & H TCM Adjusted & 871 & 3 & 0.34\% & 0.0244 & 0.0000 & -2.9261 & GREEN (Diag) \\
-20d & Historical Simulation & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & -2.3530 & GREEN (Diag) \\
-20d & Parametric Gaussian & 856 & 3 & 0.35\% & 0.0274 & 0.0000 & -2.6591 & GREEN (Diag) \\
-20d & Static Copula & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & -2.2601 & GREEN (Diag) \\
-20d & Basel Sqrt Time & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & -2.3963 & GREEN (Diag) \\
-20d & Proposed Multiscale Copula & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & -2.2601 & GREEN (Diag) \\
-20d & H TCM Adjusted & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & -2.3963 & GREEN (Diag) \\
+5d & Basel Sqrt Time & 871 & 3 & 0.34\% & 0.0244 & $<0.0001$ & -2.9744 & GREEN (Diag) \\
+5d & Proposed Multiscale Copula & 871 & 2 & 0.23\% & 0.0059 & 0.0016 & -2.8600 & GREEN (Diag) \\
+5d & H TCM Adjusted & 871 & 3 & 0.34\% & 0.0244 & $<0.0001$ & -2.9599 & GREEN (Diag) \\
+20d & Historical Simulation & 856 & 0 & 0.00\% & $<0.0001$ & 1.0000 & -2.3530 & GREEN (Diag) \\
+20d & Parametric Gaussian & 856 & 3 & 0.35\% & 0.0274 & $<0.0001$ & -2.6591 & GREEN (Diag) \\
+20d & Static Copula & 856 & 0 & 0.00\% & $<0.0001$ & 1.0000 & -2.2601 & GREEN (Diag) \\
+20d & Basel Sqrt Time & 856 & 0 & 0.00\% & $<0.0001$ & 1.0000 & -2.3963 & GREEN (Diag) \\
+20d & Proposed Multiscale Copula & 856 & 0 & 0.00\% & $<0.0001$ & 1.0000 & -2.2601 & GREEN (Diag) \\
+20d & H TCM Adjusted & 856 & 0 & 0.00\% & $<0.0001$ & 1.0000 & -2.3963 & GREEN (Diag) \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}

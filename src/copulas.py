@@ -617,14 +617,12 @@ def run_scale_copula_tournament(
     emp_lU = float(emp_lU)
     emp_tar = float(emp_tar)
 
-    # For H-TCM scale-based risk overlay:
-    # Use theoretical parameters for elliptical models (Student-t).
-    # For models where the theoretical coefficient is strictly zero by family definition
-    # (e.g. Gumbel lower tail or Clayton upper tail), provide the empirical tail estimate
-    # as the scale-level empirical risk parameter.
-    scale_lL = theo_lL if theo_lL > 0 else emp_lL
-    scale_lU = theo_lU if theo_lU > 0 else emp_lU
-    scale_tar = scale_lL - scale_lU
+    # For scale-level risk analysis and H-TCM horizon scaling:
+    # Use empirical co-exceedance estimates (lambda_L_emp) as the primary tail metric,
+    # while preserving theoretical model parameters under lambda_L_theo and lambda_U_theo.
+    scale_lL = emp_lL
+    scale_lU = emp_lU
+    scale_tar = emp_tar
 
     return {
         "scale": scale_name,

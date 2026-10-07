@@ -85,15 +85,15 @@ Models calibrated strictly on historical data (2015 to 2022) with zero lookahead
 | **5d** | Historical Simulation | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.9245 | GREEN (Diag) |
 | **5d** | Parametric Gaussian | 871 | 6 | 0.69% | 0.3282 | 0.0003 | -3.0778 | GREEN (Diag) |
 | **5d** | Static Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.8764 | GREEN (Diag) |
-| **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | 0.0000 | -2.9744 | GREEN (Diag) |
-| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **-2.8219** | **GREEN (Diag)** |
-| **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | 0.0000 | -2.9261 | GREEN (Diag) |
-| **20d** | Historical Simulation | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3530 | GREEN (Diag) |
-| **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | 0.0000 | -2.6591 | GREEN (Diag) |
-| **20d** | Static Copula | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.2601 | GREEN (Diag) |
-| **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3963 | GREEN (Diag) |
-| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **0.0000** | **1.0000** | **-2.2601** | **GREEN (Diag)** |
-| **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3963 | GREEN (Diag) |
+| **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | <0.0001 | -2.9744 | GREEN (Diag) |
+| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **-2.8600** | **GREEN (Diag)** |
+| **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | <0.0001 | -2.9599 | GREEN (Diag) |
+| **20d** | Historical Simulation | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3530 | GREEN (Diag) |
+| **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | <0.0001 | -2.6591 | GREEN (Diag) |
+| **20d** | Static Copula | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.2601 | GREEN (Diag) |
+| **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3963 | GREEN (Diag) |
+| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **<0.0001** | **1.0000** | **-2.2601** | **GREEN (Diag)** |
+| **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3963 | GREEN (Diag) |
 
 ### H-TCM Contingent Capital Multiplier Sensitivity Matrix
 Values for risk desks across calibration factors $\kappa \in [0.20, 0.50]$ (baseline $\hat{\lambda}_L(1) = 0.189$):
@@ -105,15 +105,28 @@ Values for risk desks across calibration factors $\kappa \in [0.20, 0.50]$ (base
 | **h = 20d** | D4 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
 | **h = 40d** | D5 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
 
-> **Candid H-TCM Backtest Evaluation:** During the calm 2023-2026 backtest window, standard square-root scaling was already conservative (3 breaches at 5d vs ~8.7 expected). H-TCM incurred the same 3 breaches while holding extra capital, producing a slightly higher Fissler-Ziegel loss (-2.9261 vs -2.9744). The +2.2% buffer operates as an asymmetric contingent safety buffer for stressed crisis regimes, and remains untested out-of-sample in a severe historical liquidity shock.
+> **Candid H-TCM Backtest Evaluation:** During the calm 2023-2026 backtest window, standard square-root scaling was already conservative (3 breaches at 5d vs ~8.7 expected). H-TCM incurred the same 3 breaches while holding extra capital, producing a slightly higher Fissler-Ziegel loss (-2.9599 vs -2.9744). The +2.2% buffer operates as an asymmetric contingent safety buffer for stressed crisis regimes, and remains untested out-of-sample in a severe historical liquidity shock.
 
 ***
 
 ## Methodology & Architectural Highlights
 
-1. **Shift-Invariant MODWT Filter Bank:**
+1. **Shift-Invariant MODWT Filter Bank & Variance Shares:**
    Standard decimated wavelets (DWT) discard half the sample at each scale, leaving only 90 observations at scale 5 from a 2,889-day history. In contrast, the Maximal Overlap Discrete Wavelet Transform (MODWT) preserves all 2,889 daily points across every scale and achieves machine-precision reconstruction:
    $$\max_t \left| R_t - \left( \sum_{j=1}^5 D_{j,t} + S_{5,t} \right) \right| = 3.77 \times 10^{-14} \ll 10^{-10}$$
+   Variance shares are reported as normalized variance shares by scale rather than literal orthogonal variance additions.
+
+2. **Multiscale Tail-Adjusted Copula Overlay:**
+   Rather than attempting synthetic frequency-domain time-series inversion (which introduces phase distortion and cross-scale dependence artifacts), our framework operates as a **Wavelet Tail-Conditioned Copula Overlay**: it couples the full-spectrum EVT-Student-t copula with horizon-specific tail multipliers derived from the MODWT wavelet tournament.
+
+3. **Copula Screening Tournament:**
+   Archimedean families (Clayton, Gumbel, Frank) are estimated via pairwise composite likelihoods across asset pairs, while Gaussian and Student-t evaluate full 5D joint likelihoods. Between Gaussian and Student-t (sharing identical 5D likelihood construction), Student-t strictly dominates by $\Delta \text{BIC} \approx -182$ at $D_1$.
+
+4. **Statistical Limitation on Overlapping Windows:**
+   Multi-day holding period returns are computed via overlapping rolling windows ($h=5$ and $h=20$). Consequently, adjacent observations share $h-1$ days of common return realizations, inducing moving-average serial autocorrelation. Multi-day results are therefore evaluated as descriptive breach diagnostics rather than exact formal hypothesis tests.
+
+5. **Data Provenance:**
+   Historical daily adjusted closes for SPY, QQQ, TLT, GLD, and HYG were retrieved via Yahoo Finance (2015-01-01 to 2026-06-30) and cached in `data/raw_prices.csv`. Fixed portfolio weights (30% SPY, 20% QQQ, 25% TLT, 15% GLD, 10% HYG) represent a pre-specified diversified benchmark portfolio.
 
 2. **Two-Stage Semi-Parametric Margins:**
    Raw returns cannot be plugged directly into copulas due to volatility clustering. Each wavelet series is filtered with an AR(1)-GJR-GARCH(1,1) model with Student-t innovations to capture leverage asymmetry. The standardized filtered residuals $z_t = \epsilon_t / \sigma_t$ are then modeled using Extreme Value Theory (EVT) Peaks-Over-Threshold: an empirical distribution on the central 80% and Generalized Pareto Distributions (GPD) on the extreme 10% tails, generating strict $\text{Uniform}(0, 1)$ margins.

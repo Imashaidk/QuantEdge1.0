@@ -396,8 +396,10 @@ def fit_margins_and_transform_uniform(
 ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
     """Fits AR(1)-GJR-GARCH(1,1) + EVT-POT GPD tails to each asset column.
 
-    Transforms return series into uniform margins U_i in (0, 1) via PIT
-    and validates uniform distribution using Kolmogorov-Smirnov test.
+    Transforms return series into uniform margins U_i in (0, 1) via Probability
+    Integral Transform (PIT) as an in-sample goodness-of-fit calibration diagnostic.
+    The 10% POT threshold balances asymptotic generalized Pareto tail approximation
+    against parameter estimation variance (providing ~200 tail exceedances per tail).
 
     Args:
         df_scale: DataFrame of returns or wavelet scale components

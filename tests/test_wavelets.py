@@ -218,8 +218,8 @@ def test_decomposed_scale_passes_to_margins(train_returns):
 
 # Zero lookahead and isolation tests
 
-def test_zero_lookahead_temporal_isolation():
-    """Verifies that in-sample decomposition strictly enforces temporal isolation.
+def test_temporal_partition_isolation_and_causal_invariance():
+    """Verifies that in-sample decomposition strictly enforces temporal partition isolation.
     
     Checks:
     1. verify_zero_lookahead passes (proves joint filtering leaks future boundary info).
@@ -242,6 +242,10 @@ def test_zero_lookahead_temporal_isolation():
         assert np.array_equal(dec_clean[s].values, dec_after_shock[s].values), (
             f"In-sample scale {s} must be strictly invariant to future out-of-sample data"
         )
+
+
+# Backward-compatible alias for existing test runners
+test_zero_lookahead_temporal_isolation = test_temporal_partition_isolation_and_causal_invariance
 
 
 

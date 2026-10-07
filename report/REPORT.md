@@ -129,19 +129,19 @@ We evaluate models across out-of-sample trading days (January 2023 to June 2026)
 | **5d** | Historical Simulation | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.9245 | GREEN (Diag) |
 | **5d** | Parametric Gaussian | 871 | 6 | 0.69% | 0.3282 | 0.0003 | -3.0778 | GREEN (Diag) |
 | **5d** | Static Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.8764 | GREEN (Diag) |
-| **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | 0.0000 | -2.9744 | GREEN (Diag) |
-| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **-2.8219** | **GREEN (Diag)** |
-| **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | 0.0000 | -2.9261 | GREEN (Diag) |
-| **20d** | Historical Simulation | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3530 | GREEN (Diag) |
-| **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | 0.0000 | -2.6591 | GREEN (Diag) |
-| **20d** | Static Copula | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.2601 | GREEN (Diag) |
-| **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3963 | GREEN (Diag) |
-| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **0.0000** | **1.0000** | **-2.2601** | **GREEN (Diag)** |
-| **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3963 | GREEN (Diag) |
+| **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | <0.0001 | -2.9744 | GREEN (Diag) |
+| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **-2.8600** | **GREEN (Diag)** |
+| **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | <0.0001 | -2.9599 | GREEN (Diag) |
+| **20d** | Historical Simulation | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3530 | GREEN (Diag) |
+| **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | <0.0001 | -2.6591 | GREEN (Diag) |
+| **20d** | Static Copula | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.2601 | GREEN (Diag) |
+| **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3963 | GREEN (Diag) |
+| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **<0.0001** | **1.0000** | **-2.2601** | **GREEN (Diag)** |
+| **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3963 | GREEN (Diag) |
 
 **Backtest Insights & Model Comparison:**
 - At 1-day, the Parametric Gaussian model produces 13 breaches (1.49% failure rate vs 1.00% expected). While failing to reject at 5% significance under Kupiec POF ($p = 0.178$), it generates 2.6x the breach count of copula models (5 breaches), demonstrating substantial tail vulnerability. The Proposed Multiscale Copula is identical to Static Copula at 1-day (5 breaches, FZ loss -3.6674).
-- At 5-day, the Proposed Multiscale Copula ties with Historical Simulation for lowest breach count (2 breaches each, both Green zone).
+- At 5-day, the Proposed Multiscale Copula ties with Historical Simulation and Static Copula for lowest breach count (2 breaches each, both Diagnostic Green). Basel square-root scaling achieves the lowest Fissler-Ziegel score (-2.9744) followed by H-TCM (-2.9599) and Proposed Copula (-2.8600).
 - At 20-day, the Proposed Multiscale Copula matches Static Copula (0 breaches, FZ loss -2.2601) and ties with Historical Simulation and Basel scaling at 0 breaches.
 - Multi-day square-root scaling was statistically conservative (0 to 3 breaches vs ~8.7 expected), rather than understating risk, due to the steady upward equity trend and overlapping rolling returns.
 
@@ -162,7 +162,7 @@ $$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \
 
 **Candid Evaluation & Empirical Scope:**
 1. **Precautionary Buffer vs Noise:** The +2.2% buffer reflects an empirical difference of $\hat{\lambda}_L(D_2) - \hat{\lambda}_L(D_1) = 0.201 - 0.189 = 0.012$, which operates as a precautionary safety margin rather than a statistically separated divergence.
-2. **Calm Market Performance:** In the 2023-2026 backtest, standard scaling was already conservative (3 breaches at 5d). H-TCM held extra capital without reducing breaches below 3, incurring a slightly higher Fissler-Ziegel loss (-2.9261 vs -2.9744).
+2. **Calm Market Performance:** In the 2023-2026 backtest, standard scaling was already conservative (3 breaches at 5d). H-TCM held extra capital without reducing breaches below 3, incurring a slightly higher Fissler-Ziegel loss (-2.9599 vs -2.9744).
 3. **Long Horizon Behavior:** At 20d and 40d, the multiplier floors at 1.000, identical to standard scaling.
 4. **Crisis Positioning:** H-TCM is a contingent stress buffer for systemic crises (such as 2008 or March 2020), and remains untested out-of-sample in a severe historical liquidity shock.
 

@@ -1,7 +1,8 @@
 \begin{table}[htbp]
 \caption{Out-of-Sample Risk Model Evaluation: Basel-style (1d) and Breach Diagnostic (5d, 20d)}
 \label{tab:backtest_metrics}
-\begin{tabular}{llccccccc}
+\centering
+\resizebox{\textwidth}{!}{\begin{tabular}{llccccccc}
 \toprule
 Horizon & Model & Obs & Breaches & Breach Rate & Kupiec $p$ & Christoffersen $p$ & FZ Loss & Status / Diagnostic \\
 \midrule
@@ -11,5 +12,5 @@ Horizon & Model & Obs & Breaches & Breach Rate & Kupiec $p$ & Christoffersen $p$
 5d & Basel Sqrt Time & 871 & 12 & 1.38\% & 0.0010 & 0.0200 & -0.7100 & RED (Diag) \\
 5d & Proposed Multiscale Copula & 871 & 4 & 0.46\% & 0.1500 & 0.8800 & -0.8900 & GREEN (Diag) \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
