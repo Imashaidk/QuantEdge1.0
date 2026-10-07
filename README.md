@@ -41,6 +41,13 @@ pdflatex report.tex
 pdflatex report.tex
 ```
 
+Before submitting, check everything and build the ZIP:
+
+```bash
+python verify_submission.py      # files, report numbers, page count, characters
+python scripts/make_zip.py       # writes dist/Nexora_risk_across_tails_and_timescales.zip
+```
+
 ## What `run_all.py` does
 
 1. Loads daily prices and computes log returns.
@@ -72,6 +79,8 @@ figures/       figures used in the report
 tables/        LaTeX tables and key numbers used in the report
 report/        report.tex and report.pdf
 docs/          AI_DISCLOSURE.md
+scripts/       make_zip.py
+verify_submission.py  pre-submission checks
 ```
 
 ## Data
