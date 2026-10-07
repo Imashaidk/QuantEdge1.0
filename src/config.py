@@ -81,6 +81,8 @@ HORIZON_VIEW: Dict[int, int] = {1: 0, 5: 1, 20: 3, 60: 5}
 VAR_SIMULATIONS: int = 20_000
 # Estimation window for every forecast, about four years of trading days.
 ROLLING_WINDOW: int = 1000
+# Re-estimate every model once a month; volatilities still update daily in between.
+REFIT_EVERY: int = 21
 
 # Tail co-exceedance is measured in the worst 5% of days for each asset.
 TAIL_QUANTILE: float = 0.05
