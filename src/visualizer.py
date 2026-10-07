@@ -81,6 +81,9 @@ plt.rcParams.update({
 })
 
 
+SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
+
+
 def plot_fig1_wavelet_mra(
     wavelet_dict: Dict[str, pd.DataFrame],
     df_raw: pd.DataFrame,
@@ -89,57 +92,35 @@ def plot_fig1_wavelet_mra(
     out_path: Path = FIGURES_DIR / "fig1_wavelet_mra_decomposition.png",
     dpi: int = 300,
 ) -> None:
-    """Figure 1: Multiresolution Analysis (MRA) decomposition into scales D1-D5, S5.
+    """Figure 1: the MRA of two assets, one panel per scale.
 
-    Visualizes high-frequency microstructure noise vs. macroeconomic cycles.
+    Each panel has its own y-axis, since the coarse scales are much smaller than
+    the daily returns.
     """
     scale_keys = [k for k in ["D1", "D2", "D3", "D4", "D5", "S5"] if k in wavelet_dict]
-    n_scales = len(scale_keys) + 1  # Raw returns + scales
-
-    fig, axes = plt.subplots(n_scales, 1, figsize=(12, 10), sharex=True)
+    fig, axes = plt.subplots(len(scale_keys) + 1, 1, figsize=(10, 8.5), sharex=True)
     fig.patch.set_facecolor("white")
-
     dates = df_raw.index
 
-    # 1. Raw Return Series
-    ax0 = axes[0]
-    ax0.plot(dates, df_raw[primary_asset], color=PALETTE["primary"], linewidth=0.7, label=f"{primary_asset} Raw Returns")
-    if secondary_asset in df_raw.columns:
-        ax0.plot(dates, df_raw[secondary_asset], color=PALETTE["secondary"], linewidth=0.6, alpha=0.7, label=f"{secondary_asset} Raw Returns")
-    ax0.set_title("Raw Portfolio Asset Log Returns ($R_t$)", fontsize=10, fontweight="bold", loc="left")
-    ax0.legend(loc="upper right", framealpha=0.9, fontsize=8)
-    ax0.grid(True)
+    panels = [("Daily returns", df_raw)] + [(f"{k}: {SCALE_HORIZONS.get(k, k)}", wavelet_dict[k]) for k in scale_keys]
+    for ax, (title, data) in zip(axes, panels):
+        ax.plot(dates, data[primary_asset] * 100, color=SERIES_COLORS[0], linewidth=0.6, label=primary_asset)
+        if secondary_asset in data.columns:
+            ax.plot(dates, data[secondary_asset] * 100, color=SERIES_COLORS[1], linewidth=0.6, alpha=0.8, label=secondary_asset)
+        ax.set_title(title, fontsize=9, loc="left")
+        ax.tick_params(labelsize=7.5)
+        ax.grid(True, axis="y")
 
-    # 2. Decomposed Wavelet Scales
-    scale_colors = ["#3182CE", "#2B6CB0", "#4A5568", "#805AD5", "#DD6B20", "#38A169"]
-
-    for idx, scale in enumerate(scale_keys):
-        ax = axes[idx + 1]
-        s_data = wavelet_dict[scale]
-        color = scale_colors[idx % len(scale_colors)]
-        horizon_label = SCALE_HORIZONS.get(scale, scale)
-
-        ax.plot(dates, s_data[primary_asset], color=color, linewidth=0.75, label=f"{primary_asset} {scale}")
-        if secondary_asset in s_data.columns:
-            ax.plot(dates, s_data[secondary_asset], color="#718096", linewidth=0.6, alpha=0.6, linestyle=":", label=f"{secondary_asset} {scale}")
-
-        ax.set_title(f"Scale {scale}: {horizon_label}", fontsize=9, fontweight="bold", loc="left")
-        ax.legend(loc="upper right", framealpha=0.9, fontsize=7)
-        ax.grid(True)
-
-    # Format Date Axis on bottom subplot
+    axes[0].legend(loc="upper right", fontsize=8, ncol=2, frameon=False)
+    fig.supylabel("Return, %", fontsize=9)
     axes[-1].xaxis.set_major_locator(mdates.YearLocator(2))
     axes[-1].xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
-    axes[-1].set_xlabel("Observation Date", fontsize=10, fontweight="bold")
-
-    plt.suptitle("Figure 1: MODWT Additive Multiresolution Analysis (MRA) Decomposition", fontsize=12, fontweight="bold", y=0.995)
     plt.tight_layout()
     plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
     plt.close()
     print(f"[Visualizer] Exported Figure 1 -> {out_path}")
 
 
-SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
 FIG2_PAIRS = ["SPY-TLT", "SPY-HYG", "TLT-HYG", "SPY-GLD"]
 
 
