@@ -34,7 +34,9 @@ import pandas as pd
 from src.backtest import run_out_of_sample_backtest
 from src.config import (
     DEFAULT_PORTFOLIO_WEIGHTS,
+    ALPHA_VAR_99,
     FIGURES_DIR,
+    ROLLING_WINDOW,
     RESULTS_DIR,
     HTCM_KAPPA,
     SCALE_HORIZONS,
@@ -49,6 +51,7 @@ from src.config import (
 )
 from src.copulas import run_scale_copula_tournament
 from src.tail_dependence import run_tail_dependence_analysis
+from src.horizon_var import measured_risk_table
 from src.data_loader import load_and_split_data, load_returns
 from src.margins import pseudo_observations
 from src.risk_engine import compute_htcm_multiplier
@@ -157,6 +160,17 @@ def main() -> None:
     display_cols = ["Horizon", "Model", "Breaches", "Breach_Rate", "Kupiec_p", "Basel_Zone", "FZ_Loss"]
     print(backtest_df[display_cols].to_string(index=False))
     print(f"  Step 4 completed in {t1 - t0:.2f}s")
+
+    # Step 4b: what ignoring the horizon does to measured risk, on the latest window
+    print("\n[Step 4b] Measured risk by model on the latest estimation window...")
+    t0 = time.time()
+    returns_all = load_returns()
+    latest_window = returns_all.iloc[-ROLLING_WINDOW:]
+    risk_latest = measured_risk_table(latest_window, [1, 5, 20, 60], ALPHA_VAR_99, weights=DEFAULT_PORTFOLIO_WEIGHTS)
+    risk_latest.to_csv(RESULTS_DIR / "measured_risk_latest.csv", index=False, float_format="%.6f")
+    print(f"  Window: {latest_window.index[0].date()} to {latest_window.index[-1].date()}")
+    print(risk_latest.round(4).to_string(index=False))
+    print(f"  Step 4b completed in {time.time() - t0:.2f}s")
 
     # Step 5: Visualizer and table export
     print("\n[Step 5/6] Generating figures and LaTeX tables...")

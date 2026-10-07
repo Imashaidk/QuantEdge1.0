@@ -74,6 +74,14 @@ COPULA_FAMILIES: List[str] = [
 ]
 COPULA_SIMULATION_SAMPLES: int = 10_000
 
+# Horizon-aware VaR. An h-day return keeps moves longer than about h days, so each
+# horizon is matched to the low-pass wavelet view that keeps moves longer than
+# 2^(j+1) days: 5d -> view 1 (> 4d), 20d -> view 3 (> 16d), 60d -> view 5 (> 64d).
+HORIZON_VIEW: Dict[int, int] = {1: 0, 5: 1, 20: 3, 60: 5}
+VAR_SIMULATIONS: int = 20_000
+# Estimation window for every forecast, about four years of trading days.
+ROLLING_WINDOW: int = 1000
+
 # Tail co-exceedance is measured in the worst 5% of days for each asset.
 TAIL_QUANTILE: float = 0.05
 TAIL_BOOTSTRAP_REPS: int = 500
