@@ -1,41 +1,26 @@
-"""QuantEdge-MTR Publication Visualizer & Table Export Module.
+"""Figures and LaTeX tables for the report.
 
-Generates 4 publication-quality 300 DPI figures in `figures/` and formatted
-LaTeX tables in `tables/` adhering to institutional academic standards:
+Figures, written to figures/:
+  1. MODWT multiresolution analysis of SPY and TLT
+  2. Tail co-exceedance by horizon view, sleeves and asset pairs
+  3. Realised 20-day losses against the rolling VaR forecasts
+  4. VaR change from using the horizon copula instead of the daily copula
 
-Figures:
-1. `figures/fig1_wavelet_mra_decomposition.png`:
-   6-panel multiresolution analysis (MRA) decomposition of asset log returns
-   into detail scales D1, D2, D3, D4, D5, and smooth secular trend S5.
-2. `figures/fig2_tail_dependence_vs_horizon.png`:
-   Primary research breakthrough: Lower tail dependence lambda_L(h) vs upper
-   tail dependence lambda_U(h) overlaid with the Timescale Asymmetry Ratio (TAR).
-3. `figures/fig3_backtest_var_exceedances.png`:
-   Out-of-sample portfolio loss time series with VaR(99%) exceedance breaches
-   comparing Proposed Multiscale model vs Basel sqrt(h) scaling.
-4. `figures/fig4_regulatory_traffic_light.png`:
-   Official Basel Traffic Light evaluation (Green/Yellow/Red zones) across all
-   comparative models and investment horizons.
-
-LaTeX Tables:
-1. `tables/backtest_metrics.tex`: Out-of-sample backtest results and p-values.
-2. `tables/copula_tournament.tex`: Scale-optimal copula selection leaderboard.
-3. `tables/variance_decomposition.tex`: Percentage variance contribution per scale.
+Tables, written to tables/: variance by scale, tail co-exceedance by horizon,
+and the rolling backtest.
 
 Author: Sameera Ekanayaka
 """
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict
 
 # Set headless backend for matplotlib before importing pyplot
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import matplotlib.patches as mpatches
-import seaborn as sns
 
 # Ensure project root is in sys.path
 ROOT_PATH = Path(__file__).resolve().parent.parent
@@ -45,37 +30,15 @@ if str(ROOT_PATH) not in sys.path:
 import numpy as np
 import pandas as pd
 
-from src.config import (
-    FIGURES_DIR,
-    TABLES_DIR,
-    TICKERS,
-    SCALE_NAMES,
-    SCALE_HORIZONS,
-    DEFAULT_PORTFOLIO_WEIGHTS,
-)
-from src.risk_engine import compute_portfolio_returns
+from src.config import FIGURES_DIR, SCALE_HORIZONS, TABLES_DIR
 
-
-# Institutional color palette
-PALETTE = {
-    "primary": "#1A365D",      # Deep Navy
-    "secondary": "#2B6CB0",    # Slate Blue
-    "accent_loss": "#C53030",  # Crimson Red (Breaches / Lower tail)
-    "accent_gain": "#2F855A",  # Forest Green (Upper tail)
-    "tar_line": "#D69E2E",     # Warm Gold (TAR ratio)
-    "grid": "#E2E8F0",         # Light Gray grid
-    "text": "#2D3748",         # Charcoal text
-    "green_zone": "#38A169",   # Basel Green
-    "yellow_zone": "#ECC94B",  # Basel Yellow
-    "red_zone": "#E53E3E",     # Basel Red
-}
 
 plt.rcParams.update({
     "font.sans-serif": ["DejaVu Sans", "Helvetica", "Arial"],
     "font.family": "sans-serif",
     "axes.edgecolor": "#CBD5E0",
     "axes.linewidth": 0.8,
-    "grid.color": PALETTE["grid"],
+    "grid.color": "#E2E8F0",
     "grid.linestyle": "--",
     "grid.linewidth": 0.5,
 })
@@ -362,374 +325,3 @@ def export_variance_table(variance_decomp_df: pd.DataFrame, out_dir: Path = TABL
     path = out_dir / "variance_decomposition.tex"
     path.write_text(var_tex, encoding="utf-8")
     print(f"[Visualizer] Exported LaTeX Table -> {path}")
-
-
-def plot_fig3_backtest_exceedances(
-    df_test: pd.DataFrame,
-    weights: np.ndarray,
-    proposed_var: float,
-    basel_var: float,
-    horizon: int = 1,
-    out_path: Path = FIGURES_DIR / "fig3_backtest_var_exceedances.png",
-    dpi: int = 300,
-) -> None:
-    """Figure 3: Out-of-sample portfolio losses against VaR(99%) limits.
-
-    Shows breach exceedances comparing the Proposed Multiscale model vs Basel sqrt(h) scaler.
-    """
-    r_test = compute_portfolio_returns(df_test, weights)
-    dates = df_test.index
-
-    if horizon == 1:
-        losses = -r_test
-    else:
-        s = pd.Series(-r_test, index=dates)
-        losses = s.rolling(horizon).sum().dropna().values
-        dates = dates[horizon - 1 :]
-
-    fig, ax = plt.subplots(figsize=(12, 6))
-    fig.patch.set_facecolor("white")
-
-    # Plot loss series
-    ax.plot(dates, losses * 100.0, color="#718096", linewidth=0.75, alpha=0.85, label="Out-of-Sample Portfolio Loss ($L_t$)")
-
-    # Plot Basel VaR threshold
-    ax.axhline(basel_var * 100.0, color="#E53E3E", linestyle="--", linewidth=1.8, label=f"Basel $\\sqrt{{h}}$ Scaler VaR(99%): {basel_var*100:.2f}%")
-
-    # Plot Proposed Multiscale VaR threshold
-    ax.axhline(proposed_var * 100.0, color="#2B6CB0", linestyle="-", linewidth=2.0, label=f"Proposed Multiscale VaR(99%): {proposed_var*100:.2f}%")
-
-    # Identify and plot breach points
-    basel_breach_idx = np.where(losses > basel_var)[0]
-    proposed_breach_idx = np.where(losses > proposed_var)[0]
-
-    if len(basel_breach_idx) > 0:
-        ax.scatter(dates[basel_breach_idx], losses[basel_breach_idx] * 100.0, color="#E53E3E", marker="^", s=60, zorder=5, label=f"Basel Breaches (N={len(basel_breach_idx)})")
-
-    if len(proposed_breach_idx) > 0:
-        ax.scatter(dates[proposed_breach_idx], losses[proposed_breach_idx] * 100.0, color="#2B6CB0", marker="o", s=70, facecolors="none", edgecolors="#2B6CB0", linewidth=1.8, zorder=6, label=f"Proposed Breaches (N={len(proposed_breach_idx)})")
-
-    ax.set_ylabel("Portfolio Loss / Threshold (%)", fontsize=10, fontweight="bold")
-    ax.set_xlabel("Out-of-Sample Date (2023-2026)", fontsize=10, fontweight="bold")
-    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=4))
-    ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %Y"))
-    ax.grid(True)
-    ax.legend(loc="upper right", framealpha=0.95, fontsize=8.5)
-
-    plt.title(f"Figure 3: Out-of-Sample VaR(99%) Exceedances ({horizon}-Day Holding Horizon)", fontsize=12, fontweight="bold", pad=12)
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
-    plt.close()
-    print(f"[Visualizer] Exported Figure 3 -> {out_path}")
-
-
-def plot_fig4_regulatory_traffic_light(
-    backtest_df: pd.DataFrame,
-    out_path: Path = FIGURES_DIR / "fig4_regulatory_traffic_light.png",
-    dpi: int = 300,
-) -> None:
-    """Figure 4: Basel Committee Regulatory Traffic Light Zone evaluation.
-
-    Categorizes each model into Green, Yellow, and Red zones across horizons.
-    """
-    fig, ax = plt.subplots(figsize=(11, 6))
-    fig.patch.set_facecolor("white")
-
-    # Model name clean display
-    model_labels = {
-        "Historical_Simulation": "Hist. Simulation",
-        "Parametric_Gaussian": "Parametric Gauss",
-        "Static_Copula": "Static Copula",
-        "Basel_Sqrt_Time": "Basel Sqrt(h)",
-        "Proposed_Multiscale_Copula": "Proposed MTR",
-        "H_TCM_Adjusted": "H-TCM Policy",
-    }
-
-    df_plot = backtest_df.copy()
-    df_plot["Display_Model"] = df_plot["Model"].map(lambda m: model_labels.get(m, m))
-    df_plot["Label"] = df_plot["Display_Model"] + " (" + df_plot["Horizon"] + ")"
-
-    y_pos = np.arange(len(df_plot))
-    breaches = df_plot["Breaches"].to_numpy(dtype=float)
-
-    # Color bars by Basel Zone
-    zone_colors = {
-        "GREEN": PALETTE["green_zone"],
-        "YELLOW": PALETTE["yellow_zone"],
-        "RED": PALETTE["red_zone"],
-    }
-    bar_colors = [zone_colors.get(z, "gray") for z in df_plot["Basel_Zone"]]
-
-    # Add background zone shading (on normalized 250d basis: Green <=4, Yellow 5-9, Red >=10)
-    # Using sample size N = total_obs
-    avg_n = float(df_plot["Total_Obs"].iloc[0])
-    scale_factor = avg_n / 250.0
-
-    green_max = 4.5 * scale_factor
-    yellow_max = 9.5 * scale_factor
-    max_x = max(np.max(breaches) * 1.25, yellow_max * 1.3)
-
-    ax.axvspan(0, green_max, color="#C6F6D5", alpha=0.35, label="Basel Green Zone (Approved)")
-    ax.axvspan(green_max, yellow_max, color="#FEFCBF", alpha=0.35, label="Basel Yellow Zone (Capital Surcharge)")
-    ax.axvspan(yellow_max, max_x, color="#FED7D7", alpha=0.35, label="Basel Red Zone (Model Rejected)")
-
-    bars = ax.barh(y_pos, breaches, align="center", color=bar_colors, edgecolor="black", linewidth=0.6, height=0.65)
-
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(df_plot["Label"], fontsize=8.5)
-    ax.invert_yaxis()  # Labels read top-to-bottom
-    ax.set_xlabel(f"Out-of-Sample VaR(99%) Exceedance Breaches (N = {int(avg_n)})", fontsize=10, fontweight="bold")
-    ax.set_xlim(0, max_x)
-    ax.grid(True, axis="x")
-
-    # Annotate breach values and zone
-    for idx, bar in enumerate(bars):
-        w = bar.get_width()
-        zone = df_plot["Basel_Zone"].iloc[idx]
-        ax.text(w + 0.3, bar.get_y() + bar.get_height() / 2, f"{int(w)} [{zone}]", va="center", ha="left", fontsize=8, fontweight="bold")
-
-    ax.legend(loc="lower right", framealpha=0.95, fontsize=8.5)
-    plt.title("Figure 4: BCBS Basel Traffic Light Backtest Matrix (Out-of-Sample 2023-2026)", fontsize=12, fontweight="bold", pad=12)
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
-    plt.close()
-    print(f"[Visualizer] Exported Figure 4 -> {out_path}")
-
-
-def export_latex_tables(
-    backtest_df: pd.DataFrame,
-    copula_tournament_results: Dict[str, Any],
-    variance_decomp_df: Optional[pd.DataFrame] = None,
-    out_dir: Path = TABLES_DIR,
-) -> None:
-    """Exports structured LaTeX tables for inclusion in report/report.tex."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-
-    # 1. Backtest Metrics Table (tables/backtest_metrics.tex and .md)
-    bt_cols = ["Horizon", "Model", "Total_Obs", "Breaches", "Breach_Rate", "Kupiec_p", "Christoffersen_p", "Basel_Zone", "FZ_Loss"]
-    valid_cols = [c for c in bt_cols if c in backtest_df.columns]
-    tex_df = backtest_df[valid_cols].copy()
-    tex_df["Model"] = tex_df["Model"].str.replace("_", " ")
-    tex_df["Breach_Rate"] = tex_df["Breach_Rate"].str.replace("%", "\\%")
-    if "Kupiec_p" in tex_df.columns:
-        tex_df["Kupiec_p"] = tex_df["Kupiec_p"].apply(lambda x: f"{float(x):.4f}")
-    if "Christoffersen_p" in tex_df.columns:
-        tex_df["Christoffersen_p"] = tex_df["Christoffersen_p"].apply(lambda x: f"{float(x):.4f}")
-    if "FZ_Loss" in tex_df.columns:
-        tex_df["FZ_Loss"] = tex_df["FZ_Loss"].apply(lambda x: f"{float(x):.4f}")
-    
-    # Basel-style for 1d and Diagnostic for 5d/20d
-    tex_df["Status_Diag"] = tex_df.apply(
-        lambda r: f"{r['Basel_Zone']} (Basel)" if r["Horizon"] == "1d" else f"{r['Basel_Zone']} (Diag)",
-        axis=1,
-    )
-    tex_df = tex_df.drop(columns=["Basel_Zone"])
-    tex_df = tex_df.rename(columns={
-        "Total_Obs": "Obs",
-        "Breach_Rate": "Breach Rate",
-        "Kupiec_p": "Kupiec $p$",
-        "Christoffersen_p": "Christoffersen $p$",
-        "Status_Diag": "Status / Diagnostic",
-        "FZ_Loss": "FZ Loss",
-    })
-
-    bt_path = out_dir / "backtest_metrics.tex"
-    tex_code = tex_df.to_latex(
-        index=False,
-        caption="Out-of-Sample Risk Model Evaluation: Basel-style (1d) and Breach Diagnostic (5d, 20d)",
-        label="tab:backtest_metrics",
-        column_format="llccccccc",
-        position="htbp",
-        escape=False,
-    )
-    with open(bt_path, "w", encoding="utf-8") as f:
-        f.write(tex_code)
-
-    # 2. Copula Tournament Leaderboard Table (tables/copula_tournament.tex)
-    c_rows = []
-    for s in ["D1", "D2", "D3", "D4", "D5", "S5"]:
-        if s in copula_tournament_results:
-            res = copula_tournament_results[s]
-            raw_c = res.get("best_copula", "N/A")
-            if raw_c.lower() == "student_t":
-                best_c = "Student-$t$"
-            else:
-                best_c = raw_c.capitalize()
-            lL_theo = float(res.get("lambda_L_theo", res.get("lambda_L", 0.0)))
-            lU_theo = float(res.get("lambda_U_theo", res.get("lambda_U", 0.0)))
-            lL_emp = float(res.get("lambda_L_emp", res.get("lambda_L", 0.0)))
-            gauss_bench = float(res.get("lambda_gauss_bench", 0.0))
-            excess_lL = float(res.get("excess_lambda_L", lL_emp - gauss_bench))
-            lU_emp = float(res.get("lambda_U_emp", res.get("lambda_U", 0.0)))
-            tar_emp = float(res.get("tar_emp", lL_emp - lU_emp))
-            bic = res.get("bic_scores", {}).get(res.get("best_copula", ""), 0.0)
-
-            c_rows.append({
-                "Scale": s,
-                "Trading Horizon": SCALE_HORIZONS.get(s, s).split("(")[0].strip(),
-                "Best Copula": best_c,
-                "Theo. $\\lambda_L$": f"{lL_theo:.3f}",
-                "Theo. $\\lambda_U$": f"{lU_theo:.3f}",
-                "Emp. $\\lambda_L$": f"{lL_emp:.3f}",
-                "Gauss Bench": f"{gauss_bench:.3f}",
-                "Excess $\\lambda_L$": f"{excess_lL:+.3f}",
-                "Emp. $\\lambda_U$": f"{lU_emp:.3f}",
-                "Emp. TAR": f"{tar_emp:+.3f}",
-                "BIC": f"{bic:.1f}",
-            })
-
-    if c_rows:
-        c_df = pd.DataFrame(c_rows)
-        c_path = out_dir / "copula_tournament.tex"
-        c_tex = c_df.to_latex(
-            index=False,
-            caption="Scale-Optimal Copula Tournament Leaderboard, Tail Dependence, and Gaussian Benchmarks",
-            label="tab:copula_tournament",
-            column_format="llccccccccc",
-            position="htbp",
-            escape=False,
-        )
-        with open(c_path, "w", encoding="utf-8") as f:
-            f.write(c_tex)
-        print(f"[Visualizer] Exported LaTeX Table -> {c_path}")
-
-    # 3. Variance Decomposition Table (tables/variance_decomposition.tex)
-    if variance_decomp_df is not None and not variance_decomp_df.empty:
-        var_path = out_dir / "variance_decomposition.tex"
-        var_tex = variance_decomp_df.round(2).to_latex(
-            caption="Wavelet Multiresolution Percentage Variance Contribution Across Assets",
-            label="tab:variance_decomposition",
-            position="htbp",
-            float_format="%.2f",
-        )
-        with open(var_path, "w", encoding="utf-8") as f:
-            f.write(var_tex)
-        print(f"[Visualizer] Exported LaTeX Table -> {var_path}")
-
-
-def generate_all_figures_and_tables(
-    wavelet_dict: Dict[str, pd.DataFrame],
-    copula_tournament_results: Dict[str, Any],
-    backtest_results_df: pd.DataFrame,
-    df_raw_train: pd.DataFrame,
-    df_raw_test: pd.DataFrame,
-    weights: np.ndarray = DEFAULT_PORTFOLIO_WEIGHTS,
-    variance_decomp_df: Optional[pd.DataFrame] = None,
-    out_dir_figures: Path = FIGURES_DIR,
-    out_dir_tables: Path = TABLES_DIR,
-    tail_results: Optional[Dict[str, pd.DataFrame]] = None,
-) -> None:
-    """Generates all publication figures and LaTeX tables."""
-    out_dir_figures.mkdir(parents=True, exist_ok=True)
-    out_dir_tables.mkdir(parents=True, exist_ok=True)
-
-    # Figure 1: Wavelet MRA Decomposition
-    plot_fig1_wavelet_mra(
-        wavelet_dict=wavelet_dict,
-        df_raw=df_raw_train,
-        primary_asset="SPY",
-        secondary_asset="TLT",
-        out_path=out_dir_figures / "fig1_wavelet_mra_decomposition.png",
-    )
-
-    # Figure 2: tail dependence across horizon views
-    if tail_results is not None:
-        plot_fig2_tail_by_horizon(
-            tail_results["sleeves"],
-            tail_results["pairs"],
-            out_path=out_dir_figures / "fig2_tail_dependence_vs_horizon.png",
-        )
-        export_tail_table(tail_results["sleeves"], tail_results["pairs"], out_dir=out_dir_tables)
-
-    # Figure 3: Backtest Exceedances (Horizon = 1 day)
-    # Extract VaR values from backtest_results_df
-    m_proposed = backtest_results_df[
-        (backtest_results_df["Model"] == "Proposed_Multiscale_Copula")
-        & (backtest_results_df["Horizon"] == "1d")
-    ]
-    m_basel = backtest_results_df[
-        (backtest_results_df["Model"] == "Basel_Sqrt_Time")
-        & (backtest_results_df["Horizon"] == "1d")
-    ]
-
-    if not m_proposed.empty and "VaR_Pred" in m_proposed.columns:
-        var_p = float(m_proposed["VaR_Pred"].iloc[0])
-    else:
-        var_p = 0.0222
-
-    if not m_basel.empty and "VaR_Pred" in m_basel.columns:
-        var_b = float(m_basel["VaR_Pred"].iloc[0])
-    else:
-        var_b = 0.0188
-
-    plot_fig3_backtest_exceedances(
-        df_test=df_raw_test,
-        weights=weights,
-        proposed_var=var_p,
-        basel_var=var_b,
-        horizon=1,
-        out_path=out_dir_figures / "fig3_backtest_var_exceedances.png",
-    )
-
-    # Figure 4: Regulatory Basel Traffic Light Matrix
-    plot_fig4_regulatory_traffic_light(
-        backtest_df=backtest_results_df,
-        out_path=out_dir_figures / "fig4_regulatory_traffic_light.png",
-    )
-
-    # Export LaTeX Tables
-    export_latex_tables(
-        backtest_df=backtest_results_df,
-        copula_tournament_results=copula_tournament_results,
-        variance_decomp_df=variance_decomp_df,
-        out_dir=out_dir_tables,
-    )
-
-
-if __name__ == "__main__":
-    from src.data_loader import load_and_split_data
-    from src.wavelets import decompose_multiscale, compute_scale_variance_decomposition
-    from src.margins import pseudo_observations
-    from src.copulas import run_scale_copula_tournament
-    from src.backtest import run_out_of_sample_backtest
-
-    # 1. Load Data
-    print("\n[Step 1] Loading data...")
-    df_train, df_test = load_and_split_data()
-
-    # 2. Decompose Wavelets
-    print("\n[Step 2] Performing MODWT wavelet decomposition...")
-    decomposed = decompose_multiscale(df_train)
-    var_decomp = compute_scale_variance_decomposition(decomposed, normalize=True)
-
-    # 3. Fit Copulas
-    print("\n[Step 3] Running scale copula tournament...")
-    copula_results = {}
-    for s in ["D1", "D2", "D3", "D4", "D5", "S5"]:
-        u_s = pseudo_observations(decomposed[s])
-        t_res = run_scale_copula_tournament(u_s, scale_name=s)
-        copula_results[s] = t_res
-
-    # 4. Run Backtests
-    print("\n[Step 4] Running out-of-sample backtests...")
-    backtest_df = run_out_of_sample_backtest(
-        df_test=df_test,
-        weights=DEFAULT_PORTFOLIO_WEIGHTS,
-        copula_results=copula_results,
-        h_horizons=[1, 5, 20],
-        df_train=df_train,
-    )
-
-    # 5. Generate Figures and Tables
-    print("\n[Step 5] Generating 300 DPI publication figures & LaTeX tables...")
-    generate_all_figures_and_tables(
-        wavelet_dict=decomposed,
-        copula_tournament_results=copula_results,
-        backtest_results_df=backtest_df,
-        df_raw_train=df_train,
-        df_raw_test=df_test,
-        weights=DEFAULT_PORTFOLIO_WEIGHTS,
-        variance_decomp_df=var_decomp,
-    )
-
-    print("\n[SUCCESS] All 4 publication figures and LaTeX tables successfully generated.")
