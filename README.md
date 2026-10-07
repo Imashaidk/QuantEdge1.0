@@ -1,236 +1,83 @@
-# QuantEdge 1.0: Risk Across Tails and Timescales
+# Risk Across Tails and Timescales
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-brightgreen.svg)](https://www.python.org/)
-[![Competition: SAIFA Quant Edge 1.0](https://img.shields.io/badge/Competition-SAIFA%20Quant%20Edge%201.0-orange)](https://saifa.lk)
-[![Build: Reproducible](https://img.shields.io/badge/pipeline-10.1s%20execution-brightgreen)](run_all.py)
+**Team Nexora:** Imasha Karunathilaka, Aadhila Anees, Sameera Ekanayaka, Praveen Madawalage, Tharindu Dhanushka
 
-Official research submission for **SAIFA Quant Edge 1.0: Initial Screening Challenge (Round 1)**.  
-**Repository:** [https://github.com/Imashaidk/QuantEdge1.0.git](https://github.com/Imashaidk/QuantEdge1.0.git)
+> Does tail dependence change with the investment horizon, and what does ignoring this do to a portfolio's measured risk?
 
-***
+The full write-up is [report/report.pdf](report/report.pdf). This page explains how to run the code.
 
-## The Research Question
+## Short answer
 
-> *"Does tail dependence change with the investment horizon, and what does ignoring this do to a portfolio's measured risk?"*
+We use a five-asset portfolio (SPY 30%, QQQ 20%, TLT 25%, GLD 15%, HYG 10%) on daily data from April 2007 to June 2026. A MODWT wavelet decomposition gives us the same returns seen at horizons from one day to more than three months.
 
-Most commercial risk systems scale daily Value-at-Risk (VaR) to multi-day investment horizons using the Basel square-root-of-time formula:
+- **Yes, tail dependence changes with the horizon.** Equities and high-yield credit crash together more at longer horizons (lower-tail co-exceedance 0.53 at one day, 0.77 beyond 64 days, with a 90% bootstrap interval for the change that excludes zero). The equity-Treasury hedge weakens over long horizons, while gold goes the other way.
+- **Ignoring it understates risk.** A copula fitted to daily data understates 20-day VaR by about 5% on average compared with one fitted to the matching horizon, and by more than 10% on one day in ten. The usual sqrt(h) rule hides this because it overstates volatility by even more.
+- **Recommendation.** For positions held 20 days or longer, replace sqrt(h) scaling with a full-horizon GARCH volatility forecast and a copula fitted to the matching wavelet horizon view. In a rolling out-of-sample backtest from 2011 to 2026 this was the best-scoring 20-day model and needed about 5% less capital than sqrt(h).
 
-$$\text{VaR}_h = \text{VaR}_1 \times \sqrt{h}$$
+All numbers above are produced by `run_all.py`. The exact values used in the report are written to `tables/key_numbers.tex`.
 
-This rule assumes that financial returns follow a simple random walk with static correlation and normal distributions. In real financial markets, this assumption breaks down. Assets co-move differently across timescales, and joint crash dependence manifests distinctly across high-frequency rebalancing and macroeconomic holding periods.
+## Running it
 
-This project delivers **QuantEdge-MTR (Multiscale Tail Risk Framework)**, an econometric methodology combining shift-invariant wavelets, extreme value theory, multiscale copulas, and regulatory backtesting to resolve the challenge question empirically.
+Python 3.12 is required. Some pinned packages do not install on 3.13.
 
-***
-
-## Core Research Findings
-
-### 1. Persistent Tail Crash Co-dependence Across Timescales
-Using rigorous Probability Integral Transform (PIT) uniform margins from AR(1)-GJR-GARCH(1,1) + EVT-POT filtering, empirical lower-tail crash dependence remains persistent across investment horizons: $\hat{\lambda}_L = 0.189$ at daily noise scales ($D_1$, 2 to 4 days) and $\hat{\lambda}_L = 0.201$ at weekly swing scales ($D_2$, 4 to 8 days), gradually settling to $\hat{\lambda}_L = 0.052$ at quarterly horizons ($D_5$, 32 to 64 days). This confirms that cross-asset crash co-dependence does not vanish at multi-day horizons.
-
-### 2. Student-t Copula Dominance Across Horizons
-Across all decomposed timescales ($D_1$ through $S_5$), the Student-$t$ copula decisively wins the model tournament evaluated by the Bayesian Information Criterion (BIC), outperforming Gaussian, Clayton, Gumbel, and Frank alternatives. Standardized residuals display symmetric fat tails across frequencies. The Timescale Asymmetry Ratio remains tightly bounded ($\text{TAR} \in [-0.013, +0.060]$), demonstrating that multiscale asset co-dependence is elliptical and fat-tailed.
-
-### 3. Out-of-Sample Backtesting & Basel Scaling Insights
-Over 875 out-of-sample trading days (2023 to 2026), conventional square-root-of-time scaling was statistically conservative at 5-day (3 breaches, 0.34%) and 20-day horizons (0 breaches, 0.00% vs ~8.7 expected). However, the 1-day Parametric Gaussian model generates 13 breaches (a 1.49% breach rate, approaching the supervisory penalty boundary), showing that ignoring fat tails understates short-term daily risk.
-
-### 4. An Actionable Solution: The Contingent H-TCM Rule
-For risk committees seeking an operational enhancement, we introduce the **Horizon-Conditioned Tail Capital Multiplier (H-TCM)**:
-
-$$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \max\left(0, \frac{\hat{\lambda}_L(h) - \hat{\lambda}_L(1)}{\hat{\lambda}_L(1) + \epsilon}\right) \right]$$
-
-Rather than imposing an unconditional capital penalty that locks up excessive liquidity during calm markets, H-TCM acts as a contingent policy buffer. When tail dependence at weekly horizons exceeds the daily baseline ($\hat{\lambda}_L(5) = 0.201 > 0.189$), it adds a targeted $+2.2\%$ capital buffer ($\kappa = 0.35$), while reverting to $1.000$ at horizons where tail dependence does not exceed baseline risk.
-
-***
-
-## Empirical Results Summary
-
-### Wavelet Percentage Variance Contribution Across Assets
-Decomposed via Maximal Overlap Discrete Wavelet Transform (MODWT, Symlet 8, Level 5):
-
-| Scale | Trading Horizon | SPY | QQQ | TLT | GLD | HYG |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **D1** | 2 to 4 Days (Noise) | 63.95% | 62.86% | 53.38% | 54.42% | 53.62% |
-| **D2** | 4 to 8 Days (Weekly) | 17.37% | 19.14% | 27.66% | 21.36% | 18.77% |
-| **D3** | 8 to 16 Days (Bi-weekly) | 9.75% | 9.53% | 9.62% | 13.26% | 15.67% |
-| **D4** | 16 to 32 Days (Monthly) | 3.92% | 3.83% | 4.28% | 4.72% | 5.61% |
-| **D5** | 32 to 64 Days (Quarterly) | 2.45% | 2.22% | 2.02% | 3.06% | 3.56% |
-| **S5** | >64 Days (Macro Trend) | 2.56% | 2.41% | 3.03% | 3.18% | 2.77% |
-
-### Copula Tournament Leaderboard Across Horizons
-Five copula families fitted via MLE and evaluated by Bayesian Information Criterion (BIC), benchmarked against a bivariate Gaussian copula with matched correlation:
-
-| Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | Gauss Bench | Excess $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **D1** | 2 to 4 Days | Student-t | 0.020 | 0.020 | 0.189 | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
-| **D2** | 4 to 8 Days | Student-t | 0.024 | 0.024 | 0.201 | 0.171 | +0.030 | 0.214 | -0.013 | -4623.9 |
-| **D3** | 8 to 16 Days | Student-t | 0.005 | 0.005 | 0.176 | 0.166 | +0.009 | 0.168 | +0.008 | -4545.2 |
-| **D4** | 16 to 32 Days | Student-t | 0.000 | 0.000 | 0.081 | 0.101 | -0.020 | 0.057 | +0.025 | -2210.3 |
-| **D5** | 32 to 64 Days | Student-t | 0.000 | 0.000 | 0.052 | 0.049 | +0.003 | 0.064 | -0.012 | -1290.4 |
-| **S5** | >64 Days | Student-t | 0.046 | 0.046 | 0.178 | 0.136 | +0.042 | 0.118 | +0.060 | -4961.8 |
-
-> **Gaussian Benchmark Finding:** At high-frequency noise scales ($D_1$), the empirical co-exceedance $\hat{\lambda}_L = 0.189$ is almost entirely accounted for by background linear correlation (Gaussian benchmark $0.185$, excess $+0.004$). True non-linear crash clustering peaks at weekly swing frequencies ($D_2$, excess $+0.030$) and secular macroeconomic cycles ($S_5$, excess $+0.042$).
-
-### Out-of-Sample Performance (875 Test Days: 2023 to 2026)
-Models calibrated strictly on historical data (2015 to 2022) with zero lookahead bias:
-
-| Horizon | Model | Obs | Breaches | Breach Rate | Kupiec p | Christoffersen p | FZ Loss | Status / Diagnostic |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **1d** | Historical Simulation | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
-| **1d** | Parametric Gaussian | 875 | 13 | 1.49% | 0.1780 | 0.1824 | -3.6786 | GREEN (Basel) |
-| **1d** | Static Copula | 875 | 5 | 0.57% | 0.1659 | 0.0182 | -3.6674 | GREEN (Basel) |
-| **1d** | Basel Sqrt Time | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
-| **1d** | **Proposed Multiscale Copula** | **875** | **5** | **0.57%** | **0.1659** | **0.0182** | **-3.6674** | **GREEN (Basel)** |
-| **1d** | H-TCM Adjusted | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
-| **5d** | Historical Simulation | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.9245 | GREEN (Diag) |
-| **5d** | Parametric Gaussian | 871 | 6 | 0.69% | 0.3282 | 0.0003 | -3.0778 | GREEN (Diag) |
-| **5d** | Static Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.8764 | GREEN (Diag) |
-| **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | 0.0000 | -2.9744 | GREEN (Diag) |
-| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **-2.8219** | **GREEN (Diag)** |
-| **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | 0.0000 | -2.9261 | GREEN (Diag) |
-| **20d** | Historical Simulation | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3530 | GREEN (Diag) |
-| **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | 0.0000 | -2.6591 | GREEN (Diag) |
-| **20d** | Static Copula | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.2601 | GREEN (Diag) |
-| **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3963 | GREEN (Diag) |
-| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **0.0000** | **1.0000** | **-2.2601** | **GREEN (Diag)** |
-| **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | 0.0000 | 1.0000 | -2.3963 | GREEN (Diag) |
-
-### H-TCM Contingent Capital Multiplier Sensitivity Matrix
-Values for risk desks across calibration factors $\kappa \in [0.20, 0.50]$ (baseline $\hat{\lambda}_L(1) = 0.189$):
-
-| Horizon | Scale | $\kappa = 0.20$ | $\kappa = 0.35$ (Recommended) | $\kappa = 0.50$ | Operational Status |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **h = 1d** | D1 | 1.000 | **1.000** | 1.000 | Basel-style Green Zone (Baseline Allocation) |
-| **h = 5d** | D2 | 1.013 | **1.022** | 1.032 | Precautionary Buffer (+2.2% Contingent Overlay) |
-| **h = 20d** | D4 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
-| **h = 40d** | D5 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
-
-> **Candid H-TCM Backtest Evaluation:** During the calm 2023-2026 backtest window, standard square-root scaling was already conservative (3 breaches at 5d vs ~8.7 expected). H-TCM incurred the same 3 breaches while holding extra capital, producing a slightly higher Fissler-Ziegel loss (-2.9261 vs -2.9744). The +2.2% buffer operates as an asymmetric contingent safety buffer for stressed crisis regimes, and remains untested out-of-sample in a severe historical liquidity shock.
-
-***
-
-## Methodology & Architectural Highlights
-
-1. **Shift-Invariant MODWT Filter Bank:**
-   Standard decimated wavelets (DWT) discard half the sample at each scale, leaving only 90 observations at scale 5 from a 2,889-day history. In contrast, the Maximal Overlap Discrete Wavelet Transform (MODWT) preserves all 2,889 daily points across every scale and achieves machine-precision reconstruction:
-   $$\max_t \left| R_t - \left( \sum_{j=1}^5 D_{j,t} + S_{5,t} \right) \right| = 3.77 \times 10^{-14} \ll 10^{-10}$$
-
-2. **Two-Stage Semi-Parametric Margins:**
-   Raw returns cannot be plugged directly into copulas due to volatility clustering. Each wavelet series is filtered with an AR(1)-GJR-GARCH(1,1) model with Student-t innovations to capture leverage asymmetry. The standardized filtered residuals $z_t = \epsilon_t / \sigma_t$ are then modeled using Extreme Value Theory (EVT) Peaks-Over-Threshold: an empirical distribution on the central 80% and Generalized Pareto Distributions (GPD) on the extreme 10% tails, generating strict $\text{Uniform}(0, 1)$ margins.
-
-3. **Scale-Optimal Copula Tournament:**
-   Fits five copula families (Gaussian, Student-t, Clayton, Gumbel, Frank) via Maximum Likelihood Estimation at each scale and selects the best model using Bayesian Information Criterion (BIC).
-
-4. **Rigorous Regulatory Backtest Suite:**
-   Evaluates unconditional coverage (Kupiec POF LR test), conditional coverage (Christoffersen independence test), official Basel Committee Traffic Light zone classification, and joint elicitable scoring via Fissler-Ziegel (FZ) loss at unified $\alpha = 0.99$.
-
-***
-
-## Project Directory Layout
-
-```text
-QuantEdge/
-├── data/
-│   ├── raw_prices.csv           # Historical daily adjusted close prices (2015 to 2026)
-│   └── log_returns.csv          # Log return matrix (2,889 observations x 5 assets)
-├── docs/
-│   └── AI_DISCLOSURE.md         # Competition compliance & AI disclosure log
-├── figures/
-│   ├── fig1_wavelet_mra_decomposition.png     # 300 DPI: MODWT multiresolution series
-│   ├── fig2_tail_dependence_vs_horizon.png    # 300 DPI: lambda_L, lambda_U, and TAR curve
-│   ├── fig3_backtest_var_exceedances.png      # 300 DPI: 875-day out-of-sample loss breaches
-│   └── fig4_regulatory_traffic_light.png      # 300 DPI: Basel Traffic Light performance
-├── report/
-│   ├── report.tex               # Formal academic manuscript (LaTeX source)
-│   └── REPORT.md                # Markdown companion report
-├── src/
-│   ├── __init__.py
-│   ├── config.py                # Universe tickers, weights, dates, hyperparameters
-│   ├── data_loader.py           # Ingestion, log returns, ADF stationarity, caching
-│   ├── wavelets.py              # MODWT filter bank, additive MRA, variance decomposition
-│   ├── margins.py               # AR(1)-GJR-GARCH(1,1) + EVT-POT GPD tails + PIT validation
-│   ├── copulas.py               # 5-family tournament, MLE fitting, BIC selection
-│   ├── risk_engine.py           # Multiscale VaR/ES, benchmark models, H-TCM rule
-│   ├── backtest.py              # Kupiec, Christoffersen, Basel zones, FZ scoring
-│   └── visualizer.py            # High-resolution plotting and LaTeX table exporter
-├── tables/
-│   ├── backtest_metrics.tex     # Auto-generated backtesting summary table
-│   ├── copula_tournament.tex    # Auto-generated copula tournament table
-│   └── variance_decomposition.tex # Auto-generated multiresolution variance table
-├── tests/
-│   ├── test_margins_copulas.py  # Unit tests for GARCH, EVT, and copulas
-│   ├── test_risk_backtest.py    # Unit tests for risk metrics and backtests
-│   ├── test_visualizer.py       # Unit tests for plotting and tables
-│   └── test_wavelets.py         # Unit tests for MODWT and additive reconstruction
-├── run_all.py                   # Master single-command reproduction script
-├── verify_submission.py         # Automated 7-criteria pre-submission verification
-├── requirements.txt             # Dependency definitions
-└── README.md                    # Project documentation
-```
-
-***
-
-## Authorship, Project Governance & AI Disclosure
-
-This project represents the joint quantitative submission of the **QuantEdge Research Team** for the **SAIFA Quant Edge 1.0: Round 1 Challenge**.
-
-In strict compliance with competition rules:
-- Generative AI tools (including Claude, ChatGPT, and Antigravity) were utilized materially as quantitative research accelerators, assisting with mathematical literature synthesis, Python code drafting and refactoring, numerical optimization debugging, and LaTeX table formatting.
-- The human team directed project scoping, selected the multi-asset universe, audited every code module and test suite, conducted econometric reality checks (including formulating the Gaussian copula benchmark and candid H-TCM limitations), and accepts full intellectual and mathematical responsibility for every result.
-- For complete details, see our formal [AI Disclosure Statement](docs/AI_DISCLOSURE.md).
-
-***
-
-## Quickstart & Reproduction
-
-### 1. Installation
 ```bash
 git clone https://github.com/Imashaidk/QuantEdge1.0.git
 cd QuantEdge1.0
+python3.12 -m venv .venv
+source .venv/bin/activate        # on Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+
+python run_all.py                # about 6 minutes
+pytest tests                     # about 30 seconds
 ```
 
-### 2. Single-Command Full Reproduction
-As required by competition guidelines, one command executes the entire pipeline and regenerates all figures, tables, and metrics:
+`run_all.py` reads the prices stored in `data/`, so no internet connection is needed. It rebuilds everything in `results/`, `figures/` and `tables/`, and gives identical output each time it runs.
+
+To rebuild the PDF after a run:
+
 ```bash
-python run_all.py
+cd report
+pdflatex report.tex
+pdflatex report.tex
 ```
-*Total execution time: ~10 seconds (< 3 minutes hard limit).*
 
-### 3. Automated Test Suite
-Run the test suite to verify all mathematical and econometric invariants:
-```bash
-pytest tests/
+## What `run_all.py` does
+
+1. Loads daily prices and computes log returns.
+2. MODWT multiresolution analysis (sym8, 5 levels) and the share of variance at each scale.
+3. Lower and upper tail co-exceedance for the risky and hedge sleeves and six asset pairs, at each wavelet horizon view, with moving block bootstrap intervals and a Gaussian copula benchmark. Also a five-family copula comparison by BIC.
+4. Rolling out-of-sample backtest of five VaR models at 1, 5 and 20 days (and the capital comparison at 60 days): 1,000-day window, refit every 21 days, daily GARCH updates.
+5. VaR and ES by model on the latest window.
+6. Figures, LaTeX tables and `tables/key_numbers.tex`.
+7. A printed summary with the recommendation.
+
+## Layout
+
+```text
+data/          raw_prices.csv and log_returns.csv (April 2007 to June 2026)
+src/
+  config.py           tickers, weights and every model setting
+  data_loader.py      loads the stored prices and returns
+  wavelets.py         MODWT and multiresolution analysis
+  tail_dependence.py  horizon views, co-exceedance, block bootstrap
+  copulas.py          Gaussian, t, Clayton, Gumbel and Frank copulas
+  margins.py          EVT tails on GARCH residuals
+  horizon_var.py      the VaR models compared in the report
+  rolling_backtest.py rolling forecasts, coverage tests, FZ score, DM test
+  key_numbers.py      numbers quoted in the report text
+  visualizer.py       figures and LaTeX tables
+tests/         pytest suite
+results/       CSV output of every step
+figures/       figures used in the report
+tables/        LaTeX tables and key numbers used in the report
+report/        report.tex and report.pdf
+docs/          AI_DISCLOSURE.md
 ```
-*All 45 tests pass in ~15 seconds.*
 
-### 4. Automated Submission Verification
-```bash
-python verify_submission.py
-```
-*Verifies all 7 audit integrity criteria (data splits, observation counts, theoretical tail bounds, H-TCM multipliers, confidence levels, LaTeX tables, zip size, zero emojis/non-ASCII characters).*
+## Data
 
-### 5. Compiling the LaTeX Report
-To generate the final academic PDF manuscript:
-- **Local compilation:**
-  ```bash
-  cd report
-  pdflatex report.tex
-  ```
-- **Overleaf:** Upload the repository folder to Overleaf and compile using standard pdfLaTeX.
+Daily adjusted closing prices from Yahoo Finance for SPY, QQQ, TLT, GLD and HYG. The sample starts on 11 April 2007, the first day HYG traded. If `data/raw_prices.csv` is removed, `src/data_loader.py` downloads it again with `yfinance`.
 
-***
+## Use of AI tools
 
-## References
-
-1. Basel Committee on Banking Supervision. (1996). *Supervisory Framework for the Use of "Backtesting" in Conjunction with the Internal Models Approach to Market Risk Capital Requirements*. Basel: Bank for International Settlements. https://www.bis.org/publ/bcbs22.htm
-2. Christoffersen, P. F. (1998). Evaluating interval forecasts. *International Economic Review*, 39(4), 841-862. https://doi.org/10.2307/2527341
-3. Embrechts, P., McNeil, A., & Straumann, D. (2002). Correlation and dependence in risk management: Properties and pitfalls. In M. A. H. Dempster (Ed.), *Risk Management: Value at Risk and Beyond* (pp. 176-223). Cambridge: Cambridge University Press. https://doi.org/10.1017/CBO9780511615337.008
-4. Fissler, T., & Ziegel, J. F. (2016). Higher order elicitability and prediction markets of higher order. *The Annals of Statistics*, 44(5), 2153-2181. https://doi.org/10.1214/16-AOS1439
-5. Gencay, R., Selcuk, F., & Whitcher, B. (2001). *An Introduction to Wavelets and Other Filtering Methods in Finance and Economics*. San Diego: Academic Press.
-6. Glosten, L. R., Jagannathan, R., & Runkle, D. E. (1993). On the relation between the expected value and the volatility of the nominal excess return on stocks. *The Journal of Finance*, 48(5), 1779-1801. https://doi.org/10.1111/j.1540-6261.1993.tb05128.x
-7. Kupiec, P. H. (1995). Techniques for verifying the accuracy of risk measurement models. *The Journal of Derivatives*, 3(2), 73-84. https://doi.org/10.3905/jod.1995.407942
-8. McNeil, A. J., Frey, R., & Embrechts, P. (2015). *Quantitative Risk Management: Concepts, Techniques and Tools* (Revised ed.). Princeton, NJ: Princeton University Press.
-9. Percival, D. B., & Walden, A. T. (2000). *Wavelet Methods for Time Series Analysis*. Cambridge: Cambridge University Press. https://doi.org/10.1017/CBO9780511841040
-10. Pickands, J. (1975). Statistical inference using extreme order statistics. *The Annals of Statistics*, 3(1), 119-131. https://doi.org/10.1214/aos/1176343003
-11. Sklar, A. (1959). Fonctions de repartition a n dimensions et leurs marges. *Publications de l'Institut de Statistique de l'Universite de Paris*, 8, 229-231.
+AI assistants were used for coding help, debugging and drafting. The team made the modelling decisions, checked the results and is responsible for everything here. See [docs/AI_DISCLOSURE.md](docs/AI_DISCLOSURE.md).

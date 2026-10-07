@@ -59,3 +59,8 @@ desktop.ini
 TEAM_EXECUTION_PROMPT.md
 *_PROMPT.md
 *INSTRUCTIONS*.md
+
+# LaTeX build files
+report/*.aux
+report/*.log
+report/*.out
