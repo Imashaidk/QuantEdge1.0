@@ -215,6 +215,15 @@ class GARCH_EVT_Margin:
             self.model_type = "Empirical-Standardization"
             self.fallback_used = True
 
+        return self.fit_residuals(z)
+
+    def fit_residuals(self, z: np.ndarray) -> "GARCH_EVT_Margin":
+        """Fits the EVT tails and empirical body to standardised residuals z.
+
+        Split out of fit() so the same tail model can be used on residuals that
+        come from a GARCH model fitted elsewhere, as in the rolling backtest.
+        """
+        z = np.asarray(z, dtype=float)
         self.z_filtered: np.ndarray = z.copy()
 
         # Fit generalized Pareto distribution to tail residuals (EVT-POT)
