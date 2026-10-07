@@ -1,7 +1,6 @@
-"""Quantitative risk backtesting and regulatory validation module.
+"""Statistical tests for VaR and ES forecasts.
 
-Implements statistical hypothesis testing and supervisory validation
-for out-of-sample portfolio Value-at-Risk (VaR) and Expected Shortfall (ES):
+Used by rolling_backtest.py:
 - Kupiec POF Likelihood Ratio Test (unconditional coverage)
 - Christoffersen Independence Test (conditional coverage)
 - Basel Committee on Banking Supervision (BCBS) Traffic Light Matrix
@@ -12,7 +11,7 @@ Author: Sameera Ekanayaka
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Tuple
 
 # Ensure project root is in sys.path
 ROOT_PATH = Path(__file__).resolve().parent.parent
@@ -20,24 +19,9 @@ if str(ROOT_PATH) not in sys.path:
     sys.path.insert(0, str(ROOT_PATH))
 
 import numpy as np
-import pandas as pd
 from scipy.stats import binom, chi2
 
-from src.config import (
-    ALPHA_ES_975,
-    ALPHA_ES_99,
-    ALPHA_VAR_95,
-    ALPHA_VAR_99,
-    BACKTEST_HORIZONS,
-    DEFAULT_PORTFOLIO_WEIGHTS,
-    HTCM_KAPPA,
-    TICKERS,
-)
-from src.risk_engine import (
-    RiskEngine,
-    compute_portfolio_returns,
-    map_horizon_to_wavelet_scale,
-)
+from src.config import ALPHA_VAR_99
 
 
 def kupiec_pof_test(
@@ -263,208 +247,3 @@ def fissler_ziegel_loss(
     score = (1.0 / e) * (v + (y - v) * hit / p) + np.log(e) - 1.0
 
     return float(np.mean(score))
-
-
-def compute_backtest_metrics(
-    losses: np.ndarray,
-    var: float,
-    es: float,
-    alpha_var: float = ALPHA_VAR_99,
-    alpha_es: float = ALPHA_ES_975,
-) -> Dict[str, Any]:
-    """Computes full suite of backtesting metrics for a single model and horizon.
-
-    Args:
-        losses: Out-of-sample portfolio loss series.
-        var: Model's predicted VaR.
-        es: Model's predicted ES.
-        alpha_var: VaR confidence level.
-        alpha_es: ES confidence level.
-
-    Returns:
-        Dictionary of backtesting metrics and test statistics.
-    """
-    losses_clean = np.asarray(losses, dtype=np.float64).flatten()
-    total_obs = len(losses_clean)
-    hits = (losses_clean > var).astype(int)
-    breaches = int(np.sum(hits))
-    breach_rate = float(breaches) / float(max(total_obs, 1))
-
-    # Statistical tests
-    lr_pof, p_pof, acc_pof = kupiec_pof_test(breaches, total_obs, alpha=alpha_var)
-    lr_ind, p_ind, acc_ind = christoffersen_independence_test(hits)
-    lr_cc, p_cc, acc_cc = christoffersen_conditional_coverage_test(hits, alpha=alpha_var)
-
-    # Basel zone
-    basel_res = classify_basel_traffic_light(breaches, total_obs, alpha=alpha_var)
-
-    # FZ joint scoring
-    fz_score = fissler_ziegel_loss(losses_clean, var, es, alpha=alpha_var)
-
-    return {
-        "Total_Obs": total_obs,
-        "Breaches": breaches,
-        "Breach_Rate": breach_rate,
-        "Expected_Breaches": round(total_obs * (1.0 - alpha_var), 1),
-        "Kupiec_LR": float(lr_pof),
-        "Kupiec_p": float(p_pof),
-        "Kupiec_Pass": acc_pof,
-        "Christoffersen_LR": float(lr_ind),
-        "Christoffersen_p": float(p_ind),
-        "Christoffersen_Pass": acc_ind,
-        "CC_LR": float(lr_cc),
-        "CC_p": float(p_cc),
-        "Basel_Zone": basel_res["zone"],
-        "Basel_Scaled_Breaches": basel_res["scaled_250_breaches"],
-        "Basel_Multiplier": basel_res["multiplier"],
-        "FZ_Loss": fz_score,
-        "Hit_Sequence": hits,
-    }
-
-
-def run_out_of_sample_backtest(
-    df_test: pd.DataFrame,
-    weights: np.ndarray = DEFAULT_PORTFOLIO_WEIGHTS,
-    copula_results: Optional[Dict[str, Any]] = None,
-    h_horizons: List[int] = BACKTEST_HORIZONS,
-    alpha_var: float = ALPHA_VAR_99,
-    alpha_es: float = ALPHA_ES_99,
-    df_train: Optional[pd.DataFrame] = None,
-    sim_returns_raw: Optional[pd.DataFrame] = None,
-) -> pd.DataFrame:
-    """Runs out-of-sample backtesting across models and horizons.
-
-    Compares models across horizons h in {1, 5, 20} days.
-
-    Args:
-        df_test: Out-of-sample test log returns (2023-2026).
-        weights: Portfolio asset weights.
-        copula_results: Scale-optimal copula tournament results.
-        h_horizons: List of horizons in trading days [1, 5, 20].
-        alpha_var: VaR confidence level (0.99).
-        alpha_es: ES confidence level (0.99).
-        df_train: In-sample train log returns (2015-2022). If None, loads from cache.
-        sim_returns_raw: Simulated joint returns from raw copula. If None, generated.
-
-    Returns:
-        pd.DataFrame of evaluation metrics:
-            ['Horizon', 'Model', 'VaR_Level', 'Total_Obs', 'Breaches', 'Breach_Rate',
-             'Kupiec_LR', 'Kupiec_p', 'Christoffersen_p', 'Basel_Zone', 'FZ_Loss']
-    """
-    if df_train is None:
-        from src.data_loader import load_and_split_data
-        df_train, _ = load_and_split_data()
-
-    if copula_results is None:
-        from src.wavelets import decompose_multiscale
-        from src.margins import pseudo_observations
-        from src.copulas import run_scale_copula_tournament
-
-        decomposed = decompose_multiscale(df_train)
-        copula_results = {}
-        for scale in ["D1", "D2", "D3", "D4", "D5", "S5"]:
-            u_s = pseudo_observations(decomposed[scale])
-            t_res = run_scale_copula_tournament(u_s, scale_name=scale)
-            copula_results[scale] = t_res
-
-    # Generate genuine raw copula simulation if not provided
-    if sim_returns_raw is None:
-        from src.margins import fit_margins_and_transform_uniform
-        from src.copulas import StudentTCopula, simulate_copula_joint_returns
-        from src.config import COPULA_SIMULATION_SAMPLES, RANDOM_SEED
-
-        u_raw, meta_raw = fit_margins_and_transform_uniform(df_train)
-        copula_raw = StudentTCopula()
-        copula_raw.fit(u_raw)
-        sim_returns_raw = simulate_copula_joint_returns(
-            copula_raw, meta_raw, n_samples=COPULA_SIMULATION_SAMPLES, seed=RANDOM_SEED
-        )
-
-    # Initialize risk engine
-    engine = RiskEngine(
-        weights=weights,
-        alpha_var_99=alpha_var,
-        alpha_var_95=ALPHA_VAR_95,
-        alpha_es=alpha_es,
-        kappa=HTCM_KAPPA,
-    )
-
-    # Compute out-of-sample portfolio returns
-    r_test = compute_portfolio_returns(df_test, weights)
-
-    rows: List[Dict[str, Any]] = []
-
-    for h in h_horizons:
-        # Construct out-of-sample holding period losses
-        if h == 1:
-            losses_h = -r_test
-        else:
-            s_losses = pd.Series(-r_test)
-            losses_h = s_losses.rolling(window=h).sum().dropna().to_numpy()
-
-        # Compute VaR and ES predictions from in-sample data
-        model_predictions = engine.compute_all_models_for_horizon(
-            df_train=df_train,
-            copula_tournament_results=copula_results,
-            sim_returns_raw=sim_returns_raw,
-            horizon=h,
-        )
-
-        for model_name, preds in model_predictions.items():
-            var_pred = preds["VaR_99"]
-            es_pred = preds.get("ES_99", preds.get("ES_975"))
-
-            metrics = compute_backtest_metrics(
-                losses=losses_h,
-                var=var_pred,
-                es=es_pred,
-                alpha_var=alpha_var,
-                alpha_es=alpha_es,
-            )
-
-            rows.append({
-                "Horizon": f"{h}d",
-                "Model": model_name,
-                "VaR_Level": f"{int(alpha_var * 100)}%",
-                "VaR_Pred": round(float(var_pred), 5),
-                "ES_Pred": round(float(es_pred), 5),
-                "Total_Obs": metrics["Total_Obs"],
-                "Breaches": metrics["Breaches"],
-                "Breach_Rate": f"{metrics['Breach_Rate'] * 100:.2f}%",
-                "Kupiec_LR": round(metrics["Kupiec_LR"], 3),
-                "Kupiec_p": round(metrics["Kupiec_p"], 4),
-                "Christoffersen_p": round(metrics["Christoffersen_p"], 4),
-                "Basel_Zone": metrics["Basel_Zone"],
-                "FZ_Loss": round(metrics["FZ_Loss"], 4),
-            })
-
-    result_df = pd.DataFrame(rows)
-    return result_df
-
-
-if __name__ == "__main__":
-    from src.data_loader import load_and_split_data
-
-    # 1. Load Data
-    df_train, df_test = load_and_split_data()
-    print(f"\nIn-Sample  Obs: {len(df_train)} trading days (2015-2022)")
-    print(f"Out-of-Sample Obs: {len(df_test)} trading days (2023-2026)")
-
-    # 2. Run Comprehensive Backtest
-    print("\n--- RUNNING OUT-OF-SAMPLE MULTISCALE BACKTEST (H in [1, 5, 20] days) ---")
-    backtest_table = run_out_of_sample_backtest(
-        df_test=df_test,
-        weights=DEFAULT_PORTFOLIO_WEIGHTS,
-        h_horizons=[1, 5, 20],
-        alpha_var=0.99,
-        df_train=df_train,
-    )
-
-    print("\n" + backtest_table.to_string(index=False))
-
-    # 3. Highlight Regulatory Proof (Basel Traffic Light Zones)
-    print("\n--- BASEL TRAFFIC LIGHT REGULATORY ZONE SUMMARY ---")
-    zone_summary = backtest_table[["Horizon", "Model", "Breaches", "Basel_Zone", "Kupiec_p"]]
-    print(zone_summary.to_string(index=False))
-
-    print("\n[SUCCESS] src/backtest.py fully verified and operational.")

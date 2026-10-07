@@ -23,7 +23,6 @@ from src.config import (
     COPULA_FAMILIES,
     COPULA_SIMULATION_SAMPLES,
     RANDOM_SEED,
-    TICKERS,
 )
 
 
@@ -602,7 +601,7 @@ def run_scale_copula_tournament(
             bic_scores[name] = cop.bic
             aic_scores[name] = cop.aic
             ll_scores[name] = cop.log_likelihood
-        except Exception as e:
+        except Exception:
             bic_scores[name] = np.inf
             aic_scores[name] = np.inf
             ll_scores[name] = -np.inf
@@ -700,20 +699,16 @@ def simulate_copula_joint_returns(
 
 
 if __name__ == "__main__":
-    print("=" * 75)
-    print(" QuantEdge-MTR Scale-Optimal Copula Tournament Validation ")
-    print("=" * 75)
-
-    from src.data_loader import load_and_split_data
+    from src.data_loader import load_returns
     from src.margins import fit_margins_and_transform_uniform
 
     # 1. Load Data & Estimate Margins
-    df_train, _ = load_and_split_data()
+    df_train = load_returns()
     u_train, meta = fit_margins_and_transform_uniform(df_train)
 
     # 2. Run Tournament on In-Sample Uniform Margins
     print("\n--- RUNNING COPULA TOURNAMENT (RAW RETURN MARGINS) ---")
-    tournament_result = run_scale_copula_tournament(u_train, scale_name="Raw_InSample")
+    tournament_result = run_scale_copula_tournament(u_train, scale_name="Daily")
 
     print(f"Scale Evaluated     : {tournament_result['scale']}")
     print(f"Winning Copula          : {tournament_result['best_copula'].upper()}")

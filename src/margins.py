@@ -5,7 +5,7 @@ Author: Sameera Ekanayaka
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 # Ensure project root is in sys.path
 ROOT_PATH = Path(__file__).resolve().parent.parent
@@ -21,7 +21,6 @@ from scipy.stats import genpareto, kstest, rankdata
 from src.config import (
     EVT_TAIL_PERCENTILE,
     RANDOM_SEED,
-    TICKERS,
 )
 
 
@@ -480,14 +479,10 @@ def fit_margins_and_transform_uniform(
 
 
 if __name__ == "__main__":
-    print("=" * 75)
-    print(" QuantEdge-MTR Semi-Parametric Margins Validation (GARCH + EVT-POT) ")
-    print("=" * 75)
+    from src.data_loader import load_returns
 
-    from src.data_loader import load_and_split_data
-
-    # 1. Load In-Sample Return Data
-    df_train, _ = load_and_split_data()
+    # 1. Load Return Data
+    df_train = load_returns()
 
     # 2. Fit GARCH-EVT Margins
     u_train, meta = fit_margins_and_transform_uniform(df_train)

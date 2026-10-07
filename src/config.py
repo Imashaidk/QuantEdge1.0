@@ -1,7 +1,7 @@
-"""QuantEdge-MTR Configuration & Hyperparameters Module.
+"""Settings used across the project.
 
-Defines global asset universe, sample date windows, random seeds,
-path constants, wavelet levels, and risk model parameters.
+Asset universe, portfolio weights, paths, the random seed and every model
+setting live here, so a change in one place reaches the whole pipeline.
 
 Author: Sameera Ekanayaka
 """
@@ -38,13 +38,6 @@ ASSET_DESCRIPTIONS: Dict[str, str] = {
 
 # Baseline fixed diversified portfolio weights: [SPY, QQQ, TLT, GLD, HYG]
 DEFAULT_PORTFOLIO_WEIGHTS: np.ndarray = np.array([0.30, 0.20, 0.25, 0.15, 0.10])
-
-# Temporal partitioning
-TRAIN_START: str = "2015-01-01"
-TRAIN_END: str = "2022-12-31"
-
-TEST_START: str = "2023-01-01"
-TEST_END: str = "2026-06-30"
 
 # Wavelet multiresolution analysis (MODWT)
 WAVELET_FAMILY: str = "sym8"
@@ -90,13 +83,6 @@ TAIL_BOOTSTRAP_REPS: int = 500
 
 # Risk and regulatory backtest parameters
 ALPHA_VAR_99: float = 0.99
-ALPHA_VAR_95: float = 0.95
-ALPHA_ES_99: float = 0.99
-ALPHA_ES_975: float = 0.99  # Standardized alias matching alpha=0.99
 
 # Evaluation horizons in days
 BACKTEST_HORIZONS: List[int] = [1, 5, 20]
-
-# Horizon-Conditioned Tail Capital Multiplier (H-TCM) calibration factor
-HTCM_KAPPA: float = 0.35
-HTCM_EPSILON: float = 1e-6

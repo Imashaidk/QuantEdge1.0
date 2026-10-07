@@ -36,15 +36,14 @@ from src.copulas import (
     run_scale_copula_tournament,
     simulate_copula_joint_returns,
 )
-from src.data_loader import load_and_split_data
+from src.data_loader import load_returns
 from src.margins import GARCH_EVT_Margin, fit_margins_and_transform_uniform
 
 
 @pytest.fixture(scope="module")
 def real_data():
-    """Loads in-sample market return data for testing."""
-    df_train, _ = load_and_split_data()
-    return df_train
+    """2015 to 2022 market returns, the sample these tests were written against."""
+    return load_returns().loc["2015-01-01":"2022-12-31"]
 
 
 @pytest.fixture(scope="module")

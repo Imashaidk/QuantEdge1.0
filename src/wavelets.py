@@ -1,4 +1,4 @@
-"""QuantEdge-MTR Wavelet Signal Processing Module: MODWT & MRA.
+"""MODWT and multiresolution analysis (MRA).
 
 Implements the Maximal Overlap Discrete Wavelet Transform (MODWT) and
 Multiresolution Analysis (MRA) for multi-asset financial return series.
@@ -31,7 +31,7 @@ Author: Sameera Ekanayaka
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 # Ensure project root is in sys.path
 ROOT_PATH = Path(__file__).resolve().parent.parent
@@ -44,7 +44,6 @@ import pywt
 
 from src.config import (
     SCALE_HORIZONS,
-    SCALE_NAMES,
     WAVELET_BOUNDARY,
     WAVELET_FAMILY,
     WAVELET_LEVEL,
@@ -544,10 +543,11 @@ def get_scale_metadata(level: int = WAVELET_LEVEL) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    from src.data_loader import load_and_split_data
+    from src.data_loader import load_returns
 
-    # Load in-sample market return data
-    df_train, df_test = load_and_split_data()
+    # Hold back the last 500 days for the lookahead check at the end
+    returns = load_returns()
+    df_train, df_test = returns.iloc[:-500], returns.iloc[-500:]
     print(f"Loaded train data: {df_train.shape[0]} days x {df_train.shape[1]} assets.")
 
     # Multiscale decomposition

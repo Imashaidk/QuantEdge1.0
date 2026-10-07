@@ -33,7 +33,7 @@ from src.config import (
     WAVELET_FAMILY,
     WAVELET_LEVEL,
 )
-from src.data_loader import load_and_split_data
+from src.data_loader import load_returns
 from src.wavelets import (
     compute_scale_variance_decomposition,
     decompose_multiscale,
@@ -50,9 +50,8 @@ from src.wavelets import (
 
 @pytest.fixture(scope="module")
 def train_returns() -> pd.DataFrame:
-    """Fixture providing in-sample market return data."""
-    df_train, _ = load_and_split_data()
-    return df_train
+    """2015 to 2022 market returns, the sample these tests were written against."""
+    return load_returns().loc["2015-01-01":"2022-12-31"]
 
 
 @pytest.fixture(scope="module")
@@ -228,7 +227,8 @@ def test_zero_lookahead_temporal_isolation():
     2. Causal invariance: altering/shocking out-of-sample data produces exactly 0.0 change
        in the in-sample decomposition coefficients.
     """
-    df_train, df_test = load_and_split_data()
+    returns = load_returns()
+    df_train, df_test = returns.loc[:"2022-12-31"], returns.loc["2023-01-01":]
     lookahead_ok = verify_zero_lookahead(df_train, df_test, wavelet="sym8", level=5)
     assert lookahead_ok is True
 

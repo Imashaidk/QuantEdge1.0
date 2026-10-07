@@ -1,8 +1,8 @@
-"""QuantEdge-MTR Data Ingestion & Preprocessing Pipeline.
+"""Price data and log returns.
 
-Downloads, caches, and preprocesses multi-asset historical price data from
-Yahoo Finance. Computes log returns, tests stationarity, and enforces
-strict in-sample / out-of-sample temporal partitioning.
+Loads the daily prices stored in data/, or downloads them from Yahoo Finance if
+the file is missing, and computes log returns. Also has a stationarity check
+and summary statistics.
 
 Author: Sameera Ekanayaka
 """
@@ -10,7 +10,7 @@ Author: Sameera Ekanayaka
 import sys
 import warnings
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 # Suppress statsmodels future warnings for clean terminal logging
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -25,14 +25,7 @@ import pandas as pd
 from statsmodels.tsa.stattools import adfuller
 import yfinance as yf
 
-from src.config import (
-    DATA_DIR,
-    TICKERS,
-    TRAIN_END,
-    TRAIN_START,
-    TEST_END,
-    TEST_START,
-)
+from src.config import DATA_DIR, TICKERS
 
 
 def fetch_or_load_prices(
@@ -158,42 +151,6 @@ def load_returns(cache_dir: Path = DATA_DIR, tickers: List[str] = TICKERS) -> pd
     return compute_log_returns(df_prices, cache_path=cache_dir / "log_returns.csv")
 
 
-def load_and_split_data(
-    tickers: List[str] = TICKERS,
-    train_start: str = TRAIN_START,
-    train_end: str = TRAIN_END,
-    test_start: str = TEST_START,
-    test_end: str = TEST_END,
-    cache_dir: Path = DATA_DIR,
-) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """Loads cleaned log returns and enforces strict temporal train/test partitioning.
-
-    Args:
-        tickers: List of ticker symbols.
-        train_start: In-sample start date (inclusive).
-        train_end: In-sample end date (inclusive).
-        test_start: Out-of-sample start date (inclusive).
-        test_end: Out-of-sample end date (inclusive).
-        cache_dir: Directory where cached files reside.
-
-    Returns:
-        df_train (pd.DataFrame): In-sample daily log returns.
-        df_test (pd.DataFrame): Out-of-sample daily log returns.
-    """
-    df_prices = fetch_or_load_prices(tickers=tickers, cache_path=cache_dir / "raw_prices.csv")
-    df_returns = compute_log_returns(df_prices, cache_path=cache_dir / "log_returns.csv")
-
-    df_train = df_returns.loc[train_start:train_end]
-    df_test = df_returns.loc[test_start:test_end]
-
-    print(
-        f"[DataLoader] Temporal Partitioning:"
-        f"\n  - In-Sample  (Train): {train_start} to {train_end} -> {len(df_train)} trading days"
-        f"\n  - Out-of-Sample (Test): {test_start} to {test_end} -> {len(df_test)} trading days"
-    )
-    return df_train, df_test
-
-
 def compute_summary_statistics(df_returns: pd.DataFrame) -> pd.DataFrame:
     """Computes academic summary statistics for market risk reporting.
 
@@ -218,19 +175,6 @@ def compute_summary_statistics(df_returns: pd.DataFrame) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    print("=" * 75)
-    print(" QuantEdge-MTR Data Ingestion & Preprocessing Test ")
-    print("=" * 75)
-
-    train_df, test_df = load_and_split_data()
-
-    print("\n--- IN-SAMPLE SUMMARY STATISTICS (2015-2022) ---")
-    print(compute_summary_statistics(train_df).to_string())
-
-    print("\n--- OUT-OF-SAMPLE SUMMARY STATISTICS (2023-2026) ---")
-    print(compute_summary_statistics(test_df).to_string())
-
-    print("\n--- STATIONARITY VALIDATION (ADF TESTS) ---")
-    verify_stationarity(train_df)
-
-    print("\n[SUCCESS] Data pipeline execution complete. Clean CSVs cached in data/.")
+    returns = load_returns()
+    print(compute_summary_statistics(returns).to_string())
+    verify_stationarity(returns)
