@@ -17,7 +17,15 @@ if str(ROOT_PATH) not in sys.path:
 
 import pandas as pd
 
-from src.config import TABLES_DIR
+from src.config import (
+    REFIT_EVERY,
+    ROLLING_WINDOW,
+    TABLES_DIR,
+    TAIL_BOOTSTRAP_REPS,
+    TAIL_QUANTILE,
+    VAR_SIMULATIONS,
+)
+from src.tail_dependence import BOOTSTRAP_BLOCK
 
 
 def _pct(x: float, signed: bool = True) -> str:
@@ -41,6 +49,14 @@ def collect_key_numbers(
 ) -> Dict[str, str]:
     """Builds the macro name -> text mapping. Macro names must be letters only."""
     k: Dict[str, str] = {}
+
+    # Settings, so the method section always matches the code
+    k["RollingWindow"] = f"{ROLLING_WINDOW:,}"
+    k["RefitEvery"] = str(REFIT_EVERY)
+    k["BootReps"] = str(TAIL_BOOTSTRAP_REPS)
+    k["BootBlock"] = str(BOOTSTRAP_BLOCK)
+    k["TailLevel"] = _pct(TAIL_QUANTILE, signed=False).replace(".0", "")
+    k["Sims"] = f"{VAR_SIMULATIONS:,}"
 
     k["SampleStart"] = returns.index[0].strftime("%-d %B %Y")
     k["SampleEnd"] = returns.index[-1].strftime("%-d %B %Y")
@@ -78,10 +94,12 @@ def collect_key_numbers(
 
     g = gap.set_index(["model", "horizon"])
     for h, word in [(5, "Five"), (20, "Twenty"), (60, "Sixty")]:
-        k[f"Gap{word}"] = _pct(g.loc[("horizon_copula", h), "var_ratio_mean"])
+        # means and the top decile go into sentences, so no plus sign; ranges keep it
+        k[f"Gap{word}"] = _pct(g.loc[("horizon_copula", h), "var_ratio_mean"], signed=False)
+        k[f"Gap{word}Top"] = _pct(g.loc[("horizon_copula", h), "var_ratio_p90"], signed=False)
         k[f"Gap{word}Low"] = _pct(g.loc[("horizon_copula", h), "var_ratio_p10"])
         k[f"Gap{word}High"] = _pct(g.loc[("horizon_copula", h), "var_ratio_p90"])
-        k[f"Sqrt{word}"] = _pct(g.loc[("daily_sqrt", h), "var_ratio_mean"])
+        k[f"Sqrt{word}"] = _pct(g.loc[("daily_sqrt", h), "var_ratio_mean"], signed=False)
 
     ev = evaluation.set_index(["model", "horizon"])
     k["ExpectedOne"] = f"{ev.loc[('daily_copula', 1), 'expected']:.0f}"
@@ -95,7 +113,10 @@ def collect_key_numbers(
     for model, name in [("daily_sqrt", "Sqrt"), ("daily_copula", "Daily"), ("horizon_copula", "Horizon")]:
         k[f"AvgVarTwenty{name}"] = _pct(ev.loc[(model, 20), "avg_var"], signed=False)
         k[f"BreachTwenty{name}"] = str(int(ev.loc[(model, 20), "breaches"]))
-    k["HorizonVsSqrtTwenty"] = _pct(ev.loc[("horizon_copula", 20), "avg_var"] / ev.loc[("daily_sqrt", 20), "avg_var"] - 1.0)
+    vs_sqrt = ev.loc[("horizon_copula", 20), "avg_var"] / ev.loc[("daily_sqrt", 20), "avg_var"] - 1.0
+    k["HorizonVsSqrtTwenty"] = _pct(vs_sqrt)
+    k["HorizonSavingTwenty"] = _pct(abs(vs_sqrt), signed=False)
+    k["ExpectedTwenty"] = f"{ev.loc[('horizon_copula', 20), 'expected']:.1f}"
 
     d = dm.set_index(["base", "model", "horizon"])
     for h, word in [(5, "Five"), (20, "Twenty")]:
