@@ -1,9 +1,7 @@
-\begin{table}[htbp]
+\begin{table}[H]
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\caption{Rolling out-of-sample backtest of 99\% VaR and ES. Coverage tests use non-overlapping windows. FZ is the Fissler-Ziegel score (lower is better); $\Delta$FZ is the difference to the baseline model (Daily copula, $h$-day vol) with its Diebold-Mariano $p$-value.}
-\label{tab:backtest}
 \begin{tabular}{llccccccc}
 \toprule
 $h$ & Model & Breaches / exp. & Kupiec $p$ & Christ. $p$ & FZ & $\Delta$FZ ($p$) & Avg VaR & Basel \\
@@ -25,4 +23,6 @@ $h$ & Model & Breaches / exp. & Kupiec $p$ & Christ. $p$ & FZ & $\Delta$FZ ($p$)
 20d & Horizon copula (proposed) & 2 / 1.9 & 0.95 & 0.84 & -2.271 & -0.034 (0.32) & 6.81\% & -- \\
 \bottomrule
 \end{tabular}
+\caption{Rolling out-of-sample backtest of 99\% VaR and ES. Coverage tests use non-overlapping windows. FZ is the Fissler-Ziegel score (lower is better); $\Delta$FZ is the difference to the baseline model (Daily copula, $h$-day vol) with its Diebold-Mariano $p$-value.}
+\label{tab:backtest}
 \end{table}

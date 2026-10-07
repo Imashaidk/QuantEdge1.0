@@ -161,12 +161,10 @@ def export_tail_table(
     """LaTeX table of the horizon results that the report quotes."""
     sl = sleeve_table.sort_values("view").set_index("view")
     lines = [
-        "\\begin{table}[htbp]",
+        "\\begin{table}[H]",
         "\\centering",
         "\\footnotesize",
         "\\setlength{\\tabcolsep}{3.5pt}",
-        "\\caption{Lower-tail co-exceedance at the 5\\% level by horizon view. Brackets are 90\\% moving block bootstrap intervals.}",
-        "\\label{tab:tail_by_horizon}",
         "\\begin{tabular}{lccccccccc}",
         "\\toprule",
         "Horizon & Risky vs hedge & Change vs daily & Gaussian & SPY-HYG & SPY-TLT & SPY-GLD & SPY-QQQ & TLT-HYG & TLT-GLD \\\\",
@@ -183,7 +181,14 @@ def export_tail_table(
             f"{_get_lambda('SPY-HYG')} & {_get_lambda('SPY-TLT')} & {_get_lambda('SPY-GLD')} & "
             f"{_get_lambda('SPY-QQQ')} & {_get_lambda('TLT-HYG')} & {_get_lambda('TLT-GLD')} \\\\"
         )
-    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}", ""]
+    lines += [
+        "\\bottomrule",
+        "\\end{tabular}",
+        "\\caption{Lower-tail co-exceedance at the 5\\% level by horizon view. Brackets are 90\\% moving block bootstrap intervals.}",
+        "\\label{tab:tail_by_horizon}",
+        "\\end{table}",
+        "",
+    ]
     path = out_dir / "tail_by_horizon.tex"
     path.write_text("\n".join(lines).replace("> ", "$>$ "), encoding="utf-8")
     print(f"[Visualizer] Exported LaTeX Table -> {path}")
@@ -289,13 +294,10 @@ def export_rolling_backtest_table(
     from src.horizon_var import MODEL_LABELS
 
     lines = [
-        "\\begin{table}[htbp]",
+        "\\begin{table}[H]",
         "\\centering",
         "\\footnotesize",
         "\\setlength{\\tabcolsep}{4pt}",
-        "\\caption{Rolling out-of-sample backtest of 99\\% VaR and ES. Coverage tests use non-overlapping windows. "
-        "FZ is the Fissler-Ziegel score (lower is better); $\\Delta$FZ is the difference to the baseline model (Daily copula, $h$-day vol) with its Diebold-Mariano $p$-value.}",
-        "\\label{tab:backtest}",
         "\\begin{tabular}{llccccccc}",
         "\\toprule",
         "$h$ & Model & Breaches / exp. & Kupiec $p$ & Christ. $p$ & FZ & $\\Delta$FZ ($p$) & Avg VaR & Basel \\\\",
@@ -317,7 +319,14 @@ def export_rolling_backtest_table(
                 f"{r['christoffersen_p']:.2f} & {r['fz']:.3f} & {dfz} & {r['avg_var'] * 100:.2f}\\% & {zone} \\\\"
             )
         lines.append("\\midrule" if h != evaluation["horizon"].max() else "\\bottomrule")
-    lines += ["\\end{tabular}", "\\end{table}", ""]
+    lines += [
+        "\\end{tabular}",
+        "\\caption{Rolling out-of-sample backtest of 99\\% VaR and ES. Coverage tests use non-overlapping windows. "
+        "FZ is the Fissler-Ziegel score (lower is better); $\\Delta$FZ is the difference to the baseline model (Daily copula, $h$-day vol) with its Diebold-Mariano $p$-value.}",
+        "\\label{tab:backtest}",
+        "\\end{table}",
+        "",
+    ]
     path = out_dir / "backtest_metrics.tex"
     path.write_text("\n".join(lines).replace("sqrt(h)", "$\\sqrt{h}$"), encoding="utf-8")
     print(f"[Visualizer] Exported LaTeX Table -> {path}")
@@ -325,13 +334,14 @@ def export_rolling_backtest_table(
 
 def export_variance_table(variance_decomp_df: pd.DataFrame, out_dir: Path = TABLES_DIR) -> None:
     """LaTeX table of the share of variance in each wavelet scale."""
+    caption = "Share of each asset's return variance in each MODWT scale (\\%)."
+    label = "tab:variance_decomposition"
     var_tex = variance_decomp_df.round(1).to_latex(
-        caption="Share of each asset's return variance in each MODWT scale (\\%).",
-        label="tab:variance_decomposition",
-        position="htbp",
+        position="H",
         float_format="%.1f",
     )
     var_tex = var_tex.replace("\\begin{tabular}", "\\centering\n\\small\n\\begin{tabular}", 1)
+    var_tex = var_tex.replace("\\end{tabular}", f"\\end{{tabular}}\n\\caption{{{caption}}}\n\\label{{{label}}}", 1)
     path = out_dir / "variance_decomposition.tex"
     path.write_text(var_tex, encoding="utf-8")
     print(f"[Visualizer] Exported LaTeX Table -> {path}")
