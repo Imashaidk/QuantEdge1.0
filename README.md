@@ -26,10 +26,10 @@ This project delivers **QuantEdge-MTR (Multiscale Tail Risk Framework)**, an eco
 ## Core Research Findings
 
 ### 1. Horizon-Varying Tail Crash Co-dependence
-Using rigorous Probability Integral Transform (PIT) uniform margins from AR(1)-GJR-GARCH(1,1) + EVT-POT filtering, empirical lower-tail crash dependence **changes** across investment horizons: peaking at weekly swing scales ($D_2$, 4 to 8 days), dropping substantially at intermediate monthly and quarterly horizons ($D_4$, $D_5$), and partially rebounding at secular macroeconomic horizons ($S_5$, >64 days). This demonstrates that the joint crash structure is not static -- scale-dependent variation is the central empirical finding of this study. Run `python run_all.py` to generate `tables/copula_tournament.tex` with exact values for your environment (values at $D_3$--$D_5$ are sensitive to copula optimization and vary slightly across library versions).
+Using rigorous Probability Integral Transform (PIT) uniform margins from AR(1)-GJR-GARCH(1,1) + EVT-POT filtering, empirical lower-tail crash dependence **changes** across investment horizons: highest at short frequencies ($D_1 \approx 0.189, D_2 \approx 0.201, D_3 \approx 0.176$), and dropping noticeably at longer monthly and macroeconomic scales ($D_4 \approx 0.098, D_5 \approx 0.060, S_5 \approx 0.099$). This demonstrates that the joint crash structure is not static across investment horizons. Run `python run_all.py` to generate `tables/copula_tournament.tex` with exact values for your environment (values at $D_3$ to $S_5$ are sensitive to numerical optimization and vary slightly across library versions; our reported results reflect the reference test environment on Python 3.12 Linux).
 
 ### 2. Student-t Copula Dominance Across Horizons
-Across all decomposed timescales ($D_1$ through $S_5$), the Student-$t$ copula decisively wins the model tournament evaluated by the Bayesian Information Criterion (BIC), outperforming Gaussian, Clayton, Gumbel, and Frank alternatives. Standardized residuals display symmetric fat tails across frequencies. The Timescale Asymmetry Ratio remains tightly bounded ($\text{TAR} \in [-0.013, +0.060]$), demonstrating that multiscale asset co-dependence is elliptical and fat-tailed.
+Across all decomposed timescales ($D_1$ through $S_5$), the Student-$t$ copula decisively wins the model tournament evaluated by the Bayesian Information Criterion (BIC), outperforming Gaussian, Clayton, Gumbel, and Frank alternatives. Standardized residuals display symmetric fat tails across frequencies. The Timescale Asymmetry Ratio remains tightly bounded ($\text{TAR} \in [-0.013, +0.011]$), demonstrating that multiscale asset co-dependence is elliptical and fat-tailed.
 
 ### 3. Out-of-Sample Backtesting & Basel Scaling Insights
 Over 875 out-of-sample trading days (2023 to 2026), conventional square-root-of-time scaling was statistically conservative at 5-day (3 breaches, 0.34%) and 20-day horizons (0 breaches, 0.00% vs ~8.7 expected). However, the 1-day Parametric Gaussian model generates 13 breaches (a 1.49% breach rate, approaching the supervisory penalty boundary), showing that ignoring fat tails understates short-term daily risk.
@@ -60,16 +60,16 @@ Decomposed via Maximal Overlap Discrete Wavelet Transform (MODWT, Symlet 8, Leve
 ### Copula Tournament Leaderboard Across Horizons
 Five copula families fitted via MLE and evaluated by Bayesian Information Criterion (BIC), benchmarked against a bivariate Gaussian copula with matched correlation:
 
-| Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | Gauss Bench | Excess $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **D1** | 2 to 4 Days | Student-t | 0.089 | 0.089 | 0.189 | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
-| **D2** | 4 to 8 Days | Student-t | 0.079 | 0.079 | 0.201 | 0.171 | +0.030 | 0.214 | -0.013 | -4623.9 |
-| **D3** | 8 to 16 Days | Student-t | 0.047 | 0.047 | 0.176 | 0.166 | +0.009 | 0.168 | +0.008 | -4545.2 |
-| **D4** | 16 to 32 Days | Student-t | 0.002 | 0.002 | 0.081 | 0.101 | -0.020 | 0.057 | +0.025 | -2210.3 |
-| **D5** | 32 to 64 Days | Student-t | 0.001 | 0.001 | 0.052 | 0.049 | +0.003 | 0.064 | -0.012 | -1290.4 |
-| **S5** | >64 Days | Student-t | 0.098 | 0.098 | 0.178 | 0.136 | +0.042 | 0.118 | +0.060 | -4961.8 |
+| Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | 95% CI | Gauss Bench | Excess $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **D1** | 2 to 4 Days | Student-t | 0.089 | 0.089 | 0.189 | [0.143, 0.239] | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
+| **D2** | 4 to 8 Days | Student-t | 0.079 | 0.079 | 0.201 | [0.154, 0.233] | 0.171 | +0.030 | 0.214 | -0.013 | -4623.4 |
+| **D3** | 8 to 16 Days | Student-t | 0.047 | 0.047 | 0.176 | [0.132, 0.217] | 0.166 | +0.009 | 0.168 | +0.008 | -4543.0 |
+| **D4** | 16 to 32 Days | Student-t | 0.020 | 0.020 | 0.098 | [0.062, 0.143] | 0.109 | -0.011 | 0.096 | +0.002 | -3043.0 |
+| **D5** | 32 to 64 Days | Student-t | 0.001 | 0.001 | 0.060 | [0.019, 0.077] | 0.074 | -0.014 | 0.049 | +0.011 | -1446.6 |
+| **S5** | >64 Days | Student-t | 0.055 | 0.055 | 0.099 | [0.026, 0.162] | 0.122 | -0.022 | 0.098 | +0.001 | -4300.5 |
 
-> **Gaussian Benchmark & Bootstrap Finding:** At high-frequency noise scales ($D_1$), the empirical co-exceedance $\hat{\lambda}_L = 0.189$ is almost entirely accounted for by background linear correlation (Gaussian benchmark $0.185$, excess $+0.004$). While excess tail crash dependence peaks at weekly swing frequencies ($D_2$, excess $+0.030$), a moving-block bootstrap ($b=64$ days, 300 replications) produces a $95\%$ confidence interval $[0.161, 0.239]$ overlapping with $D_1$ $[0.154, 0.228]$, confirming that the $0.012$ gap lies within finite-sample estimation uncertainty. Macroeconomic cycles ($S_5$) exhibit persistent excess co-exceedance ($+0.042$).
+> **Gaussian Benchmark & Bootstrap Finding:** At high-frequency noise scales ($D_1$), the empirical co-exceedance $\hat{\lambda}_L = 0.189$ is almost entirely accounted for by background linear correlation (Gaussian benchmark $0.185$, excess $+0.004$). While excess tail crash dependence peaks at weekly swing frequencies ($D_2$, excess $+0.030$), a moving-block bootstrap ($b=64$ days, 300 replications) produces a $95\%$ confidence interval $[0.154, 0.233]$ overlapping with $D_1$ $[0.143, 0.239]$, confirming that the $0.012$ gap lies within finite-sample estimation uncertainty. At longer horizons ($D_4, D_5, S_5$), empirical co-exceedance attenuates ($0.060$ to $0.099$) with slightly negative excess over Gaussian benchmarks ($-0.011$ to $-0.022$).
 
 ### Out-of-Sample Performance (875 Test Days: 2023 to 2026)
 Models calibrated strictly on historical data (2015 to 2022) with zero lookahead bias:
@@ -137,7 +137,7 @@ Values for risk desks across calibration factors $\kappa \in [0.20, 0.50]$ (base
    Fits five copula families (Gaussian, Student-t, Clayton, Gumbel, Frank) via Maximum Likelihood Estimation at each scale and selects the best model using Bayesian Information Criterion (BIC).
 
 4. **Rigorous Regulatory Backtest Suite:**
-   Evaluates unconditional coverage (Kupiec POF LR test), conditional coverage (Christoffersen independence test), official Basel Committee Traffic Light zone classification, and joint elicitable scoring via Fissler-Ziegel (FZ) loss at unified $\alpha = 0.99$.
+   Evaluates unconditional coverage (Kupiec POF LR test), conditional coverage (Christoffersen independence test), Basel-style traffic light zone classification (1d) and breach-rate diagnostics (5d, 20d), and joint elicitable scoring via Fissler-Ziegel (FZ) loss at unified $\alpha = 0.99$.
 
 ***
 
@@ -178,7 +178,7 @@ QuantEdge/
 │   ├── test_visualizer.py       # Unit tests for plotting and tables
 │   └── test_wavelets.py         # Unit tests for MODWT and additive reconstruction
 ├── run_all.py                   # Master single-command reproduction script
-├── verify_submission.py         # Automated 7-criteria pre-submission verification
+├── verify_submission.py         # Automated 8-criteria pre-submission verification
 ├── requirements.txt             # Dependency definitions
 └── README.md                    # Project documentation
 ```
@@ -190,7 +190,7 @@ QuantEdge/
 This project represents the joint quantitative submission of the **QuantEdge Research Team** for the **SAIFA Quant Edge 1.0: Round 1 Challenge**.
 
 In strict compliance with competition rules:
-- Generative AI tools (including Claude, ChatGPT, and Antigravity) were utilized materially as quantitative research accelerators, assisting with mathematical literature synthesis, Python code drafting and refactoring, numerical optimization debugging, and LaTeX table formatting.
+- Generative AI tools (including Claude, ChatGPT, and Antigravity) were utilized materially as quantitative research accelerators, assisting with mathematical literature synthesis, Python code drafting and refactoring, numerical optimization debugging, iterative repository audits and fixes, and LaTeX table formatting.
 - The human team directed project scoping, selected the multi-asset universe, audited every code module and test suite, conducted econometric reality checks (including formulating the Gaussian copula benchmark and candid H-TCM limitations), and accepts full intellectual and mathematical responsibility for every result.
 - For complete details, see our formal [AI Disclosure Statement](docs/AI_DISCLOSURE.md).
 
@@ -217,13 +217,13 @@ Run the test suite to verify all mathematical and econometric invariants:
 ```bash
 pytest tests/
 ```
-*All 48 tests pass in ~20 seconds.*
+*All 48 tests pass in ~10 seconds.*
 
 ### 4. Automated Submission Verification
 ```bash
 python verify_submission.py
 ```
-*Verifies all 7 audit integrity criteria (data splits, observation counts, theoretical tail bounds, H-TCM multipliers, confidence levels, LaTeX tables, zip size, zero emojis/non-ASCII characters).*
+*Verifies all 8 audit integrity criteria (data splits, observation counts, theoretical tail bounds, H-TCM multipliers, confidence levels, LaTeX tables, zip size, zero emojis/non-ASCII characters, and numeric documentation alignment).*
 
 ### 5. Compiling the LaTeX Report
 To generate the final academic PDF manuscript:

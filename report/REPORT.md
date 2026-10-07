@@ -1,4 +1,4 @@
-# Risk Across Tails and Timescales: Frequency-Variant Tail Dependence and the Invalidation of Horizon Square-Root Scaling
+# Risk Across Tails and Timescales: Frequency-Variant Tail Dependence and Limitations of Horizon Square-Root Scaling
 
 > **SAIFA Quant Edge 1.0: Round 1 Submission**  
 > **Official Challenge Question:**  
@@ -16,9 +16,9 @@ This rule assumes that financial returns are i.i.d. normal and that joint depend
 In this study, we answer the competition question directly: **tail dependence is persistent and horizon-dependent**. Assets that appear weakly correlated in daily noise series maintain non-trivial crash co-dependence across multi-day and multi-week investment horizons.
 
 ### Key Discoveries:
-1. **Multiscale Tail Dependence & The Gaussian Benchmark:** Empirical lower-tail crash dependence varies across timescales: peaking at weekly swing scales ($D_2$, 4 to 8 days, $\hat{\lambda}_L = 0.201$), dropping at intermediate monthly cycles ($D_4, D_5$, $\hat{\lambda}_L \approx 0.052 - 0.081$), and rebounding at secular macro horizons ($S_5$, $>64$ days, $\hat{\lambda}_L = 0.178$). Crucially, benchmarking against a Gaussian copula with matched correlation reveals that high-frequency co-exceedance ($D_1$, $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$) is almost entirely linear correlation (excess $+0.004$). Genuine excess tail crash risk peaks at weekly horizons ($D_2$, excess $+0.030$) and macro trends ($S_5$, excess $+0.042$).
+1. **Multiscale Tail Dependence & The Gaussian Benchmark:** Empirical lower-tail crash dependence varies across timescales: highest at short frequencies ($D_1 \approx 0.189, D_2 \approx 0.201, D_3 \approx 0.176$), and dropping noticeably at longer monthly and macroeconomic scales ($D_4 \approx 0.098, D_5 \approx 0.060, S_5 \approx 0.099$). Crucially, benchmarking against a Gaussian copula with matched correlation reveals that high-frequency co-exceedance ($D_1$, $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$) is largely accounted for by linear correlation (excess $+0.004$), with positive excess observed at $D_1$ to $D_3$ (peaking at $D_2$, excess $+0.030$, though overlapping bootstrap intervals show this peak is within estimation noise), while excess turns slightly negative at longer scales ($D_4, D_5, S_5$, between $-0.011$ and $-0.022$).
 2. **Student-t Copula Dominance:** The Student-$t$ copula decisively wins the model tournament across all timescales by Bayesian Information Criterion (BIC), indicating that multi-asset joint tail risk is characterized by symmetric, elliptical fat-tailed extreme co-movements rather than Archimedean asymmetry.
-3. **The Timescale Asymmetry Ratio ($\text{TAR} = \hat{\lambda}_L - \hat{\lambda}_U$):** Across all decomposed scales, empirical tail asymmetry remains tightly bounded around zero ($\text{TAR} \in [-0.013, +0.060]$), confirming that cross-asset extreme co-movement is elliptical and fat-tailed rather than single-parameter asymmetric.
+3. **The Timescale Asymmetry Ratio ($\text{TAR} = \hat{\lambda}_L - \hat{\lambda}_U$):** Across all decomposed scales, empirical tail asymmetry remains tightly bounded around zero ($\text{TAR} \in [-0.013, +0.011]$), confirming that cross-asset extreme co-movement is elliptical and fat-tailed rather than single-parameter asymmetric.
 4. **Out-of-Sample Backtesting & Basel Scaling Insights:** In out-of-sample backtesting across 875 trading days (2023 to 2026), conventional square-root-of-time scaling was statistically conservative at 5-day (3 breaches, 0.34%) and 20-day horizons (0 breaches, 0.00% vs ~8.7 expected). However, the Parametric Gaussian model generates 13 breaches at the 1-day horizon (a 1.49% breach rate vs 1.00% expected). While failing to reject at 5% significance under Kupiec POF ($p = 0.178$), it generates 2.6x the breaches of copula models (5 breaches), showing that assuming normality understates short-term tail risk.
 5. **Actionable Fix for Risk Desks (The Contingent H-TCM Rule):** We introduce the **Horizon-Conditioned Tail Capital Multiplier (H-TCM)**:
    $$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \max\left(0, \frac{\hat{\lambda}_L(h) - \hat{\lambda}_L(1)}{\hat{\lambda}_L(1) + \epsilon}\right) \right]$$
@@ -97,20 +97,21 @@ High-frequency noise ($D_1$) accounts for 53% to 64% of total return variance, w
 ### 3.2 Copula Tournament Leaderboard Across Horizons
 Five copula families fitted via MLE and evaluated by Bayesian Information Criterion (BIC), benchmarked against a bivariate Gaussian copula with matched linear correlation:
 
-| Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | Gauss Bench | Excess $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **D1** | 2 to 4 Days | Student-t | 0.089 | 0.089 | 0.189 | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
-| **D2** | 4 to 8 Days | Student-t | 0.079 | 0.079 | 0.201 | 0.171 | +0.030 | 0.214 | -0.013 | -4623.9 |
-| **D3** | 8 to 16 Days | Student-t | 0.047 | 0.047 | 0.176 | 0.166 | +0.009 | 0.168 | +0.008 | -4545.2 |
-| **D4** | 16 to 32 Days | Student-t | 0.002 | 0.002 | 0.081 | 0.101 | -0.020 | 0.057 | +0.025 | -2210.3 |
-| **D5** | 32 to 64 Days | Student-t | 0.001 | 0.001 | 0.052 | 0.049 | +0.003 | 0.064 | -0.012 | -1290.4 |
-| **S5** | >64 Days | Student-t | 0.098 | 0.098 | 0.178 | 0.136 | +0.042 | 0.118 | +0.060 | -4961.8 |
+| Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | 95% CI | Gauss Bench | Excess $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **D1** | 2 to 4 Days | Student-t | 0.089 | 0.089 | 0.189 | [0.143, 0.239] | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
+| **D2** | 4 to 8 Days | Student-t | 0.079 | 0.079 | 0.201 | [0.154, 0.233] | 0.171 | +0.030 | 0.214 | -0.013 | -4623.4 |
+| **D3** | 8 to 16 Days | Student-t | 0.047 | 0.047 | 0.176 | [0.132, 0.217] | 0.166 | +0.009 | 0.168 | +0.008 | -4543.0 |
+| **D4** | 16 to 32 Days | Student-t | 0.020 | 0.020 | 0.098 | [0.062, 0.143] | 0.109 | -0.011 | 0.096 | +0.002 | -3043.0 |
+| **D5** | 32 to 64 Days | Student-t | 0.001 | 0.001 | 0.060 | [0.019, 0.077] | 0.074 | -0.014 | 0.049 | +0.011 | -1446.6 |
+| **S5** | >64 Days | Student-t | 0.055 | 0.055 | 0.099 | [0.026, 0.162] | 0.122 | -0.022 | 0.098 | +0.001 | -4300.5 |
 
 **Disentangling Tail Dependence from Linear Correlation:**
 At a $5\%$ quantile threshold ($q = 0.05$), assets governed by a Gaussian copula produce positive co-exceedance due to linear correlation $\rho$. By benchmarking against the bivariate normal integral $\lambda_{\text{Gauss}}(0.05; \rho) = \Phi_2(z_{0.05}, z_{0.05}; \rho) / 0.05$, we find:
-- At $D_1$, empirical $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$ (excess $+0.004$), consistent with daily co-exceedance being driven primarily by linear correlation rather than non-linear crash dependence.
-- At $D_2$, empirical $\hat{\lambda}_L = 0.201$ vs Gaussian benchmark $0.171$ (excess $+0.030$). Moving-block bootstrap analysis (block size 64 days, 300 replications) yields a 95% confidence interval of [0.161, 0.239] overlapping with D1 [0.154, 0.228], indicating that the 0.012 gap between D1 and D2 lies within finite-sample estimation uncertainty.
-- At $S_5$, excess tail dependence reaches $+0.042$, capturing secular macro co-dependence.
+- At $D_1$, empirical $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$ (excess $+0.004$, 95% CI $[0.143, 0.239]$), consistent with daily co-exceedance being driven primarily by linear correlation rather than non-linear crash dependence.
+- At $D_2$, empirical $\hat{\lambda}_L = 0.201$ vs Gaussian benchmark $0.171$ (excess $+0.030$, 95% CI $[0.154, 0.233]$). Moving-block bootstrap analysis (block size 64 days, 300 replications) yields intervals overlapping with D1 ($[0.143, 0.239]$), indicating that the 0.012 gap between D1 and D2 lies within finite-sample estimation uncertainty.
+- At $D_4$ and $D_5$, co-exceedance attenuates substantially to $0.098$ and $0.060$, falling below the Gaussian baseline (excess $-0.011$ and $-0.014$).
+- At $S_5$, co-exceedance is $0.099$ ($95\%$ CI $[0.026, 0.162]$) with Gaussian benchmark $0.122$ (excess $-0.022$). The empirical data do not support a secular rebound; tail co-dependence remains lower at long holding periods.
 
 ***
 
@@ -176,19 +177,19 @@ $$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \
    ```bash
    python run_all.py
    ```
-   Execution completes in ~15-20 seconds (< 3 minutes hard limit) and regenerates all figures and LaTeX tables.
+   Execution completes in ~10 seconds (< 3 minutes hard limit) and regenerates all figures and LaTeX tables.
 2. **Automated Unit Tests:**
    ```bash
    pytest tests/
    ```
-   All 45 unit/integration tests pass in ~15 seconds.
+   All 48 unit/integration tests pass in ~10 seconds.
 3. **Automated Verification:**
    ```bash
    python verify_submission.py
    ```
    Verifies all submission integrity criteria.
 4. **Transparent AI Disclosure:**
-   In compliance with competition guidelines, generative AI tools were used materially for technical literature synthesis, Python code drafting/refactoring across `src/`, numerical optimization debugging, and LaTeX table formatting. The human team directed project scoping, audited all code, conducted econometric reality checks (including formulating the Gaussian benchmark and candid H-TCM evaluation), and accepts full intellectual responsibility (see `docs/AI_DISCLOSURE.md`).
+   In compliance with competition guidelines, generative AI tools were used materially for technical literature synthesis, Python code drafting/refactoring across `src/`, numerical optimization debugging, iterative repository audits and fixes, and LaTeX table formatting. The human team directed project scoping, audited all code, conducted econometric reality checks (including formulating the Gaussian benchmark and candid H-TCM evaluation), and accepts full intellectual responsibility (see `docs/AI_DISCLOSURE.md`).
 
 ***
 

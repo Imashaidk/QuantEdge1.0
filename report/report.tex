@@ -55,8 +55,8 @@
 Frequency-Variant Tail Dependence and Limitations of Horizon Square-Root Scaling}}
 
 \author{
-    \textbf{QuantEdge Research Consortium} \\
-    \textit{Department of Statistics \& Computer Science / Industrial Management} \\
+    \textbf{QuantEdge Research Team} \\
+    \textit{SAIFA Quant Edge 1.0 Submission} \\
     \url{https://github.com/Imashaidk/QuantEdge1.0.git}
 }
 
@@ -70,7 +70,7 @@ Frequency-Variant Tail Dependence and Limitations of Horizon Square-Root Scaling
 \noindent
 Most banks and asset managers scale daily Value-at-Risk (VaR) to multi-day horizons using the standard Basel square-root-of-time rule ($\text{VaR}_h = \text{VaR}_1 \times \sqrt{h}$). This rule assumes that asset co-movements during extreme events remain identical whether positions are held for an afternoon or for three months. In this paper, we directly answer the official SAIFA Quant Edge 1.0 research question: \textit{``Does tail dependence change with the investment horizon, and what does ignoring this do to a portfolio's measured risk?''} Using daily data from 2015 to 2026 across a five-pillar institutional universe (US Equities, Tech, Long Treasuries, Gold, and High-Yield Credit), we decompose returns across timescales using the Maximal Overlap Discrete Wavelet Transform (MODWT). After filtering out volatility clustering with AR(1)-GJR-GARCH(1,1) models and modeling fat tails using Extreme Value Theory (EVT-POT), we run an automated tournament across five copula families at every timescale.
 
-Our empirical findings demonstrate that cross-asset tail crash dependence changes across investment horizons. Lower tail crash dependence peaks at weekly swing scales ($D_2$, 4 to 8 days, $\hat{\lambda}_L = 0.201$), drops at intermediate monthly cycles ($D_4, D_5$, $\hat{\lambda}_L \approx 0.08 - 0.12$), and rebounds at secular macroeconomic horizons ($S_5$, $>64$ days, $\hat{\lambda}_L = 0.178$). Crucially, benchmarking against a Gaussian copula with matched correlation reveals that high-frequency co-exceedance ($D_1$, 2 to 4 days, $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$) is largely accounted for by linear correlation (excess tail dependence of only $+0.004$), whereas genuine excess tail crash dependence peaks at weekly frequencies ($D_2$, excess $+0.030$) and macro trends ($S_5$, excess $+0.042$). Across all scales, the Student-$t$ copula is selected as optimal by Bayesian Information Criterion (BIC), indicating elliptical fat-tailed dependence. Over 875 out-of-sample trading days (2023 to 2026), conventional square-root-of-time scaling was statistically conservative at 5-day and 20-day horizons (0 to 3 breaches vs $\approx 8.7$ expected), while the 1-day Parametric Gaussian model generates 13 breaches (a $1.49\%$ failure rate vs $1.00\%$ nominal target). We introduce the \textbf{Horizon-Conditioned Tail Capital Multiplier (H-TCM)} as an actionable contingent macroprudential overlay that provides a targeted $+2.2\%$ precautionary capital buffer when horizon tail dependence spikes, guarding against crisis contagion while avoiding permanent capital drag during calm markets.
+Our empirical findings demonstrate that cross-asset tail crash dependence changes across investment horizons. Lower tail crash dependence is highest at short frequencies ($D_1 \approx 0.189, D_2 \approx 0.201, D_3 \approx 0.176$), but drops noticeably at longer monthly and macroeconomic scales ($D_4 \approx 0.098, D_5 \approx 0.060, S_5 \approx 0.099$). Crucially, benchmarking against a Gaussian copula with matched correlation reveals that high-frequency co-exceedance ($D_1$, 2 to 4 days, $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$) is largely accounted for by linear correlation (excess tail dependence of only $+0.004$), with positive excess observed at $D_1$ to $D_3$ (peaking at $D_2$, excess $+0.030$), while excess tail dependence turns slightly negative at longer scales ($D_4, D_5, S_5$, between $-0.011$ and $-0.022$). Across all scales, the Student-$t$ copula is selected as optimal by Bayesian Information Criterion (BIC), indicating elliptical fat-tailed dependence. Over 875 out-of-sample trading days (2023 to 2026), conventional square-root-of-time scaling was statistically conservative at 5-day and 20-day horizons (0 to 3 breaches vs $\approx 8.7$ expected), while the 1-day Parametric Gaussian model generates 13 breaches (a $1.49\%$ failure rate vs $1.00\%$ nominal target, $p = 0.178$ under Kupiec POF). We introduce the \textbf{Horizon-Conditioned Tail Capital Multiplier (H-TCM)} as an actionable contingent macroprudential overlay that provides a targeted $+2.2\%$ precautionary capital buffer when horizon tail dependence spikes, guarding against crisis contagion while avoiding permanent capital drag during calm markets.
 \end{abstract}
 
 \vspace{0.3cm}
@@ -148,6 +148,8 @@ Here $D_j$ represents scale-specific detail fluctuations and $S_J$ captures the 
 \max_{t} \left| R_t - \left( \sum_{j=1}^5 D_{j,t} + S_{5,t} \right) \right| = 3.77 \times 10^{-14} \ll 10^{-10}
 \end{equation}
 
+\noindent\textit{Boundary effects and horizon semantics:} MODWT circular convolution introduces boundary filter overlap: for filter length $L=16$ at decomposition level $J=5$, the equivalent filter width is $L_5 = (2^5 - 1)(L - 1) + 1 = 466$ days, affecting approximately $23\%$ of observations at the slowest scales ($D_5, S_5$). Furthermore, an econometric wavelet frequency band (e.g., $D_4$, isolating 16--32 day oscillations) differs conceptually from a cumulative $h$-day holding period return, which inherently integrates all fluctuations up to horizon $h$.
+
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.76\textwidth]{fig1_wavelet_mra_decomposition.png}
@@ -156,7 +158,7 @@ Here $D_j$ represents scale-specific detail fluctuations and $S_J$ captures the 
 \end{figure}
 
 \subsection{Semi-Parametric GARCH-EVT Margins}
-Fitting copulas directly on raw returns violates Sklar's theorem because financial returns exhibit volatility clustering \cite{mcneil2015}. A cluster of volatile days can easily be mistaken for structural tail dependence when it is simply a shared volatility spike.
+Fitting static copulas directly on raw returns is econometrically invalid because financial returns violate the standard independent and identically distributed (i.i.d.) assumption due to volatility clustering \cite{mcneil2015}. A cluster of volatile days can easily be mistaken for structural tail dependence when it is simply a shared volatility spike.
 
 We solve this using a two-stage semi-parametric filter:
 \begin{enumerate}
@@ -174,7 +176,7 @@ We solve this using a two-stage semi-parametric filter:
     1 - (1 - q_U) \left( 1 + \xi_U \frac{z - u_U}{\beta_U} \right)^{-1/\xi_U}, & z > u_U
     \end{cases}
     \end{equation}
-    \item \textbf{Probability Integral Transform (PIT):} Transformed margins $U_i = F_i(z_i)$ are verified as independent $\text{Uniform}(0, 1)$ random variables via empirical quantile checks ($\approx 5.0\%$ in the bottom $5\%$ tail).
+    \item \textbf{Probability Integral Transform (PIT):} Transformed margins $U_i = F_i(z_i)$ are verified as independent $\text{Uniform}(0, 1)$ random variables via empirical quantile checks ($\approx 5.0\%$ in the bottom $5\%$ tail). We note as a methodological caveat that in-sample Kolmogorov-Smirnov $p$-values on probability integral transforms are uniformly $1.000$ because the semi-parametric empirical CDF is calibrated on the identical historical sample. Generalized Pareto shape parameters $\xi$ on extreme tails are numerically constrained within $[-0.5, 0.8]$.
 \end{enumerate}
 
 \subsection{Scale-Optimal Copula Tournament}
@@ -192,7 +194,7 @@ At each scale $D_1$ through $D_5$ and $S_5$, we run an automated tournament acro
     \item \textbf{Clayton Copula:} Asymmetric lower crash dependence ($\lambda_L = 2^{-1/\theta} > 0, \lambda_U = 0$).
     \item \textbf{Gumbel Copula:} Asymmetric upper-tail dependence ($\lambda_U = 2 - 2^{1/\theta} > 0, \lambda_L = 0$).
     \item \textbf{Frank Copula:} Radial symmetry with zero tail dependence ($\lambda_L = \lambda_U = 0$).
-To ensure computational tractability across five assets ($d=5$), candidate Archimedean copulas (Clayton, Gumbel, Frank) are estimated via pairwise composite log-likelihood (PCL) summation across all $\binom{5}{2} = 10$ pairs \cite{mcneil2015}, while elliptical candidates (Gaussian and Student-$t$) evaluate full 5-dimensional joint likelihoods. Consequently, this tournament serves as an approximate model-screening tournament to identify the best-suited dependency geometry. Decisively, between Gaussian and Student-$t$ (which share the exact same 5-dimensional likelihood construction and parameter dimensionality), the Student-$t$ copula achieves a substantial BIC improvement ($\Delta \text{BIC} \approx -182$ at $D_1$), formally demonstrating the superiority of elliptical fat-tailed dependence over thin-tailed Gaussian co-movement. The winning copula per timescale is selected by minimizing the Bayesian Information Criterion:
+To ensure computational tractability across five assets ($d=5$), candidate Archimedean copulas (Clayton, Gumbel, Frank) are estimated via pairwise composite log-likelihood (PCL) summation across all $\binom{5}{2} = 10$ pairs \cite{mcneil2015}, while elliptical candidates (Gaussian and Student-$t$) evaluate full 5-dimensional joint likelihoods. Consequently, candidate Archimedean BICs are based on composite pairwise likelihoods and are not directly commensurate with 5D joint likelihoods. Between Gaussian and Student-$t$ (which share the exact same full 5-dimensional joint likelihood construction and parameter dimensionality), the Student-$t$ copula strictly dominates across every timescale ($\Delta \text{BIC} \approx -182$ at $D_1$, $-145$ at $D_2$, $-118$ at $D_3$, $-36$ at $D_4$, $-68$ at $D_5$, $-134$ at $S_5$), demonstrating the empirical superiority of elliptical fat-tailed dependence over Gaussian co-movement. The winning copula per timescale is selected by minimizing the Bayesian Information Criterion:
 \begin{equation}
 \text{BIC} = k \ln(N) - 2 \ln(\hat{L})
 \end{equation}
@@ -208,7 +210,7 @@ Table \ref{tab:variance_decomposition} displays how total return variance is dis
 
 \input{../tables/variance_decomposition.tex}
 
-High-frequency noise ($D_1$) represents between $53\%$ and $64\%$ of total variance across all asset classes. Intermediate scales ($D_2$ and $D_3$) represent another $25\%$ to $37\%$, while quarterly and macroeconomic cycles ($D_5$ and $S_5$) account for the remaining $5\%$ to $6\%$. Percentages represent the relative share of total scale variance ($\text{Var}(D_j) / \sum_k \text{Var}(k)$), confirming the practical near-orthogonality of the sym8 filter bank.
+High-frequency noise ($D_1$) represents between $53\%$ and $64\%$ of total variance across all asset classes. Intermediate scales ($D_2$ and $D_3$) represent another $25\%$ to $37\%$, while quarterly and macroeconomic cycles ($D_5$ and $S_5$) account for the remaining $5\%$ to $6\%$. Percentages represent the relative share of total scale variance ($\text{Var}(D_j) / \sum_k \text{Var}(k)$), calculated as normalized scale variance shares ($\text{Var}(D_j) / \sum_k \text{Var}(k)$) that sum to $100\%$ by construction.
 
 \begin{figure}[htbp]
     \centering
@@ -226,7 +228,7 @@ We define the \textbf{Timescale Asymmetry Ratio (TAR)}:
 \begin{equation}
 \text{TAR}(h) = \hat{\lambda}_L(h) - \hat{\lambda}_U(h)
 \end{equation}
-Across all decomposed timescales ($D_1$ through $S_5$), the Student-$t$ copula wins the tournament by Bayesian Information Criterion (BIC), indicating that multiscale co-dependence is well-modeled by elliptical fat-tailed dynamics rather than single-parameter Archimedean structures. The empirical Timescale Asymmetry Ratio remains tightly bounded around zero ($\text{TAR} \in [-0.013, +0.060]$).
+Across all decomposed timescales ($D_1$ through $S_5$), the Student-$t$ copula wins the tournament by Bayesian Information Criterion (BIC), indicating that multiscale co-dependence is well-modeled by elliptical fat-tailed dynamics rather than single-parameter Archimedean structures. The empirical Timescale Asymmetry Ratio remains tightly bounded around zero ($\text{TAR} \in [-0.013, +0.011]$).
 
 \textbf{Disentangling Tail Dependence from Linear Correlation:} A critical methodological pitfall in empirical risk modeling is mistaking linear correlation for genuine non-linear tail dependence. At a $5\%$ quantile threshold ($q = 0.05$), two assets governed by a plain Gaussian copula with zero asymptotic tail dependence will nonetheless produce positive joint co-exceedance purely due to linear correlation $\rho$:
 \begin{equation}
@@ -235,10 +237,12 @@ Across all decomposed timescales ($D_1$ through $S_5$), the Student-$t$ copula w
 To benchmark whether tail co-movement reflects true tail crash dependence or background linear correlation, we compute the exact bivariate Gaussian benchmark $\lambda_{\text{Gauss}}(0.05; \rho_{ij})$ for each asset pair and report the \textbf{Excess Tail Dependence} ($\text{Excess} = \hat{\lambda}_L - \bar{\lambda}_{\text{Gauss}}$) in Table \ref{tab:copula_tournament}:
 \begin{itemize}
     \item \textbf{Microstructure Scale ($D_1$, 2 to 4d):} Empirical co-exceedance is $\hat{\lambda}_L = 0.189$, but the Gaussian benchmark with matched linear correlation is $0.185$. The excess tail dependence is negligible ($+0.004$), consistent with high-frequency tail co-movement being driven almost entirely by linear correlation rather than non-linear crash dependence.
-    \item \textbf{Weekly Swing Scale ($D_2$, 4 to 8d):} Empirical tail dependence reaches its global peak at $\hat{\lambda}_L = 0.201$ against a Gaussian benchmark of $0.171$, generating an economically notable \textbf{Excess Tail Dependence} of $+0.030$. A moving-block bootstrap (block size $b=64$ days, 300 replications) produces a $95\%$ confidence interval of $[0.161, 0.239]$, which overlaps with the $D_1$ interval $[0.154, 0.228]$. This demonstrates that the $0.012$ gap between $D_1$ and $D_2$ lies within finite-sample estimation uncertainty; the observation is consistent with, but does not prove, non-linear crash clustering at weekly frequencies.
-    \item \textbf{Intermediate Cycles ($D_4, D_5$, 16 to 64d):} Co-exceedance drops into the range of $\approx 0.08 - 0.12$, at or below the Gaussian baseline, indicating that mid-horizon diversification is less impaired by non-linear crash dependence.
-    \item \textbf{Secular Macro Trend ($S_5$, $>64$d):} Co-exceedance rebounds to $\hat{\lambda}_L \approx 0.178$ against a Gaussian benchmark of $\approx 0.136$, reflecting shared macroeconomic and monetary cycle exposures. The excess of $+0.042$ is consistent with non-linear contagion, though the limited sample of macro-cycle observations constrains inference.
+    \item \textbf{Weekly Swing Scale ($D_2$, 4 to 8d):} Empirical tail dependence reaches its point estimate peak at $\hat{\lambda}_L = 0.201$ against a Gaussian benchmark of $0.171$, generating an \textbf{Excess Tail Dependence} of $+0.030$. A moving-block bootstrap (block size $b=64$ days, 300 replications) produces a $95\%$ confidence interval of $[0.154, 0.233]$, which overlaps with the $D_1$ interval $[0.143, 0.239]$. This demonstrates that the $0.012$ gap between $D_1$ and $D_2$ lies within finite-sample estimation uncertainty; the observation is consistent with, but does not prove, non-linear crash clustering at weekly frequencies.
+    \item \textbf{Intermediate Cycles ($D_4, D_5$, 16 to 64d):} Co-exceedance drops substantially to $\hat{\lambda}_L = 0.098$ ($D_4$) and $0.060$ ($D_5$), both falling below their Gaussian benchmarks ($0.109$ and $0.074$, excess $-0.011$ and $-0.014$), indicating that mid-horizon diversification is less impaired by non-linear crash dependence.
+    \item \textbf{Secular Macro Trend ($S_5$, $>64$d):} Co-exceedance remains subdued at $\hat{\lambda}_L = 0.099$ ($95\%$ CI $[0.026, 0.162]$) against a Gaussian benchmark of $0.122$ (excess $-0.022$). In this reference environment, the data do not support an upward rebound at macro horizons, showing that extreme crash clustering attenuates at longer horizons.
 \end{itemize}
+
+\noindent\textit{Environment note:} All numerical results reported reflect the reference environment (Python 3.12.3 on Linux/Ubuntu x86\_64 with pinned dependencies in \texttt{requirements.txt}; GARCH and copula fits on smooth wavelet series $D_3$ to $S_5$ exhibit slight numerical sensitivity across library versions).
 
 \section{Out-of-Sample Backtesting \& Regulatory Evaluation}
 \label{sec:backtest}
@@ -355,7 +359,7 @@ We provide a transparent evaluation of the H-TCM recommendation:
 This research provides a direct and empirical resolution to the official competition inquiry:
 \begin{enumerate}
     \item \textbf{Does tail dependence change with the investment horizon?} 
-    Yes. Across our five-asset universe, the Student-$t$ copula is selected as optimal across all timescale bands, indicating that multi-asset joint extremes are best captured by elliptical fat-tailed dependence rather than Archimedean asymmetry. However, empirical co-exceedance and non-linear excess tail dependence vary across investment horizons: excess crash co-dependence peaks at weekly swing frequencies ($D_2$, $+0.030$) and secular macroeconomic trends ($S_5$, $+0.042$), while high-frequency co-exceedance ($D_1$) is largely accounted for by linear correlation ($+0.004$ excess), and intermediate monthly cycles ($D_4, D_5$) attenuate toward background levels.
+    Yes. Across our five-asset universe, the Student-$t$ copula is selected as optimal across all timescale bands, indicating that multi-asset joint extremes are best captured by elliptical fat-tailed dependence rather than Archimedean asymmetry. However, empirical co-exceedance over the Gaussian benchmark is modestly positive at short horizons ($D_1$ to $D_3$, peaking at $D_2$ with $+0.030$, though overlapping bootstrap intervals show this peak is within estimation noise), while at longer holding periods ($D_4, D_5, S_5$), empirical co-exceedance attenuates substantially ($0.060$ to $0.099$) with slightly negative excess relative to Gaussian benchmarks.
     \item \textbf{What does ignoring this do to a portfolio's measured risk?} 
     At short horizons (1-day), ignoring fat tails and tail dependence (Parametric Gaussian) understates measured risk, producing 13 breaches ($1.49\%$ failure rate) compared to 5 breaches for copula-based specifications. However, at multi-day horizons (5-day, 20-day), conventional square-root-of-time scaling does not understate risk in normal trending markets; it was statistically conservative (0 to 3 breaches observed). The H-TCM multiplier provides an actionable, contingent macroprudential overlay to guard against multiscale tail contagion during stressed regimes without imposing unnecessary capital drag in quiet markets.
 \end{enumerate}
@@ -365,8 +369,8 @@ This research provides a direct and empirical resolution to the official competi
 In accordance with competition rules:
 \begin{itemize}
     \item \textbf{One-Command Reproduction:} The entire pipeline, figures, tables, and backtests reproduce via \texttt{python run\_all.py} in approximately 10 seconds.
-    \item \textbf{Automated Test Suite:} All 45 mathematical and econometric unit/integration tests execute via \texttt{pytest tests/}, verifying all properties in approximately 15 seconds.
-    \item \textbf{Transparent AI Disclosure Statement:} Generative AI tools (including Claude, ChatGPT, and Antigravity) were utilized materially as research accelerators and programming partners for mathematical literature synthesis, Python code drafting and refactoring across \texttt{src/}, numerical optimization debugging, and LaTeX drafting. The human team directed project scoping, selected the asset universe, audited every script and test, conducted econometric reality checks (including demanding the Gaussian copula benchmark and candid H-TCM evaluation), and assumes full, undivided responsibility for every calculation, methodology, and conclusion presented (see \texttt{docs/AI\_DISCLOSURE.md}).
+    \item \textbf{Automated Test Suite:} All 48 mathematical and econometric unit/integration tests execute via \texttt{pytest tests/}, verifying all properties in approximately 10 seconds.
+    \item \textbf{Transparent AI Disclosure Statement:} Generative AI tools (including Claude, ChatGPT, and Antigravity) were utilized materially as research accelerators and programming partners for mathematical literature synthesis, Python code drafting and refactoring across \texttt{src/}, numerical optimization debugging, iterative repository audits and verification scripts, and LaTeX drafting. The human team directed project scoping, selected the asset universe, audited every script and test, conducted econometric reality checks (including demanding the Gaussian copula benchmark and candid H-TCM evaluation), and assumes full, undivided responsibility for every calculation, methodology, and conclusion presented (see \texttt{docs/AI\_DISCLOSURE.md}).
 \end{itemize}
 
 \begin{thebibliography}{99}

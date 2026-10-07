@@ -8,6 +8,7 @@ Automated verification script recommended by audit reports to validate:
 5. Exact confidence level alignment (VaR alpha = ES alpha = FZ alpha = 0.99).
 6. Exported LaTeX tables, 300 DPI figures, and file size limits (< 25 MB).
 7. Strict zero emojis and zero non-ASCII dashes across project files.
+8. Dynamic LaTeX table integration and numeric consistency with documentation prose.
 """
 
 import os
@@ -30,7 +31,7 @@ def verify_all() -> bool:
     all_passed = True
 
     # 1. Verify Data and Observation Counts
-    print("\n[CHECK 1/7] Testing temporal splits and observation counts...")
+    print("\n[CHECK 1/8] Testing temporal splits and observation counts...")
     from src.data_loader import load_and_split_data
     df_train, df_test = load_and_split_data()
 
@@ -50,7 +51,7 @@ def verify_all() -> bool:
     print(f"  [+] Observation counts: 1d={n_1d}, 5d={n_5d}, 20d={n_20d} [PASSED]")
 
     # 2. Verify Theoretical vs Empirical Tail Dependence Separation
-    print("\n[CHECK 2/7] Testing theoretical vs empirical copula tail separation...")
+    print("\n[CHECK 2/8] Testing theoretical vs empirical copula tail separation...")
     from src.copulas import ClaytonCopula, GaussianCopula, GumbelCopula, StudentTCopula
 
     gumbel = GumbelCopula()
@@ -62,7 +63,7 @@ def verify_all() -> bool:
     print("  [+] Theoretical tail bounds (Gumbel lambda_L=0, Clayton lambda_U=0) [PASSED]")
 
     # 3. Verify H-TCM Multiplier Calibration
-    print("\n[CHECK 3/7] Testing H-TCM policy multiplier calculations...")
+    print("\n[CHECK 3/8] Testing H-TCM policy multiplier calculations...")
     from src.risk_engine import compute_htcm_multiplier
 
     m_base = compute_htcm_multiplier(lambda_L_h=0.189, lambda_L_1=0.189, kappa=0.35)
@@ -75,14 +76,14 @@ def verify_all() -> bool:
     print(f"  [+] H-TCM Multiplier properties (M(base)=1.000, M(lower)=1.000, M(higher)={m_higher:.3f}) [PASSED]")
 
     # 4. Verify Alpha Confidence Levels
-    print("\n[CHECK 4/7] Testing confidence level alignment (alpha=0.99)...")
+    print("\n[CHECK 4/8] Testing confidence level alignment (alpha=0.99)...")
     from src.config import ALPHA_ES_99, ALPHA_VAR_99
     assert ALPHA_VAR_99 == 0.99, f"ALPHA_VAR_99 must be 0.99, got {ALPHA_VAR_99}"
     assert ALPHA_ES_99 == 0.99, f"ALPHA_ES_99 must be 0.99, got {ALPHA_ES_99}"
     print("  [+] VaR alpha == ES alpha == 0.99 [PASSED]")
 
     # 5. Verify Figures and Tables
-    print("\n[CHECK 5/7] Testing exported figures and LaTeX tables...")
+    print("\n[CHECK 5/8] Testing exported figures and LaTeX tables...")
     fig_dir = ROOT / "figures"
     tab_dir = ROOT / "tables"
 
@@ -111,7 +112,7 @@ def verify_all() -> bool:
     print("  [+] All 4 figures (300 DPI) and 3 LaTeX tables verified [PASSED]")
 
     # 6. Verify File Size Limit (< 25 MB)
-    print("\n[CHECK 6/7] Testing repository and submission package sizes...")
+    print("\n[CHECK 6/8] Testing repository and submission package sizes...")
     sub_zip = ROOT / "QuantEdge_Submission.zip"
     if sub_zip.exists():
         zip_size_mb = sub_zip.stat().st_size / (1024 * 1024)
@@ -186,7 +187,18 @@ def verify_all() -> bool:
     assert "Out-of-Sample Performance" in readme_text or "Backtest" in readme_text, "README.md missing backtest table"
     assert "Out-of-Sample Backtesting" in report_md_text, "REPORT.md missing backtest table"
 
-    print("  [+] Verified dynamic LaTeX inputs, table generation, and documentation alignment [PASSED]")
+    # Numeric consistency check: ensure fresh table lambda values match prose
+    for line in c_tex.splitlines():
+        line = line.strip()
+        if line.startswith(("D1", "D2", "D3", "D4", "D5", "S5")):
+            parts = [p.strip() for p in line.split("&")]
+            scale = parts[0]
+            emp_lL = parts[5]
+            assert emp_lL in readme_text, f"README.md missing or mismatching emp lambda_L {emp_lL} for scale {scale}"
+            assert emp_lL in report_md_text, f"REPORT.md missing or mismatching emp lambda_L {emp_lL} for scale {scale}"
+            assert emp_lL in report_tex, f"report.tex missing or mismatching emp lambda_L {emp_lL} for scale {scale}"
+
+    print("  [+] Verified dynamic LaTeX inputs, table generation, and numeric documentation alignment [PASSED]")
 
     print("\n" + "=" * 80)
     print(" [ALL AUDIT INTEGRITY CHECKS PASSED SUCCESSFULLY]")

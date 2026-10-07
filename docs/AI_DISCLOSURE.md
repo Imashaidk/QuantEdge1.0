@@ -17,6 +17,7 @@ Generative AI tools (including Large Language Model assistants and agentic codin
 - **Code Generation & Architecture:** Drafting and refactoring modular Python code across the `src/` modules, including data ingestion and caching, wavelet pyramid filtering, copula maximum likelihood estimation, multiscale risk simulation, and automated visualization pipelines.
 - **Debugging & Numerical Optimization:** Identifying and resolving numerical edge cases, such as handling convergence and parameter scaling in GARCH estimation on smooth wavelet details, boundary handling in circular convolution, and ensuring strict probability integral transform uniformity.
 - **Drafting & Documentation:** Drafting initial narrative text for the academic manuscript (`report.tex`, `REPORT.md`), structuring LaTeX tables, and preparing technical documentation.
+- **Repository Auditing & Submission Verification:** Assisting with iterative multi-round code audits, cross-checking numerical consistency between pipeline outputs and report prose, refactoring test suites, and maintaining automated integrity verification scripts (`verify_submission.py`).
 
 #### 2. Human Direction, Auditing, and Critical Validation
 The human team maintained active direction, editorial control, and rigorous review throughout all stages:

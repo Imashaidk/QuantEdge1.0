@@ -14,7 +14,7 @@ Figures:
    Out-of-sample portfolio loss time series with VaR(99%) exceedance breaches
    comparing Proposed Multiscale model vs Basel sqrt(h) scaling.
 4. `figures/fig4_regulatory_traffic_light.png`:
-   Official Basel Traffic Light evaluation (Green/Yellow/Red zones) across all
+   Basel-style regulatory (1d) and breach-rate diagnostic (5d, 20d) traffic light evaluation across all
    comparative models and investment horizons.
 
 LaTeX Tables:
@@ -194,11 +194,11 @@ def plot_fig2_tail_dependence_vs_horizon(
     ax2.set_ylabel(r"Timescale Asymmetry Ratio $\mathrm{TAR}(h)$", fontsize=11, fontweight="bold", color=PALETTE["tar_line"])
     ax2.set_ylim(-0.2, 1.05)
 
-    # Annotate research breakthrough
+    # Annotate empirical symmetry finding
     ax2.annotate(
-        "Flight-to-Liquidity Contagion:\n" + r"$\lambda_L(h) \gg \lambda_U(h)$ at Macro Horizons",
-        xy=(x[-2], tar_vals[-2]),
-        xytext=(x[-3] - 0.2, 0.75),
+        "Symmetric Tail Structure:\n" + r"$\lambda_L \approx \lambda_U\ (\mathrm{TAR} \approx 0)$",
+        xy=(x[1], tar_vals[1]),
+        xytext=(x[2] - 0.2, 0.45),
         arrowprops=dict(facecolor="black", shrink=0.08, width=1, headwidth=6),
         fontsize=8.5,
         fontweight="bold",
@@ -435,6 +435,7 @@ def export_latex_tables(
             tar_emp = float(res.get("tar_emp", lL_emp - lU_emp))
             bic = res.get("bic_scores", {}).get(res.get("best_copula", ""), 0.0)
 
+            ci_str = f"[{res['ci_lower']:.3f}, {res['ci_upper']:.3f}]" if "ci_lower" in res else "-"
             c_rows.append({
                 "Scale": s,
                 "Trading Horizon": SCALE_HORIZONS.get(s, s).split("(")[0].strip(),
@@ -442,6 +443,7 @@ def export_latex_tables(
                 "Theo. $\\lambda_L$": f"{lL_theo:.3f}",
                 "Theo. $\\lambda_U$": f"{lU_theo:.3f}",
                 "Emp. $\\lambda_L$": f"{lL_emp:.3f}",
+                "95\\% CI": ci_str,
                 "Gauss Bench": f"{gauss_bench:.3f}",
                 "Excess $\\lambda_L$": f"{excess_lL:+.3f}",
                 "Emp. $\\lambda_U$": f"{lU_emp:.3f}",
@@ -456,7 +458,7 @@ def export_latex_tables(
             index=False,
             caption="Scale-Optimal Copula Tournament Leaderboard, Tail Dependence, and Gaussian Benchmarks",
             label="tab:copula_tournament",
-            column_format="llccccccccc",
+            column_format="llcccccccccc",
             position="htbp",
             escape=False,
         )

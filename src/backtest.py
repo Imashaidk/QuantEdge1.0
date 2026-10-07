@@ -176,7 +176,7 @@ def classify_basel_traffic_light(
     total_obs: int = 250,
     alpha: float = ALPHA_VAR_99,
 ) -> Dict[str, Any]:
-    """Classifies a model into the official Basel Committee Traffic Light zones.
+    """Classifies a model into Basel-style regulatory traffic light zones (1d) or breach-rate diagnostics (5d, 20d).
 
     Under the Basel Internal Models Approach (BCBS), 99% 1-day VaR is evaluated
     over the preceding 250 trading days:

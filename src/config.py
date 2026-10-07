@@ -71,8 +71,9 @@ COPULA_SIMULATION_SAMPLES: int = 10_000
 # Risk and regulatory backtest parameters
 ALPHA_VAR_99: float = 0.99
 ALPHA_VAR_95: float = 0.95
-ALPHA_ES_99: float = 0.99
-ALPHA_ES_975: float = 0.99  # Standardized alias matching alpha=0.99
+ALPHA_ES_REGULATORY: float = 0.99
+ALPHA_ES_99: float = ALPHA_ES_REGULATORY
+ALPHA_ES_975: float = ALPHA_ES_REGULATORY  # Deprecated legacy alias preserved for compatibility
 
 # Evaluation horizons in days
 BACKTEST_HORIZONS: List[int] = [1, 5, 20]
