@@ -11,14 +11,14 @@ The full write-up is [report/report.pdf](report/report.pdf). This page explains 
 We use a five-asset portfolio (SPY 30%, QQQ 20%, TLT 25%, GLD 15%, HYG 10%) on daily data from April 2007 to June 2026. A MODWT wavelet decomposition gives us the same returns seen at horizons from one day to more than three months.
 
 - **Yes, tail dependence changes with the horizon.** Equities and high-yield credit crash together more at longer horizons (lower-tail co-exceedance 0.53 at one day, 0.77 beyond 64 days, with a 90% bootstrap interval for the change that excludes zero). The equity-Treasury hedge weakens over long horizons, while gold goes the other way.
-- **Ignoring it understates risk.** A copula fitted to daily data understates 20-day VaR by about 5% on average compared with one fitted to the matching horizon, and by more than 10% on one day in ten. The usual sqrt(h) rule hides this because it overstates volatility by even more.
+- **Ignoring it understates risk.** A copula fitted to daily data understates 20-day VaR by about 5% on average compared with one fitted to the matching horizon, and by more than 10% on one day in ten (this compares daily model forecasts rather than realised losses, and the two models cannot be statistically separated in backtesting, $p = 0.32$). The usual sqrt(h) rule hides this because it overstates volatility by even more.
 - **Recommendation.** For positions held 20 days or longer, replace sqrt(h) scaling with a full-horizon GARCH volatility forecast and a copula fitted to the matching wavelet horizon view. In a rolling out-of-sample backtest from 2011 to 2026 this was the best-scoring 20-day model and needed about 5% less capital than sqrt(h).
 
 All numbers above are produced by `run_all.py`. The exact values used in the report are written to `tables/key_numbers.tex`.
 
 ## Running it
 
-Python 3.12 is required. Some pinned packages do not install on 3.13.
+Python 3.12 is required (all pinned dependencies are tested on Python 3.12; Python 3.13 is unsupported).
 
 ```bash
 git clone https://github.com/Imashaidk/QuantEdge1.0.git
@@ -31,7 +31,7 @@ python run_all.py                # about 6 minutes
 pytest tests                     # about 30 seconds
 ```
 
-`run_all.py` reads the prices stored in `data/`, so no internet connection is needed. It rebuilds everything in `results/`, `figures/` and `tables/`, and gives identical output each time it runs.
+`run_all.py` reads the prices stored in `data/`, so no internet connection is needed. It rebuilds everything in `results/`, `figures/` and `tables/`, and gives identical output on repeated runs on one machine (runs across different hardware or BLAS libraries may differ in a final digit due to floating-point rounding).
 
 To rebuild the PDF after a run:
 
@@ -70,6 +70,7 @@ src/
   copulas.py          Gaussian, t, Clayton, Gumbel and Frank copulas
   margins.py          EVT tails on GARCH residuals
   horizon_var.py      the VaR models compared in the report
+  backtest.py         Kupiec, Christoffersen and FZ loss statistical tests
   rolling_backtest.py rolling forecasts, coverage tests, FZ score, DM test
   key_numbers.py      numbers quoted in the report text
   visualizer.py       figures and LaTeX tables

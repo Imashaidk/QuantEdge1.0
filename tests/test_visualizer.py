@@ -21,8 +21,8 @@ from src.visualizer import (
     export_variance_table,
     plot_fig1_wavelet_mra,
     plot_fig2_tail_by_horizon,
-    plot_fig3_rolling_var,
-    plot_fig4_capital_gap,
+    plot_fig3_capital_gap,
+    plot_fig4_rolling_var,
 )
 
 TICKERS = ["SPY", "QQQ", "TLT", "GLD", "HYG"]
@@ -71,8 +71,8 @@ def test_figure_2(tmp_path):
 
 
 def test_figures_3_and_4(tmp_path, forecasts):
-    plot_fig3_rolling_var(forecasts, horizon=20, out_path=tmp_path / "fig3.png", dpi=80)
-    plot_fig4_capital_gap(capital_gap(forecasts), out_path=tmp_path / "fig4.png", dpi=80)
+    plot_fig3_capital_gap(capital_gap(forecasts), out_path=tmp_path / "fig3.png", dpi=80)
+    plot_fig4_rolling_var(forecasts, horizon=20, out_path=tmp_path / "fig4.png", dpi=80)
     assert (tmp_path / "fig3.png").stat().st_size > 1000
     assert (tmp_path / "fig4.png").stat().st_size > 1000
 

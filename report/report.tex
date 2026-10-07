@@ -73,7 +73,7 @@ We study a five-asset portfolio (US equities, Nasdaq, long Treasuries, gold and 
 
 \begin{itemize}[leftmargin=1.2em]
 \item \textbf{Does tail dependence change with the horizon?} Yes, but not evenly. Equities and high-yield credit crash together more as the horizon grows: their lower-tail co-exceedance rises from \SpyHygDaily{} at one day to \SpyHygLong{} beyond 64 days, and the 90\% interval for the change (\SpyHygChangeLow{} to \SpyHygChangeHigh{}) excludes zero. The equity-Treasury hedge weakens over long horizons (\SpyTltDaily{} to \SpyTltLong{}), while gold behaves the other way (\SpyGldDaily{} to \SpyGldLong{}). For the portfolio's risky sleeve against its hedge sleeve, co-exceedance rises from \SleeveDaily{} to \SleeveLong{}, though the interval is too wide to rule out no change.
-\item \textbf{What does ignoring it do?} A copula fitted to daily data, used for a 20-day horizon, understates 20-day VaR by \GapTwenty{} on average compared with a copula fitted to the matching horizon, and by more than \GapTwentyTop{} on one day in ten. The common $\sqrt{h}$ rule hides this, because it overstates volatility by even more (\SqrtTwenty{} on average).
+\item \textbf{What does ignoring it do?} A copula fitted to daily data, used for a 20-day horizon, understates 20-day VaR by \GapTwenty{} on average compared with a copula fitted to the matching horizon, and by more than \GapTwentyTop{} on one day in ten. This compares model forecasts on the same dates rather than realised losses, and the two models cannot be statistically separated in backtesting ($p = 0.32$). The common $\sqrt{h}$ rule hides this, because it overstates volatility by even more (\SqrtTwenty{} on average).
 \item \textbf{Recommendation.} For positions held 20 trading days or longer, stop scaling 1-day VaR by $\sqrt{h}$. Use the GARCH volatility forecast for the full horizon and a copula fitted to the matching wavelet horizon. Out of sample this was the best-scoring 20-day model, kept correct coverage and needed \HorizonSavingTwenty{} less capital on average than the $\sqrt{h}$ rule (Section~\ref{sec:recommendation}).
 \end{itemize}
 
@@ -207,7 +207,7 @@ The usual $\sqrt{h}$ rule makes the daily copula look safe. Scaling 1-day VaR by
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.62\textwidth]{fig4_capital_gap_by_horizon.png}
+\includegraphics[width=0.62\textwidth]{fig3_capital_gap_by_horizon.png}
 \caption{Average change in VaR from using the horizon copula instead of the daily copula, with the same margins and volatility. Bars are means over all forecast days; whiskers are the 10th and 90th percentiles.}
 \label{fig:gap}
 \end{figure}
@@ -224,7 +224,7 @@ The 2022 rates shock is the case the horizon model is built for, with stocks and
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{fig3_backtest_var_exceedances.png}
+\includegraphics[width=\textwidth]{fig4_backtest_var_exceedances.png}
 \caption{Realised 20-day portfolio loss against the 99\% VaR of the daily copula and the horizon copula, \ForecastStart{} to June 2026. Markers show breaches. The axis is capped so the March 2020 peak does not flatten the rest.}
 \label{fig:backtest}
 \end{figure}
@@ -257,17 +257,18 @@ All three steps are in \texttt{src/horizon\_var.py}. The monthly refit adds a fe
 \item The backtest needs \RollingWindow{} days of history, so it begins in \ForecastStart{}. The 2008 crisis is used for estimation only and is never forecast out of sample.
 \item Coverage tests at 20 days rest on \ObsTwenty{} non-overlapping windows, so they cannot tell good models apart. We rely on the FZ score, which uses every forecast, and still find differences that are not significant.
 \item The horizon copula is fitted to ranks of the smoothed returns without removing volatility clustering first. Shared volatility spikes may add to measured dependence. The daily copula is fitted to the same kind of data, so the comparison between them is fair, but the levels should be read with this in mind.
+\item The multi-day VaR models reuse the daily EVT marginal shock shape scaled by the $h$-day volatility forecast. Because temporal aggregation typically thins heavy tails toward normality, reusing daily marginal tail shapes may overstate tail heaviness at longer holding periods (such as 20 days).
 \item The portfolio weights are fixed and there are no transaction costs, rebalancing or liquidity effects.
 \end{itemize}
 
 % ---------------------------------------------------------------- 6
 \section{Conclusion}
 
-Tail dependence does change with the investment horizon. The change is clear for equities and credit, likely for equities and Treasuries, and in the opposite direction for gold. A risk model that uses daily dependence for a 20-day horizon understates VaR by about \GapTwenty{} on average and by more than \GapTwentyTop{} on one day in ten. The $\sqrt{h}$ rule hides this by overstating volatility. Measuring horizon risk with full-horizon volatility and horizon-matched dependence fixes both errors, scored best out of sample, and needs less capital than the rule it replaces.
+Tail dependence does change with the investment horizon. The change is clear for equities and credit, likely for equities and Treasuries, and in the opposite direction for gold. A risk model that uses daily dependence for a 20-day horizon understates VaR by about \GapTwenty{} on average and by more than \GapTwentyTop{} on one day in ten (comparing daily model forecasts rather than realised breach losses, with an out-of-sample Diebold-Mariano test finding no statistically significant separation, $p = 0.32$). The $\sqrt{h}$ rule hides this by overstating volatility. Measuring horizon risk with full-horizon volatility and horizon-matched dependence fixes both errors, scored best out of sample, and needs less capital than the rule it replaces.
 
 \section*{Reproducibility and use of AI tools}
 
-\texttt{python run\_all.py} rebuilds every number, table and figure in this report from the stored price data in about six minutes, and gives identical output on repeated runs. The numbers in the text are written by the same script to \texttt{tables/key\_numbers.tex}. Package versions are pinned in \texttt{requirements.txt} (Python 3.12), and \texttt{pytest} runs the test suite.
+\texttt{python run\_all.py} rebuilds every number, table and figure in this report from the stored price data in about six minutes, and gives identical output on repeated runs on a single machine (runs across different CPU architectures or BLAS libraries can differ in a final digit due to floating-point rounding). The numbers in the text are written by the same script to \texttt{tables/key\_numbers.tex}. Package versions are pinned in \texttt{requirements.txt} (Python 3.12), and \texttt{pytest} runs the test suite.
 
 AI assistants were used for coding help, debugging and drafting text. The team chose the question, data, methods and conclusions, checked every result against the code, and takes full responsibility for the submission. Details are in \texttt{docs/AI\_DISCLOSURE.md}.
 

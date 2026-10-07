@@ -194,13 +194,50 @@ MODEL_COLORS = {
 }
 
 
-def plot_fig3_rolling_var(
-    forecasts: pd.DataFrame,
-    horizon: int = 20,
-    out_path: Path = FIGURES_DIR / "fig3_backtest_var_exceedances.png",
+def plot_fig3_capital_gap(
+    gap: pd.DataFrame,
+    out_path: Path = FIGURES_DIR / "fig3_capital_gap_by_horizon.png",
     dpi: int = 300,
 ) -> None:
-    """Figure 3: realised h-day loss against the daily and horizon copula VaR."""
+    """Figure 3: how much VaR changes when the dependence matches the horizon.
+
+    Bars are the average change of the horizon copula VaR against the daily copula
+    VaR over all rolling forecasts; whiskers are the 10th and 90th percentiles.
+    """
+    g = gap[(gap["model"] == "horizon_copula") & (gap["horizon"] > 1)].sort_values("horizon")
+    x = np.arange(len(g))
+    mean = g["var_ratio_mean"].to_numpy() * 100
+    lo = mean - g["var_ratio_p10"].to_numpy() * 100
+    hi = g["var_ratio_p90"].to_numpy() * 100 - mean
+
+    fig, ax = plt.subplots(figsize=(6, 3.4))
+    fig.patch.set_facecolor("white")
+    ax.bar(x, mean, width=0.5, color=SERIES_COLORS[0], yerr=[lo, hi], capsize=4,
+           error_kw={"elinewidth": 1, "ecolor": "#2d2d2a"})
+    for xi, m in zip(x, mean):
+        ax.text(xi + 0.28, m, f"{m:+.1f}%", fontsize=8, va="center", color="#2d2d2a")
+    ax.axhline(0, color="#2d2d2a", linewidth=0.8)
+    ax.set_axisbelow(True)
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"{h} days" for h in g["horizon"]], fontsize=8.5)
+    ax.set_ylabel("VaR change vs daily copula, %", fontsize=8.5)
+    ax.grid(True, axis="y")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.tick_params(labelsize=8)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
+    plt.close()
+    print(f"[Visualizer] Exported Figure 3 -> {out_path}")
+
+
+def plot_fig4_rolling_var(
+    forecasts: pd.DataFrame,
+    horizon: int = 20,
+    out_path: Path = FIGURES_DIR / "fig4_backtest_var_exceedances.png",
+    dpi: int = 300,
+) -> None:
+    """Figure 4: realised h-day loss against the daily and horizon copula VaR."""
     from src.horizon_var import MODEL_LABELS
 
     f = forecasts[forecasts["h"] == horizon]
@@ -230,44 +267,12 @@ def plot_fig3_rolling_var(
     plt.tight_layout()
     plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
     plt.close()
-    print(f"[Visualizer] Exported Figure 3 -> {out_path}")
-
-
-def plot_fig4_capital_gap(
-    gap: pd.DataFrame,
-    out_path: Path = FIGURES_DIR / "fig4_capital_gap_by_horizon.png",
-    dpi: int = 300,
-) -> None:
-    """Figure 4: how much VaR changes when the dependence matches the horizon.
-
-    Bars are the average change of the horizon copula VaR against the daily copula
-    VaR over all rolling forecasts; whiskers are the 10th and 90th percentiles.
-    """
-    g = gap[(gap["model"] == "horizon_copula") & (gap["horizon"] > 1)].sort_values("horizon")
-    x = np.arange(len(g))
-    mean = g["var_ratio_mean"].to_numpy() * 100
-    lo = mean - g["var_ratio_p10"].to_numpy() * 100
-    hi = g["var_ratio_p90"].to_numpy() * 100 - mean
-
-    fig, ax = plt.subplots(figsize=(6, 3.4))
-    fig.patch.set_facecolor("white")
-    ax.bar(x, mean, width=0.5, color=SERIES_COLORS[0], yerr=[lo, hi], capsize=4,
-           error_kw={"elinewidth": 1, "ecolor": "#2d2d2a"})
-    for xi, m in zip(x, mean):
-        ax.text(xi + 0.28, m, f"{m:+.1f}%", fontsize=8, va="center", color="#2d2d2a")
-    ax.axhline(0, color="#2d2d2a", linewidth=0.8)
-    ax.set_axisbelow(True)
-    ax.set_xticks(x)
-    ax.set_xticklabels([f"{h} days" for h in g["horizon"]], fontsize=8.5)
-    ax.set_ylabel("VaR change vs daily copula, %", fontsize=8.5)
-    ax.grid(True, axis="y")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.tick_params(labelsize=8)
-    plt.tight_layout()
-    plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
-    plt.close()
     print(f"[Visualizer] Exported Figure 4 -> {out_path}")
+
+
+# Aliases for backward compatibility
+plot_fig3_rolling_var = plot_fig4_rolling_var
+plot_fig4_capital_gap = plot_fig3_capital_gap
 
 
 def export_rolling_backtest_table(

@@ -58,8 +58,8 @@ from src.visualizer import (
     export_variance_table,
     plot_fig1_wavelet_mra,
     plot_fig2_tail_by_horizon,
-    plot_fig3_rolling_var,
-    plot_fig4_capital_gap,
+    plot_fig3_capital_gap,
+    plot_fig4_rolling_var,
 )
 from src.wavelets import compute_scale_variance_decomposition, decompose_multiscale, verify_additivity
 
@@ -135,8 +135,8 @@ def main() -> None:
     plot_fig1_wavelet_mra(decomposed, returns, primary_asset="SPY", secondary_asset="TLT",
                           out_path=FIGURES_DIR / "fig1_wavelet_mra_decomposition.png")
     plot_fig2_tail_by_horizon(tail["sleeves"], tail["pairs"], out_path=FIGURES_DIR / "fig2_tail_dependence_vs_horizon.png")
-    plot_fig3_rolling_var(tested, horizon=20, out_path=FIGURES_DIR / "fig3_backtest_var_exceedances.png")
-    plot_fig4_capital_gap(gap, out_path=FIGURES_DIR / "fig4_capital_gap_by_horizon.png")
+    plot_fig3_capital_gap(gap, out_path=FIGURES_DIR / "fig3_capital_gap_by_horizon.png")
+    plot_fig4_rolling_var(tested, horizon=20, out_path=FIGURES_DIR / "fig4_backtest_var_exceedances.png")
     export_variance_table(var_share, out_dir=TABLES_DIR)
     export_tail_table(tail["sleeves"], tail["pairs"], out_dir=TABLES_DIR)
     export_rolling_backtest_table(evaluation, dm[dm["base"] == "daily_copula"], out_dir=TABLES_DIR)
