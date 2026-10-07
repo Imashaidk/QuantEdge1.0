@@ -139,84 +139,100 @@ def plot_fig1_wavelet_mra(
     print(f"[Visualizer] Exported Figure 1 -> {out_path}")
 
 
-def plot_fig2_tail_dependence_vs_horizon(
-    copula_tournament_results: Dict[str, Any],
+SERIES_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100"]
+FIG2_PAIRS = ["SPY-TLT", "SPY-HYG", "TLT-HYG", "SPY-GLD"]
+
+
+def plot_fig2_tail_by_horizon(
+    sleeve_table: pd.DataFrame,
+    pair_table: pd.DataFrame,
     out_path: Path = FIGURES_DIR / "fig2_tail_dependence_vs_horizon.png",
     dpi: int = 300,
 ) -> None:
-    """Figure 2: Tail dependence coefficients lambda_L, lambda_U, and TAR across horizons.
+    """Figure 2: lower-tail co-exceedance across horizon views.
 
-    Shows the emergence of the Flight-to-Liquidity Contagion Paradox.
+    Left: risky sleeve vs hedge sleeve with its 90% bootstrap band, the upper tail,
+    and what a Gaussian copula with the same correlation would give.
+    Right: the main asset pairs.
     """
-    scales = [k for k in ["D1", "D2", "D3", "D4", "D5", "S5"] if k in copula_tournament_results]
-    if not scales:
-        return
+    sl = sleeve_table.sort_values("view")
+    x = sl["view"].to_numpy()
+    labels = sl["horizon"].tolist()
 
-    lambda_L_vals = []
-    lambda_U_vals = []
-    tar_vals = []
-    labels = []
-
-    for s in scales:
-        res = copula_tournament_results[s]
-        lL = float(res.get("lambda_L", 0.0))
-        lU = float(res.get("lambda_U", 0.0))
-        tar = float(res.get("tar", lL - lU))
-        lambda_L_vals.append(lL)
-        lambda_U_vals.append(lU)
-        tar_vals.append(tar)
-        labels.append(f"{s}\n({SCALE_HORIZONS.get(s, '').split('(')[0].strip()})")
-
-    x = np.arange(len(scales))
-    bar_width = 0.35
-
-    fig, ax1 = plt.subplots(figsize=(10, 6))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.2))
     fig.patch.set_facecolor("white")
 
-    # Bar chart: Tail dependence coefficients
-    rects1 = ax1.bar(x - bar_width / 2, lambda_L_vals, bar_width, label=r"Lower Tail Crash Dep $\lambda_L(h)$", color=PALETTE["accent_loss"], alpha=0.88, edgecolor="black", linewidth=0.5)
-    rects2 = ax1.bar(x + bar_width / 2, lambda_U_vals, bar_width, label=r"Upper Tail Boom Dep $\lambda_U(h)$", color=PALETTE["accent_gain"], alpha=0.88, edgecolor="black", linewidth=0.5)
+    ax1.fill_between(x, sl["ci_low"], sl["ci_high"], color=SERIES_COLORS[0], alpha=0.15, linewidth=0,
+                     label="90% block bootstrap band")
+    ax1.plot(x, sl["lambda_L"], color=SERIES_COLORS[0], linewidth=2, marker="o", markersize=5,
+             label="Lower tail (joint losses)")
+    ax1.plot(x, sl["lambda_U"], color=SERIES_COLORS[1], linewidth=2, marker="s", markersize=5,
+             label="Upper tail (joint gains)")
+    ax1.plot(x, sl["gauss"], color="#7a7a75", linewidth=1.5, linestyle="--",
+             label="Gaussian copula, same correlation")
+    ax1.axhline(0.05, color="#b5b4ac", linewidth=0.8, linestyle=":")
+    ax1.text(x[-1], 0.05, "independence", fontsize=7, color="#7a7a75", ha="right", va="bottom")
+    ax1.set_title("Risky sleeve (SPY, QQQ, HYG) vs hedge sleeve (TLT, GLD)", fontsize=9.5, loc="left")
+    ax1.set_ylabel("Tail co-exceedance at 5%", fontsize=9)
+    ax1.set_ylim(0, max(0.5, float(sl["ci_high"].max()) * 1.1))
 
-    ax1.set_ylabel(r"Tail Dependence Coefficient $\lambda \in [0, 1]$", fontsize=11, fontweight="bold", color=PALETTE["text"])
-    ax1.set_xticks(x)
-    ax1.set_xticklabels(labels, fontsize=9)
-    ax1.set_ylim(0.0, 1.05)
-    ax1.grid(True, axis="y")
+    for k, pair in enumerate(FIG2_PAIRS):
+        pt = pair_table[pair_table["pair"] == pair].sort_values("view")
+        if pt.empty:
+            continue
+        ax2.plot(pt["view"], pt["lambda_L"], color=SERIES_COLORS[k], linewidth=2, marker="o", markersize=5, label=pair)
+    ax2.axhline(0.05, color="#b5b4ac", linewidth=0.8, linestyle=":")
+    ax2.set_title("Lower tail, main asset pairs", fontsize=9.5, loc="left")
+    ax2.set_ylim(0, 1)
+    ax2.set_xlim(-0.3, x[-1] + 0.3)
 
-    # Value labels on bars
-    for rect in rects1:
-        h = rect.get_height()
-        if h > 0.01:
-            ax1.annotate(f"{h:.2f}", xy=(rect.get_x() + rect.get_width() / 2, h), xytext=(0, 3), textcoords="offset points", ha="center", va="bottom", fontsize=7.5, fontweight="bold")
+    for ax in (ax1, ax2):
+        ax.set_xticks(x)
+        ax.set_xticklabels(labels, fontsize=8)
+        ax.set_xlabel("Horizon view (moves lasting longer than)", fontsize=8.5)
+        ax.grid(True, axis="y")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.tick_params(labelsize=8)
+    ax1.legend(loc="upper left", fontsize=7.5, frameon=False)
+    ax2.legend(loc="upper left", fontsize=7.5, frameon=False, ncol=2)
 
-    # Secondary Axis: Timescale Asymmetry Ratio (TAR)
-    ax2 = ax1.twinx()
-    line = ax2.plot(x, tar_vals, color=PALETTE["tar_line"], marker="o", markersize=8, linewidth=2.5, label=r"Timescale Asymmetry Ratio: $\mathrm{TAR}(h) = \lambda_L - \lambda_U$")
-    ax2.axhline(0.0, color="gray", linestyle="--", linewidth=0.8, alpha=0.7)
-    ax2.set_ylabel(r"Timescale Asymmetry Ratio $\mathrm{TAR}(h)$", fontsize=11, fontweight="bold", color=PALETTE["tar_line"])
-    ax2.set_ylim(-0.2, 1.05)
-
-    # Annotate research breakthrough
-    ax2.annotate(
-        "Flight-to-Liquidity Contagion:\n" + r"$\lambda_L(h) \gg \lambda_U(h)$ at Macro Horizons",
-        xy=(x[-2], tar_vals[-2]),
-        xytext=(x[-3] - 0.2, 0.75),
-        arrowprops=dict(facecolor="black", shrink=0.08, width=1, headwidth=6),
-        fontsize=8.5,
-        fontweight="bold",
-        bbox=dict(boxstyle="round,pad=0.4", facecolor="#FEFCBF", edgecolor="#D69E2E", alpha=0.9),
-    )
-
-    # Combined legend
-    lines1, labels1 = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left", framealpha=0.95, fontsize=8.5)
-
-    plt.title("Figure 2: Multiscale Tail Dependence & Timescale Asymmetry Ratio Curve", fontsize=12, fontweight="bold", pad=15)
     plt.tight_layout()
     plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
     plt.close()
     print(f"[Visualizer] Exported Figure 2 -> {out_path}")
+
+
+def export_tail_table(
+    sleeve_table: pd.DataFrame,
+    pair_table: pd.DataFrame,
+    out_dir: Path = TABLES_DIR,
+) -> None:
+    """LaTeX table of the horizon results that the report quotes."""
+    sl = sleeve_table.sort_values("view").set_index("view")
+    lines = [
+        "\\begin{table}[htbp]",
+        "\\centering",
+        "\\small",
+        "\\caption{Lower-tail co-exceedance at the 5\\% level by horizon view. Brackets are 90\\% moving block bootstrap intervals.}",
+        "\\label{tab:tail_by_horizon}",
+        "\\begin{tabular}{lccccc}",
+        "\\toprule",
+        "Horizon & Risky vs hedge & Change vs daily & Gaussian & SPY-TLT & SPY-HYG \\\\",
+        "\\midrule",
+    ]
+    for j, r in sl.iterrows():
+        spy_tlt = pair_table[(pair_table["pair"] == "SPY-TLT") & (pair_table["view"] == j)].iloc[0]
+        spy_hyg = pair_table[(pair_table["pair"] == "SPY-HYG") & (pair_table["view"] == j)].iloc[0]
+        change = "--" if j == 0 else f"{r['change_vs_daily']:+.2f} [{r['change_ci_low']:+.2f}, {r['change_ci_high']:+.2f}]"
+        lines.append(
+            f"{r['horizon']} & {r['lambda_L']:.2f} [{r['ci_low']:.2f}, {r['ci_high']:.2f}] & {change} & {r['gauss']:.2f} & "
+            f"{spy_tlt['lambda_L']:.2f} & {spy_hyg['lambda_L']:.2f} \\\\"
+        )
+    lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}", ""]
+    path = out_dir / "tail_by_horizon.tex"
+    path.write_text("\n".join(lines).replace("> ", "$>$ "), encoding="utf-8")
+    print(f"[Visualizer] Exported LaTeX Table -> {path}")
 
 
 def plot_fig3_backtest_exceedances(
@@ -472,6 +488,7 @@ def generate_all_figures_and_tables(
     variance_decomp_df: Optional[pd.DataFrame] = None,
     out_dir_figures: Path = FIGURES_DIR,
     out_dir_tables: Path = TABLES_DIR,
+    tail_results: Optional[Dict[str, pd.DataFrame]] = None,
 ) -> None:
     """Generates all publication figures and LaTeX tables."""
     out_dir_figures.mkdir(parents=True, exist_ok=True)
@@ -486,11 +503,14 @@ def generate_all_figures_and_tables(
         out_path=out_dir_figures / "fig1_wavelet_mra_decomposition.png",
     )
 
-    # Figure 2: Tail Dependence vs Horizon
-    plot_fig2_tail_dependence_vs_horizon(
-        copula_tournament_results=copula_tournament_results,
-        out_path=out_dir_figures / "fig2_tail_dependence_vs_horizon.png",
-    )
+    # Figure 2: tail dependence across horizon views
+    if tail_results is not None:
+        plot_fig2_tail_by_horizon(
+            tail_results["sleeves"],
+            tail_results["pairs"],
+            out_path=out_dir_figures / "fig2_tail_dependence_vs_horizon.png",
+        )
+        export_tail_table(tail_results["sleeves"], tail_results["pairs"], out_dir=out_dir_tables)
 
     # Figure 3: Backtest Exceedances (Horizon = 1 day)
     # Extract VaR values from backtest_results_df

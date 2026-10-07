@@ -32,10 +32,21 @@ from src.visualizer import (
     export_latex_tables,
     generate_all_figures_and_tables,
     plot_fig1_wavelet_mra,
-    plot_fig2_tail_dependence_vs_horizon,
+    plot_fig2_tail_by_horizon,
     plot_fig3_backtest_exceedances,
     plot_fig4_regulatory_traffic_light,
 )
+
+
+def _tail_tables():
+    rows = []
+    for pair in ["Risky-Hedge", "SPY-TLT", "SPY-HYG", "TLT-HYG", "SPY-GLD"]:
+        for j in range(6):
+            rows.append({"view": j, "horizon": f"v{j}", "pair": pair, "lambda_L": 0.1 + 0.02 * j,
+                         "ci_low": 0.05, "ci_high": 0.3, "change_vs_daily": 0.02 * j,
+                         "change_ci_low": -0.1, "change_ci_high": 0.2, "lambda_U": 0.08, "gauss": 0.06})
+    table = pd.DataFrame(rows)
+    return {"sleeves": table[table["pair"] == "Risky-Hedge"], "pairs": table}
 
 
 @pytest.fixture
@@ -84,10 +95,11 @@ def test_plot_fig1_generation(mock_visualizer_data):
 
 def test_plot_fig2_generation(mock_visualizer_data):
     """Verifies Figure 2 file export."""
-    _, _, copula_results, _, tmp_path = mock_visualizer_data
+    _, _, _, _, tmp_path = mock_visualizer_data
     out_file = tmp_path / "test_fig2.png"
 
-    plot_fig2_tail_dependence_vs_horizon(copula_results, out_path=out_file, dpi=100)
+    tail = _tail_tables()
+    plot_fig2_tail_by_horizon(tail["sleeves"], tail["pairs"], out_path=out_file, dpi=100)
     assert out_file.exists()
     assert out_file.stat().st_size > 1000
 
@@ -155,8 +167,10 @@ def test_generate_all_figures_and_tables(mock_visualizer_data):
         weights=DEFAULT_PORTFOLIO_WEIGHTS,
         out_dir_figures=fig_dir,
         out_dir_tables=tab_dir,
+        tail_results=_tail_tables(),
     )
 
+    assert (tab_dir / "tail_by_horizon.tex").exists()
     assert (fig_dir / "fig1_wavelet_mra_decomposition.png").exists()
     assert (fig_dir / "fig2_tail_dependence_vs_horizon.png").exists()
     assert (fig_dir / "fig3_backtest_var_exceedances.png").exists()

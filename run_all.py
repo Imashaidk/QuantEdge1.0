@@ -35,6 +35,7 @@ from src.backtest import run_out_of_sample_backtest
 from src.config import (
     DEFAULT_PORTFOLIO_WEIGHTS,
     FIGURES_DIR,
+    RESULTS_DIR,
     HTCM_KAPPA,
     SCALE_HORIZONS,
     TABLES_DIR,
@@ -47,7 +48,8 @@ from src.config import (
     WAVELET_LEVEL,
 )
 from src.copulas import run_scale_copula_tournament
-from src.data_loader import load_and_split_data
+from src.tail_dependence import run_tail_dependence_analysis
+from src.data_loader import load_and_split_data, load_returns
 from src.margins import pseudo_observations
 from src.risk_engine import compute_htcm_multiplier
 from src.visualizer import generate_all_figures_and_tables
@@ -128,6 +130,16 @@ def main() -> None:
     print(f"\n  Average pairwise lower tail dependence: D1={lambda_1d:.3f}, D5={lambda_macro:.3f}.")
     print(f"  Step 3 completed in {t1 - t0:.2f}s")
 
+    # Step 3b: tail dependence across horizon views on the full history,
+    # with block bootstrap intervals
+    print("\n[Step 3b] Tail co-exceedance by horizon view (full history)...")
+    t0 = time.time()
+    tail_results = run_tail_dependence_analysis(load_returns(), weights=DEFAULT_PORTFOLIO_WEIGHTS)
+    for name in ["sleeves", "pairs", "copulas"]:
+        tail_results[name].to_csv(RESULTS_DIR / f"tail_{name}.csv", index=False, float_format="%.6f")
+    print(tail_results["sleeves"][["horizon", "lambda_L", "ci_low", "ci_high", "change_vs_daily", "lambda_U", "gauss"]].round(3).to_string(index=False))
+    print(f"  Step 3b completed in {time.time() - t0:.2f}s")
+
     # Step 4: Out-of-sample backtesting
     print("\n[Step 4/6] Running out-of-sample backtesting...")
     t0 = time.time()
@@ -159,6 +171,7 @@ def main() -> None:
         variance_decomp_df=var_decomp_df,
         out_dir_figures=FIGURES_DIR,
         out_dir_tables=TABLES_DIR,
+        tail_results=tail_results,
     )
     t1 = time.time()
 
