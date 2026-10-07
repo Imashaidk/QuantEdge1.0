@@ -266,7 +266,10 @@ def plot_fig3_rolling_var(
         ax.scatter(hit.index, hit["loss"] * 100, s=14, color=MODEL_COLORS[name], zorder=5,
                    marker="o" if name == "horizon_copula" else "x", linewidths=1.2)
 
-    ax.set_ylabel("Portfolio loss, %", fontsize=9)
+    # A few crisis days push the VaR far up; cap the axis so the rest stays readable.
+    top = float(np.percentile(f[f["model"] == "horizon_copula"]["VaR"], 99.5)) * 100 * 1.15
+    ax.set_ylim(min(-5.0, float(loss.min()) * 100 * 1.1), top)
+    ax.set_ylabel("Portfolio loss, % (axis capped)", fontsize=9)
     ax.xaxis.set_major_locator(mdates.YearLocator(2))
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
     ax.grid(True, axis="y")
@@ -303,6 +306,7 @@ def plot_fig4_capital_gap(
     for xi, m in zip(x, mean):
         ax.text(xi + 0.28, m, f"{m:+.1f}%", fontsize=8, va="center", color="#2d2d2a")
     ax.axhline(0, color="#2d2d2a", linewidth=0.8)
+    ax.set_axisbelow(True)
     ax.set_xticks(x)
     ax.set_xticklabels([f"{h} days" for h in g["horizon"]], fontsize=8.5)
     ax.set_ylabel("VaR change vs daily copula, %", fontsize=8.5)
