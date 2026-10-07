@@ -165,10 +165,10 @@ def export_tail_table(
         "\\centering",
         "\\footnotesize",
         "\\setlength{\\tabcolsep}{3.5pt}",
-        "\\begin{tabular}{lccccccccc}",
-        "\\toprule",
-        "Horizon & Risky vs hedge & Change vs daily & Gaussian & SPY-HYG & SPY-TLT & SPY-GLD & SPY-QQQ & TLT-HYG & TLT-GLD \\\\",
-        "\\midrule",
+        "\\begin{tabular}{|l|ccccccccc|}",
+        "\\hline",
+        "\\textbf{Horizon} & \\textbf{Risky vs hedge} & \\textbf{Change vs daily} & \\textbf{Gaussian} & \\textbf{SPY-HYG} & \\textbf{SPY-TLT} & \\textbf{SPY-GLD} & \\textbf{SPY-QQQ} & \\textbf{TLT-HYG} & \\textbf{TLT-GLD} \\\\",
+        "\\hline",
     ]
     for j, r in sl.iterrows():
         def _get_lambda(pair_name: str) -> str:
@@ -181,8 +181,8 @@ def export_tail_table(
             f"{_get_lambda('SPY-HYG')} & {_get_lambda('SPY-TLT')} & {_get_lambda('SPY-GLD')} & "
             f"{_get_lambda('SPY-QQQ')} & {_get_lambda('TLT-HYG')} & {_get_lambda('TLT-GLD')} \\\\"
         )
+        lines.append("\\hline")
     lines += [
-        "\\bottomrule",
         "\\end{tabular}",
         "\\caption{Lower-tail co-exceedance at the 5\\% level by horizon view. Brackets are 90\\% moving block bootstrap intervals.}",
         "\\label{tab:tail_by_horizon}",
@@ -298,10 +298,10 @@ def export_rolling_backtest_table(
         "\\centering",
         "\\footnotesize",
         "\\setlength{\\tabcolsep}{4pt}",
-        "\\begin{tabular}{llccccccc}",
-        "\\toprule",
-        "$h$ & Model & Breaches / exp. & Kupiec $p$ & Christ. $p$ & FZ & $\\Delta$FZ ($p$) & Avg VaR & Basel \\\\",
-        "\\midrule",
+        "\\begin{tabular}{|llccccccc|}",
+        "\\hline",
+        "\\textbf{$h$} & \\textbf{Model} & \\textbf{Breaches / exp.} & \\textbf{Kupiec $p$} & \\textbf{Christ. $p$} & \\textbf{FZ} & \\textbf{$\\Delta$FZ ($p$)} & \\textbf{Avg VaR} & \\textbf{Basel} \\\\",
+        "\\hline",
     ]
     for h, eh in evaluation.groupby("horizon"):
         for _, r in eh.iterrows():
@@ -318,7 +318,7 @@ def export_rolling_backtest_table(
                 f"{h}d & {label} & {r['breaches']} / {r['expected']:.1f} & {r['kupiec_p']:.2f} & "
                 f"{r['christoffersen_p']:.2f} & {r['fz']:.3f} & {dfz} & {r['avg_var'] * 100:.2f}\\% & {zone} \\\\"
             )
-        lines.append("\\midrule" if h != evaluation["horizon"].max() else "\\bottomrule")
+            lines.append("\\hline")
     lines += [
         "\\end{tabular}",
         "\\caption{Rolling out-of-sample backtest of 99\\% VaR and ES. Coverage tests use non-overlapping windows. "
@@ -336,12 +336,28 @@ def export_variance_table(variance_decomp_df: pd.DataFrame, out_dir: Path = TABL
     """LaTeX table of the share of variance in each wavelet scale."""
     caption = "Share of each asset's return variance in each MODWT scale (\\%)."
     label = "tab:variance_decomposition"
-    var_tex = variance_decomp_df.round(1).to_latex(
-        position="H",
-        float_format="%.1f",
-    )
-    var_tex = var_tex.replace("\\begin{tabular}", "\\centering\n\\small\n\\begin{tabular}", 1)
-    var_tex = var_tex.replace("\\end{tabular}", f"\\end{{tabular}}\n\\caption{{{caption}}}\n\\label{{{label}}}", 1)
+    cols = list(variance_decomp_df.columns)
+    col_spec = "|l|" + "r" * len(cols) + "|"
+    lines = [
+        "\\begin{table}[H]",
+        "\\centering",
+        "\\small",
+        f"\\begin{{tabular}}{{{col_spec}}}",
+        "\\hline",
+        "\\textbf{Scale} & " + " & ".join([f"\\textbf{{{c}}}" for c in cols]) + " \\\\",
+        "\\hline",
+    ]
+    for idx, row in variance_decomp_df.round(1).iterrows():
+        vals = " & ".join([f"{v:.1f}" for v in row])
+        lines.append(f"{idx} & {vals} \\\\")
+        lines.append("\\hline")
+    lines += [
+        "\\end{tabular}",
+        f"\\caption{{{caption}}}",
+        f"\\label{{{label}}}",
+        "\\end{table}",
+        "",
+    ]
     path = out_dir / "variance_decomposition.tex"
-    path.write_text(var_tex, encoding="utf-8")
+    path.write_text("\n".join(lines), encoding="utf-8")
     print(f"[Visualizer] Exported LaTeX Table -> {path}")
