@@ -102,11 +102,13 @@ def check_characters() -> list:
 
 
 def check_zip() -> list:
-    if not ZIP_PATH.exists():
+    zips = list((ROOT / "dist").glob("*.zip"))
+    if not zips:
         print("  ZIP not built yet (python scripts/make_zip.py)")
         return []
-    size_mb = ZIP_PATH.stat().st_size / 1024 ** 2
-    print(f"  {ZIP_PATH.name}: {size_mb:.1f} MB")
+    target_zip = zips[0]
+    size_mb = target_zip.stat().st_size / 1024 ** 2
+    print(f"  {target_zip.name}: {size_mb:.1f} MB")
     return [] if size_mb <= 25 else [f"ZIP is {size_mb:.1f} MB, the limit is 25 MB"]
 
 
