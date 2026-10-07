@@ -37,7 +37,6 @@ from src.config import (
     RESULTS_DIR,
     ROLLING_WINDOW,
     TABLES_DIR,
-    TICKERS,
     WAVELET_FAMILY,
     WAVELET_LEVEL,
 )

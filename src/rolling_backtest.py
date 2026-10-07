@@ -62,7 +62,6 @@ def run_rolling_forecasts(
     port = x @ w
     dates = returns.index
     n = len(returns)
-    max_h = max(horizons)
 
     rows = []
     model = None
