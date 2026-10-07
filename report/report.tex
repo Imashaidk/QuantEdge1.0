@@ -1,381 +1,288 @@
 \documentclass[11pt,a4paper]{article}
 
 \usepackage[utf8]{inputenc}
-\usepackage[margin=2.0cm]{geometry}
-\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=2.1cm]{geometry}
+\usepackage{amsmath,amssymb}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{hyperref}
 \usepackage{microtype}
 \usepackage{caption}
-\usepackage{subcaption}
 \usepackage{fancyhdr}
 \usepackage{tabularx}
-\usepackage{cite}
 \usepackage{enumitem}
 \usepackage{titlesec}
 \usepackage{setspace}
 
-\setstretch{1.06}
-\captionsetup{font=small,labelfont=bf,skip=5pt}
-
-% Compact list spacing
+\setstretch{1.05}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
 \setlist{noitemsep, topsep=3pt, parsep=1pt, partopsep=0pt}
-
-% Section title spacing
-\titlespacing*{\section}{0pt}{9pt}{4pt}
+\titlespacing*{\section}{0pt}{10pt}{4pt}
 \titlespacing*{\subsection}{0pt}{7pt}{3pt}
 
-% Float parameters to allow figures and text on the same page
 \renewcommand{\topfraction}{0.85}
 \renewcommand{\bottomfraction}{0.85}
 \renewcommand{\textfraction}{0.15}
 \renewcommand{\floatpagefraction}{0.75}
 \setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
 \setlength{\floatsep}{8pt plus 2pt minus 2pt}
-\setlength{\intextsep}{8pt plus 2pt minus 2pt}
 
-\graphicspath{{../figures/}{figures/}}
-
-\hypersetup{
-    colorlinks=true,
-    linkcolor=blue!70!black,
-    citecolor=blue!70!black,
-    urlcolor=blue!70!black
-}
+\graphicspath{{../figures/}}
+\hypersetup{colorlinks=true, linkcolor=blue!60!black, citecolor=blue!60!black, urlcolor=blue!60!black}
 
 \pagestyle{fancy}
 \fancyhf{}
-\rhead{\small \textit{SAIFA Quant Edge 1.0: Round 1 Submission}}
-\lhead{\small \textit{Risk Across Tails and Timescales}}
+\lhead{\small\textit{Risk Across Tails and Timescales}}
+\rhead{\small\textit{Team Nexora}}
 \cfoot{\thepage}
 
-\title{\LARGE \textbf{Risk Across Tails and Timescales: \\
-Frequency-Variant Tail Dependence and the Invalidation of Horizon Square-Root Scaling}}
+% Every number quoted in the text comes from this file, written by run_all.py.
+\input{../tables/key_numbers.tex}
 
-\author{
-    \textbf{QuantEdge Research Consortium} \\
-    \textit{Department of Statistics \& Computer Science / Industrial Management} \\
-    \url{https://github.com/Imashaidk/QuantEdge1.0.git}
-}
-
-\date{October 2026}
+\newcommand{\lamL}{\hat\lambda_L}
 
 \begin{document}
 
-\maketitle
-
-\begin{abstract}
-\noindent
-Most banks and asset managers scale daily Value-at-Risk (VaR) to multi-day horizons using the standard Basel square-root-of-time rule ($\text{VaR}_h = \text{VaR}_1 \times \sqrt{h}$). This rule assumes that asset co-movements during extreme events remain identical whether positions are held for an afternoon or for three months. In this paper, we directly answer the official SAIFA Quant Edge 1.0 research question: \textit{``Does tail dependence change with the investment horizon, and what does ignoring this do to a portfolio's measured risk?''} Using daily data from 2015 to 2026 across a five-pillar institutional universe (US Equities, Tech, Long Treasuries, Gold, and High-Yield Credit), we decompose returns across timescales using the Maximal Overlap Discrete Wavelet Transform (MODWT). After filtering out volatility clustering with AR(1)-GJR-GARCH(1,1) models and modeling fat tails using Extreme Value Theory (EVT-POT), we run an automated tournament across five copula families at every timescale.
-
-Our empirical findings demonstrate that cross-asset tail crash dependence changes across investment horizons. Lower tail crash dependence peaks at weekly swing scales ($D_2$, 4 to 8 days, $\hat{\lambda}_L = 0.201$), drops at intermediate monthly cycles ($D_4, D_5$, $\hat{\lambda}_L \approx 0.08 - 0.12$), and rebounds at secular macroeconomic horizons ($S_5$, $>64$ days, $\hat{\lambda}_L = 0.178$). Crucially, benchmarking against a Gaussian copula with matched correlation reveals that high-frequency co-exceedance ($D_1$, 2 to 4 days, $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$) is largely accounted for by linear correlation (excess tail dependence of only $+0.004$), whereas genuine excess tail crash dependence peaks at weekly frequencies ($D_2$, excess $+0.030$) and macro trends ($S_5$, excess $+0.042$). Across all scales, the Student-$t$ copula is selected as optimal by Bayesian Information Criterion (BIC), indicating elliptical fat-tailed dependence. Over 875 out-of-sample trading days (2023 to 2026), conventional square-root-of-time scaling was statistically conservative at 5-day and 20-day horizons (0 to 3 breaches vs $\approx 8.7$ expected), while the 1-day Parametric Gaussian model generates 13 breaches (a $1.49\%$ failure rate vs $1.00\%$ nominal target). We introduce the \textbf{Horizon-Conditioned Tail Capital Multiplier (H-TCM)} as an actionable contingent macroprudential overlay that provides a targeted $+2.2\%$ precautionary capital buffer when horizon tail dependence spikes, guarding against crisis contagion while avoiding permanent capital drag during calm markets.
-\end{abstract}
-
+% ---------------------------------------------------------------- cover
+\begin{titlepage}
+\centering
+\vspace*{3cm}
+{\LARGE\bfseries Risk Across Tails and Timescales\par}
+\vspace{0.6cm}
+{\Large Does tail dependence change with the investment horizon,\\ and what does ignoring it do to measured risk?\par}
+\vspace{2cm}
+{\large\bfseries Team Nexora\par}
+\vspace{0.5cm}
+{\large Imasha Karunathilaka\\ Aadhila Anees\\ Sameera Ekanayaka\\ Praveen Madawalage\\ Tharindu Dhanushka\par}
+\vspace{2cm}
+{\large Quant Edge 1.0, Round 1\par}
 \vspace{0.3cm}
+{\large October 2026\par}
+\vfill
+{\small Code and data: \url{https://github.com/Imashaidk/QuantEdge1.0}\\
+Every number, table and figure is reproduced by \texttt{python run\_all.py}.\par}
+\end{titlepage}
+\setcounter{page}{1}
 
-\section{Introduction \& Research Question}
-\label{sec:intro}
+% ---------------------------------------------------------------- summary
+\section*{Summary}
 
-In quantitative risk management, Value-at-Risk ($\text{VaR}_\alpha$) and Expected Shortfall ($\text{ES}_\alpha$) form the core metrics used to determine regulatory capital buffers under the Basel framework \cite{basel1996, mcneil2015}. Under Basel guidelines, banks calculate their 1-day or 10-day risk numbers. When trading desks manage illiquid assets or hold positions across weeks, they almost universally rely on the classic square-root-of-time rule:
-\begin{equation}
-\label{eq:basel_sqrt}
-\text{VaR}_h = \text{VaR}_1 \times \sqrt{h}
-\end{equation}
-This formula was popularized decades ago as a computational shortcut. Mathematically, it requires two strict assumptions: asset returns must be independent and identically distributed (i.i.d.) normal random variables, and the joint correlation structure between assets must remain completely unchanged across all holding periods.
+We study a five-asset portfolio (US equities, Nasdaq, long Treasuries, gold and high-yield credit) on daily data from \SampleStart{} to \SampleEnd{} (\SampleDays{} trading days). We use the maximal overlap discrete wavelet transform (MODWT) to look at the same returns at horizons from one day to more than three months, measure how often assets fall into their worst \TailLevel{} together at each horizon, and then test what this does to Value-at-Risk (VaR) in a rolling out-of-sample backtest.
 
-In real financial markets, both assumptions fall apart:
-\begin{enumerate}
-    \item \textbf{Single-Asset Margins Have Fat Tails:} Returns cluster in volatile bursts, react more violently to bad news than good news (the leverage effect), and produce extreme losses far more often than a bell curve predicts.
-    \item \textbf{Joint Tail Dependence Changes with the Horizon:} High-frequency day traders, weekly swing traders, and quarterly pension rebalancers operate on completely different clocks \cite{gencay2001, percival2000}. Two assets that move independently over an afternoon can become heavily tied together over a multi-week horizon.
-\end{enumerate}
-
-This study directly resolves the central competition inquiry:
-\begin{quote}
-\textit{``Does tail dependence change with the investment horizon, and what does ignoring this do to a portfolio's measured risk?''}
-\end{quote}
-
-Our core contributions are:
-\begin{enumerate}
-    \item We show why standard decimated wavelets (DWT) fail in empirical finance by discarding observations, and use the shift-invariant \textbf{Maximal Overlap Discrete Wavelet Transform (MODWT)} to keep all $N = 2,889$ observations across every decomposition level.
-    \item We filter out volatility clustering with an $\text{AR}(1)\text{-GJR-GARCH}(1,1)$ model and fit Generalized Pareto Distributions ($\text{GPD}$) to the extreme $10\%$ tails, ensuring pure uniform margins before copula estimation.
-    \item We run an automated tournament across five copula families (Gaussian, Student-$t$, Clayton, Gumbel, Frank) across six timescale bands, demonstrating that fat-tailed Student-$t$ co-dependence dominates across holding periods while empirical tail crash dependence remains persistent.
-    \item We demonstrate through 875 days of out-of-sample backtesting (2023 to 2026) the performance of benchmark and multiscale risk estimators, and deliver the \textbf{Horizon-Conditioned Tail Capital Multiplier (H-TCM)} as an actionable contingent overlay for institutional desks.
-\end{enumerate}
-
-\section{Asset Universe \& Economic Intuition}
-\label{sec:universe}
-
-Many empirical studies examine pairs of tech stocks (such as Apple and Microsoft). While easy to model, these pairs provide little insight into portfolio risk because tech stocks share high positive beta across all horizons. To examine whether cross-asset diversification holds up under stress, we analyze a five-pillar institutional portfolio from January 2, 2015 to June 30, 2026 ($N = 2,889$ trading days):
-\begin{itemize}
-    \item \textbf{SPY} ($30\%$): S\&P 500 ETF (Core US equity market).
-    \item \textbf{QQQ} ($20\%$): Invesco QQQ Trust (High-beta growth and technology).
-    \item \textbf{TLT} ($25\%$): 20+ Year Treasury Bond ETF (Duration hedge and flight to safety).
-    \item \textbf{GLD} ($15\%$): SPDR Gold Shares (Inflation hedge and alternative store of value).
-    \item \textbf{HYG} ($10\%$): iShares High Yield Corporate Bond ETF (Credit spread and liquidity risk).
+\begin{itemize}[leftmargin=1.2em]
+\item \textbf{Does tail dependence change with the horizon?} Yes, but not evenly. Equities and high-yield credit crash together more as the horizon grows: their lower-tail co-exceedance rises from \SpyHygDaily{} at one day to \SpyHygLong{} beyond 64 days, and the 90\% interval for the change (\SpyHygChangeLow{} to \SpyHygChangeHigh{}) excludes zero. The equity-Treasury hedge weakens over long horizons (\SpyTltDaily{} to \SpyTltLong{}), while gold behaves the other way (\SpyGldDaily{} to \SpyGldLong{}). For the portfolio's risky sleeve against its hedge sleeve, co-exceedance rises from \SleeveDaily{} to \SleeveLong{}, though the interval is too wide to rule out no change.
+\item \textbf{What does ignoring it do?} A copula fitted to daily data, used for a 20-day horizon, understates 20-day VaR by \GapTwenty{} on average compared with a copula fitted to the matching horizon, and by more than \GapTwentyTop{} on one day in ten. The common $\sqrt{h}$ rule hides this, because it overstates volatility by even more (\SqrtTwenty{} on average).
+\item \textbf{Recommendation.} For positions held 20 trading days or longer, stop scaling 1-day VaR by $\sqrt{h}$. Use the GARCH volatility forecast for the full horizon and a copula fitted to the matching wavelet horizon. Out of sample this was the best-scoring 20-day model, kept correct coverage and needed \HorizonSavingTwenty{} less capital on average than the $\sqrt{h}$ rule (Section~\ref{sec:recommendation}).
 \end{itemize}
 
-\subsection{Cross-Asset Diversification Across Timescales}
-On an ordinary trading day ($D_1$: 2 to 4 days), Treasuries (TLT) and Gold (GLD) serve as effective hedges against stock market drops. When equities decline slightly, investors buy bonds or gold, keeping linear correlation low or negative. This is the foundation of the traditional balanced portfolio.
+% ---------------------------------------------------------------- 1
+\section{Question, data and portfolio}
+\label{sec:data}
 
-However, during market shocks, liquidity demands can alter cross-asset dynamics. Leveraged desks face margin calls on losing equity and credit positions and may liquidate liquid holdings (Treasuries and Gold) to meet liquidity calls. Examining a diversified portfolio across scales reveals whether cross-asset tail dependence shifts from high-frequency noise bands to quarterly macroeconomic cycles.
+Risk models are usually fitted on daily returns, but many portfolios are judged over weeks or months. If the way assets crash together depends on the horizon, a daily model gets the long-horizon tail wrong even when its volatility forecasts are right. We ask whether that happens and how much it matters for measured risk.
 
-\section{Multiscale Wavelet-Copula Methodology}
-\label{sec:methodology}
+We use five liquid ETFs that each stand for a different source of risk, with fixed weights typical of a balanced portfolio: SPY (S\&P 500, 30\%), QQQ (Nasdaq 100, 20\%), TLT (20+ year Treasuries, 25\%), GLD (gold, 15\%) and HYG (high-yield credit, 10\%). We call SPY, QQQ and HYG the \emph{risky sleeve} and TLT and GLD the \emph{hedge sleeve}. A two-sleeve view turns the question into one a portfolio manager cares about: does the hedge still pay off in a crash when you hold for longer?
 
-\subsection{MODWT Wavelet Filter Bank}
-The standard Discrete Wavelet Transform (DWT) downsamples the series by a factor of two at each octave ($N \to N/2 \to N/4$). By scale $J=5$, only $N/32$ data points remain (less than 90 observations from a 2,889-day history). Fitting Extreme Value Theory tails or copulas on 90 points is statistically unreliable.
+Prices are daily adjusted closes. The sample starts on the first day HYG traded, so it includes the 2008 crisis, the 2011 downgrade, COVID in 2020, the 2022 rates shock and the 2025 tariff selloff. We use log returns. The prices are stored in the repository so the analysis runs without a download.
 
-To preserve full statistical power, we use the \textbf{Maximal Overlap Discrete Wavelet Transform (MODWT)} \cite{percival2000}. MODWT is shift-invariant and preserves the complete sample length $N$ at every octave. We select the Symlet filter bank ($\text{sym8}$, filter length $L=16$) because it provides near-linear phase and minimizes edge distortions. The high-pass filter $\tilde{h}$ and low-pass scaling filter $\tilde{g}$ are rescaled by $1/\sqrt{2}$:
+% ---------------------------------------------------------------- 2
+\section{Method}
+\label{sec:method}
+
+\subsection{Horizon views from the wavelet transform}
+\label{sec:views}
+
+The MODWT splits each return series $r_t$ into detail series $D_1,\dots,D_J$ and a smooth $S_J$ that add back to the original exactly, $r_t = \sum_{j=1}^{J} D_{j,t} + S_{J,t}$ \cite{percival2000}. Detail $D_j$ holds movements that last roughly $2^j$ to $2^{j+1}$ days. We use $J=5$, which reaches beyond 64 trading days (about a quarter), and the sym8 filter. Figure~\ref{fig:mra} shows the result for SPY and TLT.
+
+Detail bands on their own are not holding-period returns. An investor who holds for $h$ days sees every movement that lasts longer than about $h$ days, not one narrow band. So we build cumulative \emph{horizon views}:
 \begin{equation}
-\tilde{h}_l = \frac{h_l}{\sqrt{2}}, \quad \tilde{g}_l = \frac{g_l}{\sqrt{2}}
+V^{(0)}_t = r_t, \qquad V^{(j)}_t = \sum_{k=j+1}^{J} D_{k,t} + S_{J,t}, \quad j = 1,\dots,J,
 \end{equation}
-At scale $j \in \{1, \dots, J\}$, filter steps are dilated by $2^{j-1}$. Wavelet detail coefficients $\widetilde{W}_j$ and scaling approximation coefficients $\widetilde{V}_j$ are calculated via circular convolution:
-\begin{align}
-\widetilde{W}_j[t] &= \sum_{l=0}^{L-1} \tilde{h}_l \widetilde{V}_{j-1}[(t - 2^{j-1} l) \bmod N] \\
-\widetilde{V}_j[t] &= \sum_{l=0}^{L-1} \tilde{g}_l \widetilde{V}_{j-1}[(t - 2^{j-1} l) \bmod N]
-\end{align}
-where $\widetilde{V}_0 = R_t$ represents the raw daily log return series.
+where view $j$ keeps only movements longer than $2^{j+1}$ days. An $h$-day return is itself a low-pass filter of daily returns, so view $j$ is a smooth stand-in for holding about $2^{j+1}$ days. Unlike non-overlapping $h$-day returns, it keeps every daily observation, which matters most at the longest horizons where non-overlapping data would leave only about 75 points.
 
-\subsection{Additive Multiresolution Analysis (MRA)}
-Through inverse pyramid filtering, MODWT provides an exact additive multiresolution reconstruction:
-\begin{equation}
-R_t = \sum_{j=1}^J D_{j,t} + S_{J,t}
-\end{equation}
-Here $D_j$ represents scale-specific detail fluctuations and $S_J$ captures the smooth macroeconomic trend. In our data pipeline, we verify that this decomposition reconstructs original returns with machine precision:
-\begin{equation}
-\max_{t} \left| R_t - \left( \sum_{j=1}^5 D_{j,t} + S_{5,t} \right) \right| = 3.77 \times 10^{-14} \ll 10^{-10}
-\end{equation}
+Most of the variance sits at short scales: on average \FineShare{} of each asset's variance is in $D_1$ and $D_2$ and only \CoarseShare{} in $D_5$ and $S_5$ (Table~\ref{tab:variance_decomposition}). A copula fitted to daily returns is therefore dominated by what happens over a few days.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.76\textwidth]{fig1_wavelet_mra_decomposition.png}
-    \caption{MODWT Additive Multiresolution Decomposition of SPY and TLT returns into detail timescales $D_1$ through $D_5$ and smooth macroeconomic trend $S_5$.}
-    \label{fig:wavelets}
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\textwidth]{fig1_wavelet_mra_decomposition.png}
+\caption{MODWT multiresolution analysis of SPY and TLT daily returns. The details and the smooth add back to the returns to machine precision.}
+\label{fig:mra}
 \end{figure}
-
-\subsection{Semi-Parametric GARCH-EVT Margins}
-Fitting copulas directly on raw returns violates Sklar's theorem because financial returns exhibit volatility clustering \cite{mcneil2015}. A cluster of volatile days can easily be mistaken for structural tail dependence when it is simply a shared volatility spike.
-
-We solve this using a two-stage semi-parametric filter:
-\begin{enumerate}
-    \item \textbf{Volatility Filtering:} For each asset detail series $D_j$, we fit an $\text{AR}(1)\text{-GJR-GARCH}(1,1)$ model with Student-$t$ innovations \cite{gjr1993}:
-    \begin{align}
-    r_t &= \mu + \phi r_{t-1} + \epsilon_t, \quad \epsilon_t = \sigma_t z_t \\
-    \sigma_t^2 &= \omega + (\alpha + \gamma I_{\{\epsilon_{t-1} < 0\}}) \epsilon_{t-1}^2 + \beta \sigma_{t-1}^2
-    \end{align}
-    where the parameter $\gamma$ captures the leverage effect (bad news generating higher volatility than good news).
-    \item \textbf{EVT Peaks-Over-Threshold (POT):} Standardized filtered residuals $z_t = \epsilon_t / \sigma_t$ are modeled using the empirical cumulative distribution function (CDF) for the central body ($10\% \le u \le 90\%$) and Generalized Pareto Distributions ($\text{GPD}$) \cite{pickands1975} for the extreme $10\%$ tails:
-    \begin{equation}
-    F(z) = \begin{cases}
-    q_L \left( 1 + \xi_L \frac{u_L - z}{\beta_L} \right)^{-1/\xi_L}, & z < u_L \\
-    F_{\text{emp}}(z), & u_L \le z \le u_U \\
-    1 - (1 - q_U) \left( 1 + \xi_U \frac{z - u_U}{\beta_U} \right)^{-1/\xi_U}, & z > u_U
-    \end{cases}
-    \end{equation}
-    \item \textbf{Probability Integral Transform (PIT):} Transformed margins $U_i = F_i(z_i)$ are verified as independent $\text{Uniform}(0, 1)$ random variables via empirical quantile checks ($\approx 5.0\%$ in the bottom $5\%$ tail).
-\end{enumerate}
-
-\subsection{Scale-Optimal Copula Tournament}
-According to Sklar's Theorem \cite{sklar1959, embrechts2002}, any multivariate distribution $F(x_1, \dots, x_d)$ decomposes uniquely into its marginal CDFs and a copula function $C$:
-\begin{equation}
-F(x_1, \dots, x_d) = C(F_1(x_1), \dots, F_d(x_d))
-\end{equation}
-At each scale $D_1$ through $D_5$ and $S_5$, we run an automated tournament across five copula families fitted via Maximum Likelihood Estimation:
-\begin{enumerate}
-    \item \textbf{Gaussian Copula:} Zero tail dependence benchmark ($\lambda_L = \lambda_U = 0$).
-    \item \textbf{Student-$t$ Copula:} Symmetric tail dependence:
-    \begin{equation}
-    \lambda_L = \lambda_U = 2 t_{\nu + 1}\left( -\sqrt{\frac{(\nu + 1)(1 - \rho)}{1 + \rho}} \right) > 0
-    \end{equation}
-    \item \textbf{Clayton Copula:} Asymmetric lower crash dependence ($\lambda_L = 2^{-1/\theta} > 0, \lambda_U = 0$).
-    \item \textbf{Gumbel Copula:} Asymmetric upper-tail dependence ($\lambda_U = 2 - 2^{1/\theta} > 0, \lambda_L = 0$).
-    \item \textbf{Frank Copula:} Radial symmetry with zero tail dependence ($\lambda_L = \lambda_U = 0$).
-\end{enumerate}
-For Archimedean copula families in dimensions $d > 2$, parameters are estimated via pairwise composite log-likelihood maximization, a standard and computationally robust approach for high-dimensional elliptical and Archimedean comparisons \cite{mcneil2015}. The winning copula per timescale is selected by minimizing the Bayesian Information Criterion:
-\begin{equation}
-\text{BIC} = k \ln(N) - 2 \ln(\hat{L})
-\end{equation}
-
-\section{Empirical Findings}
-\label{sec:findings}
-
-\subsection{Timescale Variance Decomposition}
-Table \ref{tab:variance_decomposition} displays how total return variance is distributed across octave frequency bands.
 
 \input{../tables/variance_decomposition.tex}
 
-High-frequency noise ($D_1$) represents between $53\%$ and $64\%$ of total variance across all asset classes. Intermediate scales ($D_2$ and $D_3$) represent another $25\%$ to $37\%$, while quarterly and macroeconomic cycles ($D_5$ and $S_5$) account for the remaining $5\%$ to $6\%$. Percentages represent the relative share of total scale variance ($\text{Var}(D_j) / \sum_k \text{Var}(k)$), confirming the practical near-orthogonality of the sym8 filter bank.
+\subsection{Measuring tail dependence at each horizon}
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.72\textwidth]{fig2_tail_dependence_vs_horizon.png}
-    \caption{Evolution of Lower Tail Crash Dependence $\lambda_L(h)$ versus Upper Tail Dependence $\lambda_U(h)$ and the Timescale Asymmetry Ratio ($\text{TAR}(h)$) across holding horizons.}
-    \label{fig:tail_dep}
-\end{figure}
-
-\subsection{Tail Dependence Across Investment Horizons}
-Table \ref{tab:copula_tournament} and Figure \ref{fig:tail_dep} report the scale-optimal copula tournament leaderboard, tail dependence parameters, and Gaussian benchmarks across horizons.
-
-\input{../tables/copula_tournament.tex}
-
-We define the \textbf{Timescale Asymmetry Ratio (TAR)}:
+For each view we convert every series to ranks, $u_{i,t} = \mathrm{rank}(x_{i,t})/(n+1)$. Ranks remove the margins entirely, which is what a copula needs, and they are exactly reproducible. Our main measure is the lower-tail co-exceedance at level $q$:
 \begin{equation}
-\text{TAR}(h) = \hat{\lambda}_L(h) - \hat{\lambda}_U(h)
+\lamL(q) = \frac{1}{q}\,\Pr\!\left(U_1 \le q,\; U_2 \le q\right),
 \end{equation}
-Across all decomposed timescales ($D_1$ through $S_5$), the Student-$t$ copula wins the tournament by Bayesian Information Criterion (BIC), indicating that multiscale co-dependence is well-modeled by elliptical fat-tailed dynamics rather than single-parameter Archimedean structures. The empirical Timescale Asymmetry Ratio remains tightly bounded around zero ($\text{TAR} \in [-0.013, +0.060]$).
+the share of one asset's worst-$q$ days on which the other is also in its worst $q$. It equals $q$ for independent assets and 1 for perfectly dependent ones. We use $q = \TailLevel{}$, which leaves about 240 tail days at each horizon. The upper tail is defined the same way.
 
-\textbf{Disentangling Tail Dependence from Linear Correlation:} A critical methodological pitfall in empirical risk modeling is mistaking linear correlation for genuine non-linear tail dependence. At a $5\%$ quantile threshold ($q = 0.05$), two assets governed by a plain Gaussian copula with zero asymptotic tail dependence will nonetheless produce positive joint co-exceedance purely due to linear correlation $\rho$:
-\begin{equation}
-\lambda_{\text{Gauss}}(q; \rho) = \frac{1}{q} \Phi_2\left( \Phi^{-1}(q), \Phi^{-1}(q); \rho \right)
-\end{equation}
-To benchmark whether tail co-movement reflects true tail crash dependence or background linear correlation, we compute the exact bivariate Gaussian benchmark $\lambda_{\text{Gauss}}(0.05; \rho_{ij})$ for each asset pair and report the \textbf{Excess Tail Dependence} ($\text{Excess} = \hat{\lambda}_L - \bar{\lambda}_{\text{Gauss}}$) in Table \ref{tab:copula_tournament}:
-\begin{itemize}
-    \item \textbf{Microstructure Scale ($D_1$, 2 to 4d):} Empirical co-exceedance is $\hat{\lambda}_L = 0.189$, but the Gaussian benchmark with matched linear correlation is $0.185$. The excess tail dependence is negligible ($+0.004$), proving that high-frequency tail co-movement is almost entirely linear correlation.
-    \item \textbf{Weekly Swing Scale ($D_2$, 4 to 8d):} Empirical tail dependence reaches its global peak at $\hat{\lambda}_L = 0.201$ against a Gaussian benchmark of $0.171$, generating statistically and economically meaningful **Excess Tail Dependence** of $+0.030$. Weekly swing trading and momentum rebalancing exhibit true non-linear crash clustering.
-    \item \textbf{Intermediate Cycles ($D_4, D_5$, 16 to 64d):} Co-exceedance drops into the range of $\approx 0.08 - 0.12$, matching or slightly dipping below the Gaussian baseline.
-    \item \textbf{Secular Macro Trend ($S_5$, $>64$d):} Co-exceedance rebounds to $0.178$ against a Gaussian benchmark of $0.136$, yielding an excess tail dependence of $+0.042$, reflecting shared macroeconomic and monetary cycle vulnerabilities.
+Correlation alone produces some co-exceedance, so we compare each estimate with what a Gaussian copula with the same normal-scores correlation $\rho$ would give, $\Phi_2(\Phi^{-1}(q),\Phi^{-1}(q);\rho)/q$. Co-exceedance well above that line is tail dependence that correlation does not explain.
+
+The smooth views are strongly autocorrelated, so they contain far fewer independent observations than their length suggests. We use a moving block bootstrap with blocks of \BootBlock{} days (about six months, long enough to hold a few cycles of the slowest view) and \BootReps{} replications. The same resampled days are used for every view, so we can also put an interval on the change from daily to each horizon.
+
+\subsection{Copula family}
+
+For every pair and every view we fit Gaussian, Student-$t$, Clayton, Gumbel and Frank copulas by maximum likelihood and compare them by BIC. The $t$ copula wins \TWins{} of \CopulaFits{} contests, so all VaR models below use a $t$ copula. Because it has symmetric tails, its job in the VaR model is to carry the overall strength of tail dependence at each horizon. The asymmetry between lower and upper tails is reported from the empirical co-exceedances.
+
+\subsection{VaR models}
+\label{sec:models}
+
+All copula models share the same margins, so any difference between them comes only from the dependence structure. Each asset gets a GJR-GARCH(1,1) model with $t$ errors \cite{gjr1993}, which captures volatility clustering and the larger effect of bad news. The standardised residuals are modelled with an empirical body and generalised Pareto tails beyond the 10\% and 90\% points \cite{mcneil2015}. For an $h$-day horizon the variance is the sum of the GARCH forecasts for days $1,\dots,h$, so volatility mean reversion is included.
+
+We compare five models of the $h$-day portfolio loss at 99\%:
+\begin{itemize}[leftmargin=1.2em]
+\item \textbf{Historical simulation} on overlapping $h$-day returns, and a \textbf{Gaussian $\sqrt{h}$} rule: the two simple benchmarks.
+\item \textbf{Daily copula, $\sqrt{h}$}: 1-day VaR from the GARCH-EVT-$t$-copula model, scaled by $\sqrt{h}$. This is common practice.
+\item \textbf{Daily copula, $h$-day vol}: the same daily copula, with the full-horizon GARCH volatility instead of $\sqrt{h}$.
+\item \textbf{Horizon copula (proposed)}: the same margins, with the $t$ copula fitted to the matching horizon view: view 1 ($>4$ days) for $h=5$, view 3 ($>16$ days) for $h=20$ and view 5 ($>64$ days) for $h=60$.
 \end{itemize}
+The second and third copula models differ only in volatility, the third and fourth only in dependence, so the comparisons separate the two effects. VaR and expected shortfall (ES) come from \Sims{} simulated scenarios. Every model uses the same random numbers, so differences are not simulation noise.
 
-\section{Out-of-Sample Backtesting \& Basel Invalidation}
-\label{sec:backtest}
+\subsection{Out-of-sample backtest}
 
-To evaluate what happens when a risk desk ignores horizon-dependent tail dependence, we run an out-of-sample backtest across 875 trading days from January 2023 to June 2026 for horizons $h \in \{1, 5, 20\}$ days. The models are calibrated strictly on data from 2015 to 2022, ensuring zero lookahead bias.
+At the close of each day $t$ we forecast the loss over days $t+1$ to $t+h$ using only data up to $t$. All models are re-estimated every \RefitEvery{} trading days on the last \RollingWindow{} days, and the GARCH volatilities are updated every day in between. The wavelet views are computed inside each window, so the two-sided filter never sees the future. The first forecast is in \ForecastStart{}, giving \ForecastDays{} forecast days per horizon.
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.72\textwidth]{fig3_backtest_var_exceedances.png}
-    \caption{Out-of-sample portfolio losses against $\text{VaR}(99\%)$ limits comparing the Proposed Multiscale Framework against Basel $\sqrt{h}$ scaling.}
-    \label{fig:backtest_exceed}
+We judge the models with the Kupiec coverage test \cite{kupiec1995}, the Christoffersen independence test \cite{christoffersen1998}, the worst Basel traffic-light zone over any 250-day window \cite{basel1996}, and the Fissler-Ziegel FZ0 score for VaR and ES jointly \cite{fissler2016, patton2019}. FZ0 is a strictly consistent scoring rule, so lower is better and it rewards a model that is neither too high nor too low. Overlapping $h$-day losses are serially dependent, so coverage tests use every $h$-th forecast, and FZ differences are tested with a Diebold-Mariano test using Newey-West standard errors.
+
+Table~\ref{tab:choices} collects the main choices and the reason for each.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\caption{Main modelling choices and why we made them.}
+\label{tab:choices}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}X@{}}
+\toprule
+Choice & Reason \\
+\midrule
+MODWT, not DWT & Keeps all observations at every scale and is shift invariant, so results do not depend on the start date. \\
+sym8, level 5 & Near-symmetric filter with little phase distortion; level 5 reaches past a quarter while leaving enough data at the coarsest view. \\
+Reflection boundary & Avoids wrapping the end of the sample onto its start, which matters in the rolling windows where the last day is the one that counts. \\
+Cumulative horizon views & An investor holding $h$ days sees all slower movements, not one band. \\
+Ranks, not GARCH-filtered views & GARCH is badly behaved on smooth series and gave results that changed with library versions; ranks are exact and reproducible. \\
+$q = \TailLevel{}$ co-exceedance & Enough tail days for stable estimates at every view; still in the tail. \\
+Block bootstrap, \BootBlock{} days & Keeps the autocorrelation of the smooth views; one block length for all views makes the change versus daily testable. \\
+GJR-GARCH-$t$ + EVT margins & Standard for daily risk; leverage effect and fat tails matter at 99\%. \\
+Summed GARCH variance & Allows volatility to revert to its mean over the horizon, which $\sqrt{h}$ ignores. \\
+$t$ copula & Wins \TWins{} of \CopulaFits{} BIC contests. \\
+Rolling \RollingWindow-day window & About four years: long enough for GARCH and EVT, short enough to adapt. \\
+FZ0 score and DM test & Coverage tests have little power at 20 days; FZ0 uses every forecast and scores VaR and ES together. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------- 3
+\section{Results}
+\label{sec:results}
+
+\subsection{Tail dependence across horizons}
+
+Table~\ref{tab:tail_by_horizon} and Figure~\ref{fig:tail} show the main result. Three things stand out.
+
+\textbf{Equity and credit crash together more at longer horizons.} SPY-HYG lower-tail co-exceedance is \SpyHygDaily{} at one day and \SpyHygLong{} beyond 64 days, well above the \SpyHygGaussLong{} a Gaussian copula with the same correlation would give. The change, \SpyHygChange{} with a 90\% interval of \SpyHygChangeLow{} to \SpyHygChangeHigh{}, is the clearest horizon effect in the data. Credit losses build over weeks as spreads widen, so a credit position that looks only partly linked to equities day by day is closely linked over a quarter.
+
+\textbf{The Treasury hedge weakens over long horizons, gold does not.} On daily data SPY and TLT almost never crash together (\SpyTltDaily{}, about what independence would give). Beyond 64 days the figure is \SpyTltLong{} (interval \SpyTltLongLow{} to \SpyTltLongHigh{}). All of the joint crash days at that horizon come from two episodes, early 2009 and 2022, when stocks and long bonds fell together for months. Gold moves the other way, from \SpyGldDaily{} to \SpyGldLong{}.
+
+\textbf{For the whole hedge sleeve the direction is clear but the size is uncertain.} Co-exceedance of the risky and hedge sleeves rises from \SleeveDaily{} at one day to \SleeveLong{} beyond 64 days. At every horizon it is above the Gaussian benchmark (\SleeveGaussDaily{} at one day). The change of \SleeveChange{} has a 90\% interval of \SleeveChangeLow{} to \SleeveChangeHigh{}: the longest views contain only a handful of independent episodes, and we do not claim more than the data supports. The upper tail does not rise in the same way, so the long-horizon increase is a crash effect rather than a general rise in co-movement.
+
+\input{../tables/tail_by_horizon.tex}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{fig2_tail_dependence_vs_horizon.png}
+\caption{Left: lower and upper tail co-exceedance of the risky and hedge sleeves by horizon view, with the 90\% block bootstrap band and the Gaussian copula benchmark. Right: lower-tail co-exceedance for the main asset pairs. The dotted line is independence.}
+\label{fig:tail}
 \end{figure}
 
-\subsection{Supervisory Hypothesis Testing}
-We evaluate model performance through four established supervisory criteria:
-\begin{enumerate}
-    \item \textbf{Kupiec POF Likelihood Ratio Test:} Tests whether the observed breach count $x$ over $N$ observations matches the expected nominal rate ($H_0: p = 0.01$) \cite{kupiec1995}:
-    \begin{equation}
-    \text{LR}_{\text{POF}} = -2 \ln \left[ \frac{(1-p_0)^{N-x} p_0^x}{(1 - \hat{p})^{N-x} \hat{p}^x} \right] \sim \chi^2(1)
-    \end{equation}
-    \item \textbf{Christoffersen Independence Test:} Tests whether breaches cluster together in consecutive time windows \cite{christoffersen1998}:
-    \begin{equation}
-    \text{LR}_{\text{ind}} = -2 \ln \left[ \frac{L(\pi)}{L(\pi_{01}, \pi_{11})} \right] \sim \chi^2(1)
-    \end{equation}
-    \item \textbf{Basel Committee Traffic Light Zones:} Evaluates 250-day scaled breach counts at $99\%$ VaR:
-    \begin{itemize}
-        \item \textbf{Green Zone} ($\le 4$ breaches): Approved model ($k = 3.0$).
-        \item \textbf{Yellow Zone} (5 to 9 breaches): Capital penalty surcharge ($k \in [3.40, 3.85]$).
-        \item \textbf{Red Zone} ($\ge 10$ breaches): Model rejected ($k = 4.0$).
-    \end{itemize}
-    \item \textbf{Fissler-Ziegel (FZ) Strictly Consistent Loss:} Joint zero-homogeneous scoring function for $(\text{VaR}_{99\%}, \text{ES}_{99\%})$ \cite{fissler2016}:
-    \begin{equation}
-    S(v, e, y) = \frac{1}{e} \left[ v + \frac{(y - v) I_{\{y > v\}}}{1 - \alpha} \right] + \ln(e) - 1
-    \end{equation}
-\end{enumerate}
+\subsection{What ignoring it does to measured risk}
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.72\textwidth]{fig4_regulatory_traffic_light.png}
-    \caption{Basel Committee Traffic Light zone performance across models and horizons.}
-    \label{fig:traffic_light}
+Figure~\ref{fig:gap} compares the horizon copula with the daily copula over the whole backtest. Both use the same margins and the same full-horizon volatility, so the gap is purely the effect of the dependence structure. Using horizon-matched dependence raises VaR by \GapFive{} at 5 days, \GapTwenty{} at 20 days and \GapSixty{} at 60 days on average. The effect varies over time: at 20 days the 10th to 90th percentile range is \GapTwentyLow{} to \GapTwentyHigh{}, and at 60 days \GapSixtyLow{} to \GapSixtyHigh{}, because the coarsest view is estimated on few independent episodes.
+
+The usual $\sqrt{h}$ rule makes the daily copula look safe. Scaling 1-day VaR by $\sqrt{h}$ gives \SqrtTwenty{} more VaR at 20 days than the full-horizon GARCH volatility and \SqrtSixty{} more at 60 days, because high volatility tends to fall back over the horizon. That overstatement is larger than the dependence understatement, so the $\sqrt{h}$ rule ends up with enough capital for the wrong reasons. A desk that improves its volatility model but keeps daily dependence would remove the cushion and be left with too little capital.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\textwidth]{fig4_capital_gap_by_horizon.png}
+\caption{Average change in VaR from using the horizon copula instead of the daily copula, with the same margins and volatility. Bars are means over all forecast days; whiskers are the 10th and 90th percentiles.}
+\label{fig:gap}
 \end{figure}
 
-\subsection{Backtesting Performance Results}
-Table \ref{tab:backtest_metrics} reports the empirical out-of-sample backtest results across all competing models. Accounting for rolling window reductions, total observations are $N = 875$ at $h = 1$d, $N = 871$ at $h = 5$d, and $N = 856$ at $h = 20$d.
+\subsection{Out-of-sample backtest}
+
+Table~\ref{tab:backtest} reports the backtest. At one day the three copula models are the same forecast. They give \BreachOneCopula{} breaches against \ExpectedOne{} expected, pass both coverage tests (Kupiec $p = \KupiecOneCopula$, Christoffersen $p = \ChristOneCopula$) and reach the \ZoneCopula{} zone at worst, in the 250 days after the COVID crash. Both simple benchmarks fail: the Gaussian rule has \BreachOneGauss{} breaches and historical simulation, while close on the total, bunches its \BreachOneHist{} breaches together; both reach the \ZoneGauss{} zone.
+
+At 20 days the horizon copula has the best FZ score of all five models, with \BreachTwentyHorizon{} breaches in \ObsTwenty{} non-overlapping windows against \ExpectedTwenty{} expected. Its advantage is not statistically significant ($p = \DmDailyTwenty$ against the daily copula, $p = \DmSqrtTwenty$ against $\sqrt{h}$), which is expected with fifteen years of 20-day windows. At 5 days the three copula models are within noise of each other ($p = \DmDailyFive$), which matches the small gap in Figure~\ref{fig:gap}.
+
+The 2022 rates shock is the case the horizon model is built for, with stocks and bonds falling together for months. Over its \StressTwentyTwoDays{} forecast days the daily copula had \StressTwentyTwoDaily{} breaches at 20 days and the horizon copula \StressTwentyTwoHorizon{}. The $\sqrt{h}$ rule had \StressTwentyTwoSqrt{}, but only because it carried more capital on average over the whole sample. In the COVID crash all three had \StressCovidDaily{} breaches: the crash was too fast for any 20-day model.
 
 \input{../tables/backtest_metrics.tex}
 
-\textbf{Key Findings \& Hypothesis Testing:} 
-\begin{enumerate}
-    \item \textbf{1-Day Horizon:} The standard Parametric Gaussian model generates 13 breaches over the 875-day evaluation period (a $1.49\%$ failure rate against the $1.00\%$ nominal target). Under the Kupiec POF test ($p = 0.1780$), it fails to reject the null hypothesis of correct coverage at the standard $5\%$ significance level, and nominally remains in the Basel Green Zone scaled over 250 days (3.71 breaches). However, economically it generates over $2.6\times$ the breaches of copula-based specifications (5 breaches, $0.57\%$, Kupiec $p = 0.1659$), indicating that assuming normality elevates tail risk exposure during volatile sessions. The Proposed Multiscale Copula model is identical to the Static Copula at the 1-day horizon (5 breaches, FZ loss $-3.6674$).
-    \item \textbf{Multi-Day Horizons (5d \& 20d):} Overlapping multi-day rolling periods introduce moving-average serial dependence into the loss sequence, which naturally dampens empirical breach rates during the steady 2023--2026 post-pandemic market. Conventional square-root scaling was statistically conservative (3 breaches at 5d and 0 breaches at 20d vs $\approx 8.7$ expected), rather than understating risk. At 5 days, the Proposed Multiscale Copula ties with Historical Simulation for the lowest breach count (2 breaches each, both Green zone). At 20 days, the Proposed model matches the Static Copula (0 breaches, FZ loss $-2.2601$) and ties with Historical Simulation and Basel scaling at 0 breaches.
-\end{enumerate}
-
-\section{Actionable Policy: The H-TCM Multiplier}
-\label{sec:htcm}
-
-The competition mandates: \textit{``Give one concrete recommendation a risk manager could act on tomorrow.''}
-
-\subsection{The Closed-Form Formula}
-We introduce the \textbf{Horizon-Conditioned Tail Capital Multiplier (H-TCM)}, a practical formula that can be inserted directly into existing risk management software:
-\begin{equation}
-\label{eq:htcm}
-\boxed{
-\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \max\left(0, \frac{\hat{\lambda}_L(h) - \hat{\lambda}_L(1)}{\hat{\lambda}_L(1) + \epsilon}\right) \right]
-}
-\end{equation}
-where:
-\begin{itemize}
-    \item $\text{VaR}_1$: 1-day baseline VaR estimate.
-    \item $\sqrt{h}$: Standard square-root-of-time factor.
-    \item $\hat{\lambda}_L(h)$: Empirical lower tail dependence at scale $h$.
-    \item $\hat{\lambda}_L(1)$: 1-day baseline lower tail dependence ($D_1$).
-    \item $\kappa$: Desk calibration factor ($\kappa = 0.35$).
-    \item $\epsilon$: Numerical stabilizer ($10^{-6}$).
-\end{itemize}
-
-\subsection{Capital Buffer Calibration \& Empirical Limitations}
-Table \ref{tab:sensitivity} shows the capital buffer multiplier across horizons for different values of $\kappa$ calibrated against baseline $\hat{\lambda}_L(1) = 0.189$.
-
-\begin{table}[htbp]
+\begin{figure}[t]
 \centering
-\small
-\renewcommand{\arraystretch}{1.1}
-\caption{H-TCM Multiplier Values Across Horizons ($\kappa \in [0.20, 0.50]$)}
-\label{tab:sensitivity}
-\begin{tabular}{lcccccl}
-\toprule
-\textbf{Horizon} & \textbf{Scale} & $\kappa = 0.20$ & $\kappa = 0.35$ & $\kappa = 0.50$ & \textbf{Diagnostic \& Capital Overlay Status} \\
-\midrule
-$h = 1$d   & D1 & 1.000 & 1.000 & 1.000 & Basel-style Green Zone (Baseline Allocation) \\
-$h = 5$d   & D2 & 1.013 & 1.022 & 1.032 & Contingent Tail Buffer (+2.2\% Precautionary) \\
-$h = 20$d  & D4 & 1.000 & 1.000 & 1.000 & Diagnostic Green (Baseline Scaling, No Surcharge) \\
-$h = 40$d  & D5 & 1.000 & 1.000 & 1.000 & Diagnostic Green (Baseline Scaling, No Surcharge) \\
-\bottomrule
-\end{tabular}
-\end{table}
+\includegraphics[width=\textwidth]{fig3_backtest_var_exceedances.png}
+\caption{Realised 20-day portfolio loss against the 99\% VaR of the daily copula and the horizon copula, \ForecastStart{} to June 2026. Markers show breaches. The axis is capped so the March 2020 peak does not flatten the rest.}
+\label{fig:backtest}
+\end{figure}
 
-\textbf{Empirical Evaluation and Candid Limitations:} 
-We provide a transparent evaluation of the H-TCM recommendation:
-\begin{enumerate}
-    \item \textbf{Precautionary Buffer vs. Statistical Noise:} The $+2.2\%$ capital buffer at the 5-day horizon stems from an empirical difference of $\hat{\lambda}_L(D_2) - \hat{\lambda}_L(D_1) = 0.201 - 0.189 = 0.012$. In finite samples without asymptotic hypothesis testing, a difference of $0.012$ lies within sampling variation. The overlay functions as an asymmetric precautionary risk buffer rather than a statistically proven divergence.
-    \item \textbf{Performance in Calm Regimes:} In the 2023--2026 backtest, standard square-root scaling was already conservative (3 breaches at 5d). Applying the $+2.2\%$ H-TCM surcharge yielded the exact same 3 breaches while locking up additional capital, resulting in a slightly higher (worse) Fissler-Ziegel score ($-2.9261$ vs $-2.9744$) due to the scoring penalty on excess capital lockup.
-    \item \textbf{Collapse at Long Horizons:} At 20-day and 40-day horizons, because scale tail dependence falls below the 1-day baseline, the floored multiplier $\max(0, \dots)$ is exactly zero, making the multiplier $1.000$ (identical to standard scaling).
-    \item \textbf{Untested Crisis Performance:} H-TCM is intended as a contingent macroprudential safety rail for systemic liquidity squeezes (such as 2008 or March 2020), where multiscale tail dependence surges simultaneously across horizons. It remains untested out-of-sample in a severe historical crisis.
+% ---------------------------------------------------------------- 4
+\section{Recommendation}
+\label{sec:recommendation}
+
+\begin{center}
+\fbox{\parbox{0.92\textwidth}{\textbf{For positions held 20 trading days or longer, replace the $\sqrt{h}$ rule with a full-horizon GARCH volatility forecast and a copula fitted to the matching wavelet horizon view.}}}
+\end{center}
+
+\textbf{Why.} On this portfolio the change needs \HorizonSavingTwenty{} less 20-day capital on average than $\sqrt{h}$ (\AvgVarTwentyHorizon{} against \AvgVarTwentySqrt{} of portfolio value), keeps correct coverage, and has the best FZ score of the five models. More importantly, it gets the right answer for the right reasons. The $\sqrt{h}$ rule overstates volatility and understates long-horizon dependence, and on average the first error more than covers the second. That does not hold on every day: when volatility is low the $\sqrt{h}$ rule understates it too, and both errors point the same way. Nor will it hold for a portfolio with more credit or with a stock-bond hedge that fails, as it did in 2022.
+
+\textbf{How to do it tomorrow.} The change fits on top of an existing GARCH-copula VaR system:
+\begin{enumerate}[leftmargin=1.5em]
+\item Keep the daily GARCH-EVT margins. For the $h$-day horizon, sum the GARCH variance forecasts for days $1,\dots,h$ instead of multiplying the 1-day variance by $h$.
+\item Once a month, compute the MODWT of the last four years of returns, build the horizon view that matches the holding period (view 3, moves longer than 16 days, for a 20-day horizon) and refit the copula to its ranks.
+\item Simulate $h$-day losses from the new copula and the $h$-day margins.
 \end{enumerate}
+All three steps are in \texttt{src/horizon\_var.py}. The monthly refit adds a few seconds of computing time.
 
-\section{Conclusion}
-\label{sec:conclusion}
+\textbf{What to watch.} Report the horizon-matched VaR next to the daily-copula VaR. When the gap widens, as it did through 2022, the portfolio's hedges are working less well over the holding period than daily data suggests, which is a signal to review the hedge rather than only to hold more capital.
 
-This research provides a direct and empirical resolution to the official competition inquiry:
-\begin{enumerate}
-    \item \textbf{Does tail dependence change with the investment horizon?} 
-    Yes. Across our five-asset universe, the Student-$t$ copula is selected as optimal across all timescale bands, indicating that multi-asset joint extremes are best captured by elliptical fat-tailed dependence rather than Archimedean asymmetry. However, empirical co-exceedance and non-linear excess tail dependence vary across investment horizons: excess crash co-dependence peaks at weekly swing frequencies ($D_2$, $+0.030$) and secular macroeconomic trends ($S_5$, $+0.042$), while high-frequency co-exceedance ($D_1$) is largely accounted for by linear correlation ($+0.004$ excess), and intermediate monthly cycles ($D_4, D_5$) attenuate toward background levels.
-    \item \textbf{What does ignoring this do to a portfolio's measured risk?} 
-    At short horizons (1-day), ignoring fat tails and tail dependence (Parametric Gaussian) understates measured risk, producing 13 breaches ($1.49\%$ failure rate) compared to 5 breaches for copula-based specifications. However, at multi-day horizons (5-day, 20-day), conventional square-root-of-time scaling does not understate risk in normal trending markets; it was statistically conservative (0 to 3 breaches observed). The H-TCM multiplier provides an actionable, contingent macroprudential overlay to guard against multiscale tail contagion during stressed regimes without imposing unnecessary capital drag in quiet markets.
-\end{enumerate}
+% ---------------------------------------------------------------- 5
+\section{Limitations}
 
-\section*{Appendix: Reproducibility \& AI Disclosure}
-\noindent
-In accordance with competition rules:
-\begin{itemize}
-    \item \textbf{One-Command Reproduction:} The entire pipeline, figures, tables, and backtests reproduce via \texttt{python run\_all.py} in approximately 10 seconds.
-    \item \textbf{Automated Test Suite:} All 45 mathematical and econometric unit/integration tests execute via \texttt{pytest tests/}, verifying all properties in approximately 15 seconds.
-    \item \textbf{Transparent AI Disclosure Statement:} Generative AI tools (including Claude, ChatGPT, and Antigravity) were utilized materially as research accelerators and programming partners for mathematical literature synthesis, Python code drafting and refactoring across \texttt{src/}, numerical optimization debugging, and LaTeX drafting. The human team directed project scoping, selected the asset universe, audited every script and test, conducted econometric reality checks (including demanding the Gaussian copula benchmark and candid H-TCM evaluation), and assumes full, undivided responsibility for every calculation, methodology, and conclusion presented (see \texttt{docs/AI\_DISCLOSURE.md}).
+\begin{itemize}[leftmargin=1.2em]
+\item The longest views contain few independent crash episodes. This is why the sleeve-level change and the 60-day capital gap have wide intervals. More history would help, but HYG only starts in 2007.
+\item The backtest needs \RollingWindow{} days of history, so it begins in \ForecastStart{}. The 2008 crisis is used for estimation only and is never forecast out of sample.
+\item Coverage tests at 20 days rest on \ObsTwenty{} non-overlapping windows, so they cannot tell good models apart. We rely on the FZ score, which uses every forecast, and still find differences that are not significant.
+\item The horizon copula is fitted to ranks of the smoothed returns without removing volatility clustering first. Shared volatility spikes may add to measured dependence. The daily copula is fitted to the same kind of data, so the comparison between them is fair, but the levels should be read with this in mind.
+\item The portfolio weights are fixed and there are no transaction costs, rebalancing or liquidity effects.
 \end{itemize}
 
+% ---------------------------------------------------------------- 6
+\section{Conclusion}
+
+Tail dependence does change with the investment horizon. The change is clear for equities and credit, likely for equities and Treasuries, and in the opposite direction for gold. A risk model that uses daily dependence for a 20-day horizon understates VaR by about \GapTwenty{} on average and by more than \GapTwentyTop{} on one day in ten. The $\sqrt{h}$ rule hides this by overstating volatility. Measuring horizon risk with full-horizon volatility and horizon-matched dependence fixes both errors, scored best out of sample, and needs less capital than the rule it replaces.
+
+\section*{Reproducibility and use of AI tools}
+
+\texttt{python run\_all.py} rebuilds every number, table and figure in this report from the stored price data in about six minutes, and gives identical output on repeated runs. The numbers in the text are written by the same script to \texttt{tables/key\_numbers.tex}. Package versions are pinned in \texttt{requirements.txt} (Python 3.12), and \texttt{pytest} runs the test suite.
+
+AI assistants were used for coding help, debugging and drafting text. The team chose the question, data, methods and conclusions, checked every result against the code, and takes full responsibility for the submission. Details are in \texttt{docs/AI\_DISCLOSURE.md}.
+
+% ---------------------------------------------------------------- refs
 \begin{thebibliography}{99}
-\bibitem{basel1996} Basel Committee on Banking Supervision. (1996). \textit{Supervisory Framework for the Use of ``Backtesting'' in Conjunction with the Internal Models Approach to Market Risk Capital Requirements}. Basel: Bank for International Settlements.
+\small
+\bibitem{basel1996} Basel Committee on Banking Supervision (1996). \textit{Supervisory framework for the use of ``backtesting'' in conjunction with the internal models approach to market risk capital requirements}. Bank for International Settlements.
 \bibitem{christoffersen1998} Christoffersen, P. F. (1998). Evaluating interval forecasts. \textit{International Economic Review}, 39(4), 841--862.
-\bibitem{embrechts2002} Embrechts, P., McNeil, A., \& Straumann, D. (2002). Correlation and dependence in risk management: Properties and pitfalls. In M. A. H. Dempster (Ed.), \textit{Risk Management: Value at Risk and Beyond} (pp. 176--223). Cambridge: Cambridge University Press.
-\bibitem{fissler2016} Fissler, T., \& Ziegel, J. F. (2016). Higher order elicitability and prediction markets of higher order. \textit{The Annals of Statistics}, 44(5), 2153--2181.
-\bibitem{gencay2001} Gencay, R., Selcuk, F., \& Whitcher, B. (2001). \textit{An Introduction to Wavelets and Other Filtering Methods in Finance and Economics}. San Diego: Academic Press.
-\bibitem{gjr1993} Glosten, L. R., Jagannathan, R., \& Runkle, D. E. (1993). On the relation between the expected value and the volatility of the nominal excess return on stocks. \textit{The Journal of Finance}, 48(5), 1779--1801.
+\bibitem{fissler2016} Fissler, T. and Ziegel, J. F. (2016). Higher order elicitability and Osband's principle. \textit{The Annals of Statistics}, 44(4), 1680--1707.
+\bibitem{gjr1993} Glosten, L. R., Jagannathan, R. and Runkle, D. E. (1993). On the relation between the expected value and the volatility of the nominal excess return on stocks. \textit{The Journal of Finance}, 48(5), 1779--1801.
 \bibitem{kupiec1995} Kupiec, P. H. (1995). Techniques for verifying the accuracy of risk measurement models. \textit{The Journal of Derivatives}, 3(2), 73--84.
-\bibitem{mcneil2015} McNeil, A. J., Frey, R., \& Embrechts, P. (2015). \textit{Quantitative Risk Management: Concepts, Techniques and Tools} (Revised ed.). Princeton, NJ: Princeton University Press.
-\bibitem{percival2000} Percival, D. B., \& Walden, A. T. (2000). \textit{Wavelet Methods for Time Series Analysis}. Cambridge: Cambridge University Press.
-\bibitem{pickands1975} Pickands, J. (1975). Statistical inference using extreme order statistics. \textit{The Annals of Statistics}, 3(1), 119--131.
-\bibitem{sklar1959} Sklar, A. (1959). Fonctions de r\'epartition \`a $n$ dimensions et leurs marges. \textit{Publications de l'Institut de Statistique de l'Universit\'e de Paris}, 8, 229--231.
+\bibitem{mcneil2015} McNeil, A. J., Frey, R. and Embrechts, P. (2015). \textit{Quantitative Risk Management: Concepts, Techniques and Tools}. Revised edition. Princeton University Press.
+\bibitem{patton2019} Patton, A. J., Ziegel, J. F. and Chen, R. (2019). Dynamic semiparametric models for expected shortfall (and Value-at-Risk). \textit{Journal of Econometrics}, 211(2), 388--413.
+\bibitem{percival2000} Percival, D. B. and Walden, A. T. (2000). \textit{Wavelet Methods for Time Series Analysis}. Cambridge University Press.
 \end{thebibliography}
 
 \end{document}
