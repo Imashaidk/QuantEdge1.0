@@ -1,0 +1,31 @@
+period,horizon,model,days,breaches
+COVID 2020,1,daily_copula,52,0
+COVID 2020,1,daily_sqrt,52,0
+COVID 2020,1,gaussian_sqrt,52,10
+COVID 2020,1,historical,52,9
+COVID 2020,1,horizon_copula,52,0
+COVID 2020,5,daily_copula,52,5
+COVID 2020,5,daily_sqrt,52,5
+COVID 2020,5,gaussian_sqrt,52,13
+COVID 2020,5,historical,52,12
+COVID 2020,5,horizon_copula,52,5
+COVID 2020,20,daily_copula,52,5
+COVID 2020,20,daily_sqrt,52,5
+COVID 2020,20,gaussian_sqrt,52,14
+COVID 2020,20,historical,52,14
+COVID 2020,20,horizon_copula,52,5
+2022 rates shock,1,daily_copula,209,3
+2022 rates shock,1,daily_sqrt,209,3
+2022 rates shock,1,gaussian_sqrt,209,11
+2022 rates shock,1,historical,209,4
+2022 rates shock,1,horizon_copula,209,3
+2022 rates shock,5,daily_copula,209,6
+2022 rates shock,5,daily_sqrt,209,5
+2022 rates shock,5,gaussian_sqrt,209,12
+2022 rates shock,5,historical,209,6
+2022 rates shock,5,horizon_copula,209,6
+2022 rates shock,20,daily_copula,209,15
+2022 rates shock,20,daily_sqrt,209,11
+2022 rates shock,20,gaussian_sqrt,209,26
+2022 rates shock,20,historical,209,0
+2022 rates shock,20,horizon_copula,209,12

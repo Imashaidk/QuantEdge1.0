@@ -1,28 +1,29 @@
 \begin{table}[htbp]
-\caption{Out-of-Sample Risk Model Evaluation: Basel-style (1d) and Breach Diagnostic (5d, 20d)}
-\label{tab:backtest_metrics}
+\centering
+\small
+\caption{Rolling out-of-sample backtest of 99\% VaR and ES. Coverage tests use non-overlapping windows. FZ is the Fissler-Ziegel score (lower is better); $\Delta$FZ is the difference to the daily copula with its Diebold-Mariano $p$-value.}
+\label{tab:backtest}
 \begin{tabular}{llccccccc}
 \toprule
-Horizon & Model & Obs & Breaches & Breach Rate & Kupiec $p$ & Christoffersen $p$ & FZ Loss & Status / Diagnostic \\
+$h$ & Model & Breaches / exp. & Kupiec $p$ & Christ. $p$ & FZ & $\Delta$FZ ($p$) & Avg VaR & Basel \\
 \midrule
-1d & Historical Simulation & 875 & 6 & 0.69\% & 0.3219 & 0.0286 & -3.7191 & GREEN (Basel) \\
-1d & Parametric Gaussian & 875 & 13 & 1.49\% & 0.1780 & 0.1824 & -3.6786 & GREEN (Basel) \\
-1d & Static Copula & 875 & 5 & 0.57\% & 0.1659 & 0.0182 & -3.6674 & GREEN (Basel) \\
-1d & Basel Sqrt Time & 875 & 6 & 0.69\% & 0.3219 & 0.0286 & -3.7191 & GREEN (Basel) \\
-1d & Proposed Multiscale Copula & 875 & 5 & 0.57\% & 0.1659 & 0.0182 & -3.6674 & GREEN (Basel) \\
-1d & H TCM Adjusted & 875 & 6 & 0.69\% & 0.3219 & 0.0286 & -3.7191 & GREEN (Basel) \\
-5d & Historical Simulation & 871 & 2 & 0.23\% & 0.0059 & 0.0016 & -2.9245 & GREEN (Diag) \\
-5d & Parametric Gaussian & 871 & 6 & 0.69\% & 0.3282 & 0.0003 & -3.0778 & GREEN (Diag) \\
-5d & Static Copula & 871 & 2 & 0.23\% & 0.0059 & 0.0016 & -2.8764 & GREEN (Diag) \\
-5d & Basel Sqrt Time & 871 & 3 & 0.34\% & 0.0244 & 0.0000 & -2.9744 & GREEN (Diag) \\
-5d & Proposed Multiscale Copula & 871 & 2 & 0.23\% & 0.0059 & 0.0016 & -2.8764 & GREEN (Diag) \\
-5d & H TCM Adjusted & 871 & 3 & 0.34\% & 0.0244 & 0.0000 & -2.9744 & GREEN (Diag) \\
-20d & Historical Simulation & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & -2.3530 & GREEN (Diag) \\
-20d & Parametric Gaussian & 856 & 3 & 0.35\% & 0.0274 & 0.0000 & -2.6591 & GREEN (Diag) \\
-20d & Static Copula & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & -2.2600 & GREEN (Diag) \\
-20d & Basel Sqrt Time & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & -2.3963 & GREEN (Diag) \\
-20d & Proposed Multiscale Copula & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & -2.2600 & GREEN (Diag) \\
-20d & H TCM Adjusted & 856 & 0 & 0.00\% & 0.0000 & 1.0000 & -2.3963 & GREEN (Diag) \\
+1d & Historical simulation & 24 / 19.0 & 0.26 & 0.00 & -3.306 & +0.450 (0.13) & 1.91\% & Red \\
+1d & Gaussian, $\sqrt{h}$ & 41 / 19.0 & 0.00 & 0.07 & -2.885 & +0.870 (0.12) & 1.65\% & Red \\
+1d & Daily copula, $\sqrt{h}$ & 20 / 19.0 & 0.81 & 0.51 & -3.756 & same & 1.89\% & Yellow \\
+1d & Daily copula, h-day vol & 20 / 19.0 & 0.81 & 0.51 & -3.756 & -- & 1.89\% & Yellow \\
+1d & Horizon copula (proposed) & 20 / 19.0 & 0.81 & 0.51 & -3.756 & same & 1.89\% & Yellow \\
+\midrule
+5d & Historical simulation & 1 / 3.8 & 0.09 & 0.94 & -2.306 & +0.603 (0.16) & 4.52\% & -- \\
+5d & Gaussian, $\sqrt{h}$ & 4 / 3.8 & 0.91 & 0.02 & -1.777 & +1.133 (0.17) & 3.58\% & -- \\
+5d & Daily copula, $\sqrt{h}$ & 2 / 3.8 & 0.31 & 0.88 & -2.928 & -0.019 (0.20) & 4.23\% & -- \\
+5d & Daily copula, h-day vol & 3 / 3.8 & 0.67 & 0.83 & -2.910 & -- & 4.10\% & -- \\
+5d & Horizon copula (proposed) & 2 / 3.8 & 0.31 & 0.88 & -2.923 & -0.014 (0.51) & 4.21\% & -- \\
+\midrule
+20d & Historical simulation & 1 / 0.9 & 0.95 & 0.88 & -0.865 & +0.773 (0.24) & 8.68\% & -- \\
+20d & Gaussian, $\sqrt{h}$ & 2 / 0.9 & 0.34 & 0.77 & -0.805 & +0.834 (0.23) & 6.82\% & -- \\
+20d & Daily copula, $\sqrt{h}$ & 1 / 0.9 & 0.95 & 0.88 & -1.742 & -0.103 (0.22) & 8.46\% & -- \\
+20d & Daily copula, h-day vol & 2 / 0.9 & 0.34 & 0.77 & -1.639 & -- & 7.74\% & -- \\
+20d & Horizon copula (proposed) & 2 / 0.9 & 0.34 & 0.77 & -1.724 & -0.085 (0.31) & 8.27\% & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
