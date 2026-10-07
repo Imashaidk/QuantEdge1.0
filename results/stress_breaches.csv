@@ -24,8 +24,8 @@ COVID 2020,20,horizon_copula,52,5
 2022 rates shock,5,gaussian_sqrt,209,12
 2022 rates shock,5,historical,209,6
 2022 rates shock,5,horizon_copula,209,6
-2022 rates shock,20,daily_copula,209,15
+2022 rates shock,20,daily_copula,209,16
 2022 rates shock,20,daily_sqrt,209,11
 2022 rates shock,20,gaussian_sqrt,209,26
 2022 rates shock,20,historical,209,0
-2022 rates shock,20,horizon_copula,209,12
+2022 rates shock,20,horizon_copula,209,13
