@@ -1,4 +1,19 @@
 period,horizon,model,days,breaches
+2011 US downgrade,1,daily_copula,71,1
+2011 US downgrade,1,daily_sqrt,71,1
+2011 US downgrade,1,gaussian_sqrt,71,1
+2011 US downgrade,1,historical,71,0
+2011 US downgrade,1,horizon_copula,71,1
+2011 US downgrade,5,daily_copula,71,1
+2011 US downgrade,5,daily_sqrt,71,1
+2011 US downgrade,5,gaussian_sqrt,71,1
+2011 US downgrade,5,historical,71,0
+2011 US downgrade,5,horizon_copula,71,1
+2011 US downgrade,20,daily_copula,71,0
+2011 US downgrade,20,daily_sqrt,71,0
+2011 US downgrade,20,gaussian_sqrt,71,0
+2011 US downgrade,20,historical,71,0
+2011 US downgrade,20,horizon_copula,71,0
 COVID 2020,1,daily_copula,52,0
 COVID 2020,1,daily_sqrt,52,0
 COVID 2020,1,gaussian_sqrt,52,10
@@ -29,3 +44,18 @@ COVID 2020,20,horizon_copula,52,5
 2022 rates shock,20,gaussian_sqrt,209,26
 2022 rates shock,20,historical,209,0
 2022 rates shock,20,horizon_copula,209,13
+2025 tariff shock,1,daily_copula,47,1
+2025 tariff shock,1,daily_sqrt,47,1
+2025 tariff shock,1,gaussian_sqrt,47,3
+2025 tariff shock,1,historical,47,3
+2025 tariff shock,1,horizon_copula,47,1
+2025 tariff shock,5,daily_copula,47,2
+2025 tariff shock,5,daily_sqrt,47,2
+2025 tariff shock,5,gaussian_sqrt,47,3
+2025 tariff shock,5,historical,47,3
+2025 tariff shock,5,horizon_copula,47,2
+2025 tariff shock,20,daily_copula,47,0
+2025 tariff shock,20,daily_sqrt,47,0
+2025 tariff shock,20,gaussian_sqrt,47,0
+2025 tariff shock,20,historical,47,0
+2025 tariff shock,20,horizon_copula,47,0
