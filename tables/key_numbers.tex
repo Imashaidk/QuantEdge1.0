@@ -1,4 +1,10 @@
 % Written by run_all.py. Do not edit by hand.
+\newcommand{\RollingWindow}{1,000}
+\newcommand{\RefitEvery}{21}
+\newcommand{\BootReps}{500}
+\newcommand{\BootBlock}{126}
+\newcommand{\TailLevel}{5\%}
+\newcommand{\Sims}{20,000}
 \newcommand{\SampleStart}{12 April 2007}
 \newcommand{\SampleEnd}{30 June 2026}
 \newcommand{\SampleDays}{4,835}
@@ -47,18 +53,21 @@
 \newcommand{\SpyGldGaussLong}{0.05}
 \newcommand{\TWins}{40}
 \newcommand{\CopulaFits}{42}
-\newcommand{\GapFive}{+2.1\%}
+\newcommand{\GapFive}{2.1\%}
+\newcommand{\GapFiveTop}{6.5\%}
 \newcommand{\GapFiveLow}{-1.5\%}
 \newcommand{\GapFiveHigh}{+6.5\%}
-\newcommand{\SqrtFive}{+3.6\%}
-\newcommand{\GapTwenty}{+5.0\%}
+\newcommand{\SqrtFive}{3.6\%}
+\newcommand{\GapTwenty}{5.0\%}
+\newcommand{\GapTwentyTop}{10.9\%}
 \newcommand{\GapTwentyLow}{-1.0\%}
 \newcommand{\GapTwentyHigh}{+10.9\%}
-\newcommand{\SqrtTwenty}{+8.7\%}
-\newcommand{\GapSixty}{+4.3\%}
+\newcommand{\SqrtTwenty}{8.7\%}
+\newcommand{\GapSixty}{4.3\%}
+\newcommand{\GapSixtyTop}{15.9\%}
 \newcommand{\GapSixtyLow}{-10.7\%}
 \newcommand{\GapSixtyHigh}{+15.9\%}
-\newcommand{\SqrtSixty}{+18.2\%}
+\newcommand{\SqrtSixty}{18.2\%}
 \newcommand{\ExpectedOne}{38}
 \newcommand{\BreachOneHist}{41}
 \newcommand{\ZoneHist}{red}
@@ -76,6 +85,8 @@
 \newcommand{\AvgVarTwentyHorizon}{6.8\%}
 \newcommand{\BreachTwentyHorizon}{2}
 \newcommand{\HorizonVsSqrtTwenty}{-4.7\%}
+\newcommand{\HorizonSavingTwenty}{4.7\%}
+\newcommand{\ExpectedTwenty}{1.9}
 \newcommand{\DmDailyFive}{0.51}
 \newcommand{\DmSqrtFive}{0.59}
 \newcommand{\DmDailyTwenty}{0.32}

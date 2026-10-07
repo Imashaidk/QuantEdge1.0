@@ -1,6 +1,7 @@
 \begin{table}[htbp]
 \centering
-\small
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \caption{Rolling out-of-sample backtest of 99\% VaR and ES. Coverage tests use non-overlapping windows. FZ is the Fissler-Ziegel score (lower is better); $\Delta$FZ is the difference to the daily copula with its Diebold-Mariano $p$-value.}
 \label{tab:backtest}
 \begin{tabular}{llccccccc}
@@ -9,9 +10,7 @@ $h$ & Model & Breaches / exp. & Kupiec $p$ & Christ. $p$ & FZ & $\Delta$FZ ($p$)
 \midrule
 1d & Historical simulation & 41 / 38.4 & 0.67 & 0.00 & -3.612 & +0.308 (0.05) & 1.75\% & Red \\
 1d & Gaussian, $\sqrt{h}$ & 68 / 38.4 & 0.00 & 0.00 & -3.381 & +0.539 (0.06) & 1.47\% & Red \\
-1d & Daily copula, $\sqrt{h}$ & 37 / 38.4 & 0.83 & 0.40 & -3.920 & same & 1.60\% & Yellow \\
-1d & Daily copula, h-day vol & 37 / 38.4 & 0.83 & 0.40 & -3.920 & -- & 1.60\% & Yellow \\
-1d & Horizon copula (proposed) & 37 / 38.4 & 0.83 & 0.40 & -3.920 & same & 1.60\% & Yellow \\
+1d & All three copula models & 37 / 38.4 & 0.83 & 0.40 & -3.920 & -- & 1.60\% & Yellow \\
 \midrule
 5d & Historical simulation & 6 / 7.7 & 0.53 & 0.76 & -2.686 & +0.271 (0.23) & 3.92\% & -- \\
 5d & Gaussian, $\sqrt{h}$ & 10 / 7.7 & 0.42 & 0.11 & -2.379 & +0.578 (0.17) & 3.19\% & -- \\
