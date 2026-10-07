@@ -184,10 +184,14 @@ def main() -> None:
     min_tail = min(emp_tails) if emp_tails else 0.052
     max_tail = max(emp_tails) if emp_tails else 0.201
 
-    b_5d = backtest_df[backtest_df["Horizon"] == "5d"]["Breaches"].tolist()
-    b_20d = backtest_df[backtest_df["Horizon"] == "20d"]["Breaches"].tolist()
-    min_b = min(b_5d + b_20d) if (b_5d + b_20d) else 0
-    max_b = max(b_5d + b_20d) if (b_5d + b_20d) else 3
+    pg_1d = backtest_df[(backtest_df["Horizon"] == "1d") & (backtest_df["Model"].str.contains("Gaussian", case=False))]
+    pg_breaches = int(pg_1d["Breaches"].values[0]) if len(pg_1d) else 13
+    pg_rate_str = str(pg_1d["Breach_Rate"].values[0]) if len(pg_1d) else "1.49%"
+
+    bs_5d = backtest_df[(backtest_df["Horizon"] == "5d") & (backtest_df["Model"].str.contains("Basel", case=False))]
+    bs_20d = backtest_df[(backtest_df["Horizon"] == "20d") & (backtest_df["Model"].str.contains("Basel", case=False))]
+    bs_breaches_5d = int(bs_5d["Breaches"].values[0]) if len(bs_5d) else 3
+    bs_breaches_20d = int(bs_20d["Breaches"].values[0]) if len(bs_20d) else 0
 
     print("\n[Step 6/6] Summary & H-TCM Policy Analysis")
 
@@ -205,8 +209,8 @@ def main() -> None:
 
   2. BACKTEST INSIGHT:
      In out-of-sample backtesting (2023-2026), conventional square-root scaling was
-     statistically conservative at 5-day and 20-day horizons ({min_b} to {max_b} breaches observed),
-     whereas 1-day Parametric Gaussian produced 13 breaches (1.49% breach rate).
+     statistically conservative at 5-day ({bs_breaches_5d} breaches) and 20-day horizons ({bs_breaches_20d} breaches vs ~8.7 expected),
+     whereas 1-day Parametric Gaussian produced {pg_breaches} breaches ({pg_rate_str} breach rate).
 
   3. ACTIONABLE INSTITUTIONAL RISK RECOMMENDATION:
      Square-root-of-time scaling remains adequate in benign market conditions.

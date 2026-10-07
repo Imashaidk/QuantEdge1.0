@@ -108,7 +108,7 @@ Five copula families fitted via MLE and evaluated by Bayesian Information Criter
 
 **Disentangling Tail Dependence from Linear Correlation:**
 At a $5\%$ quantile threshold ($q = 0.05$), assets governed by a Gaussian copula produce positive co-exceedance due to linear correlation $\rho$. By benchmarking against the bivariate normal integral $\lambda_{\text{Gauss}}(0.05; \rho) = \Phi_2(z_{0.05}, z_{0.05}; \rho) / 0.05$, we find:
-- At $D_1$, empirical $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$ (excess $+0.004$), proving that daily co-exceedance is primarily linear correlation.
+- At $D_1$, empirical $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$ (excess $+0.004$), consistent with daily co-exceedance being driven primarily by linear correlation rather than non-linear crash dependence.
 - At $D_2$, empirical $\hat{\lambda}_L = 0.201$ vs Gaussian benchmark $0.171$ (excess $+0.030$), indicating genuine non-linear crash clustering at weekly holding periods.
 - At $S_5$, excess tail dependence reaches $+0.042$, capturing secular macro co-dependence.
 
@@ -124,20 +124,22 @@ We evaluate models across out-of-sample trading days (January 2023 to June 2026)
 | **1d** | Parametric Gaussian | 875 | 13 | 1.49% | 0.1780 | 0.1824 | -3.6786 | GREEN (Basel) |
 | **1d** | Static Copula | 875 | 5 | 0.57% | 0.1659 | 0.0182 | -3.6674 | GREEN (Basel) |
 | **1d** | Basel Sqrt Time | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
-| **1d** | **Proposed Multiscale Copula** | **875** | **5** | **0.57%** | **0.1659** | **0.0182** | **-3.6674** | **GREEN (Basel)** |
+| **1d** | Proposed Multiscale Copula | 875 | 5 | 0.57% | 0.1659 | 0.0182 | -3.6674 | GREEN (Basel) |
 | **1d** | H-TCM Adjusted | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
 | **5d** | Historical Simulation | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.9245 | GREEN (Diag) |
 | **5d** | Parametric Gaussian | 871 | 6 | 0.69% | 0.3282 | 0.0003 | -3.0778 | GREEN (Diag) |
 | **5d** | Static Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.8764 | GREEN (Diag) |
 | **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | <0.0001 | -2.9744 | GREEN (Diag) |
-| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **-2.8600** | **GREEN (Diag)** |
+| **5d** | Proposed Multiscale Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.8600 | GREEN (Diag) |
 | **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | <0.0001 | -2.9599 | GREEN (Diag) |
 | **20d** | Historical Simulation | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3530 | GREEN (Diag) |
 | **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | <0.0001 | -2.6591 | GREEN (Diag) |
 | **20d** | Static Copula | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.2601 | GREEN (Diag) |
 | **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3963 | GREEN (Diag) |
-| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **<0.0001** | **1.0000** | **-2.2601** | **GREEN (Diag)** |
+| **20d** | Proposed Multiscale Copula | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.2601 | GREEN (Diag) |
 | **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3963 | GREEN (Diag) |
+
+> **Interpretation note (FZ Loss: lower is better):** At 1d and 20d, Proposed Multiscale Copula is identical to Static Copula (same breach count and FZ loss). At 5d, Proposed ties on breaches (2) but its FZ loss (-2.8600) is higher (worse) than Historical Simulation (-2.9245), Basel (-2.9744), and Gaussian (-3.0778). The Proposed model is **comparable** to benchmarks, not superior, during this calm 2023-2026 window. The H-TCM buffer is a precautionary overlay for tail-stress regimes, not a proven performance improvement over the observed period. **Numbers above reflect the reference environment -- run `python run_all.py` for exact values in your local environment.**
 
 **Backtest Insights & Model Comparison:**
 - At 1-day, the Parametric Gaussian model produces 13 breaches (1.49% failure rate vs 1.00% expected). While failing to reject at 5% significance under Kupiec POF ($p = 0.178$), it generates 2.6x the breach count of copula models (5 breaches), demonstrating substantial tail vulnerability. The Proposed Multiscale Copula is identical to Static Copula at 1-day (5 breaches, FZ loss -3.6674).

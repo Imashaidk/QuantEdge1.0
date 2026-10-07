@@ -2,6 +2,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-brightgreen.svg)](https://www.python.org/)
 [![Competition: SAIFA Quant Edge 1.0](https://img.shields.io/badge/Competition-SAIFA%20Quant%20Edge%201.0-orange)](https://saifa.lk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Build: Reproducible](https://img.shields.io/badge/pipeline-10.1s%20execution-brightgreen)](run_all.py)
 
 Official research submission for **SAIFA Quant Edge 1.0: Initial Screening Challenge (Round 1)**.  
@@ -25,8 +26,8 @@ This project delivers **QuantEdge-MTR (Multiscale Tail Risk Framework)**, an eco
 
 ## Core Research Findings
 
-### 1. Persistent Tail Crash Co-dependence Across Timescales
-Using rigorous Probability Integral Transform (PIT) uniform margins from AR(1)-GJR-GARCH(1,1) + EVT-POT filtering, empirical lower-tail crash dependence remains persistent across investment horizons: $\hat{\lambda}_L = 0.189$ at daily noise scales ($D_1$, 2 to 4 days) and $\hat{\lambda}_L = 0.201$ at weekly swing scales ($D_2$, 4 to 8 days), gradually settling to $\hat{\lambda}_L = 0.052$ at quarterly horizons ($D_5$, 32 to 64 days). This confirms that cross-asset crash co-dependence does not vanish at multi-day horizons.
+### 1. Horizon-Varying Tail Crash Co-dependence
+Using rigorous Probability Integral Transform (PIT) uniform margins from AR(1)-GJR-GARCH(1,1) + EVT-POT filtering, empirical lower-tail crash dependence **changes** across investment horizons: peaking at weekly swing scales ($D_2$, 4 to 8 days), dropping substantially at intermediate monthly and quarterly horizons ($D_4$, $D_5$), and partially rebounding at secular macroeconomic horizons ($S_5$, >64 days). This demonstrates that the joint crash structure is not static -- scale-dependent variation is the central empirical finding of this study. Run `python run_all.py` to generate `tables/copula_tournament.tex` with exact values for your environment (values at $D_3$--$D_5$ are sensitive to copula optimization and vary slightly across library versions).
 
 ### 2. Student-t Copula Dominance Across Horizons
 Across all decomposed timescales ($D_1$ through $S_5$), the Student-$t$ copula decisively wins the model tournament evaluated by the Bayesian Information Criterion (BIC), outperforming Gaussian, Clayton, Gumbel, and Frank alternatives. Standardized residuals display symmetric fat tails across frequencies. The Timescale Asymmetry Ratio remains tightly bounded ($\text{TAR} \in [-0.013, +0.060]$), demonstrating that multiscale asset co-dependence is elliptical and fat-tailed.
@@ -80,20 +81,22 @@ Models calibrated strictly on historical data (2015 to 2022) with zero lookahead
 | **1d** | Parametric Gaussian | 875 | 13 | 1.49% | 0.1780 | 0.1824 | -3.6786 | GREEN (Basel) |
 | **1d** | Static Copula | 875 | 5 | 0.57% | 0.1659 | 0.0182 | -3.6674 | GREEN (Basel) |
 | **1d** | Basel Sqrt Time | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
-| **1d** | **Proposed Multiscale Copula** | **875** | **5** | **0.57%** | **0.1659** | **0.0182** | **-3.6674** | **GREEN (Basel)** |
+| **1d** | Proposed Multiscale Copula | 875 | 5 | 0.57% | 0.1659 | 0.0182 | -3.6674 | GREEN (Basel) |
 | **1d** | H-TCM Adjusted | 875 | 6 | 0.69% | 0.3219 | 0.0286 | -3.7191 | GREEN (Basel) |
 | **5d** | Historical Simulation | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.9245 | GREEN (Diag) |
 | **5d** | Parametric Gaussian | 871 | 6 | 0.69% | 0.3282 | 0.0003 | -3.0778 | GREEN (Diag) |
 | **5d** | Static Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.8764 | GREEN (Diag) |
 | **5d** | Basel Sqrt Time | 871 | 3 | 0.34% | 0.0244 | <0.0001 | -2.9744 | GREEN (Diag) |
-| **5d** | **Proposed Multiscale Copula** | **871** | **2** | **0.23%** | **0.0059** | **0.0016** | **-2.8600** | **GREEN (Diag)** |
+| **5d** | Proposed Multiscale Copula | 871 | 2 | 0.23% | 0.0059 | 0.0016 | -2.8600 | GREEN (Diag) |
 | **5d** | H-TCM Adjusted | 871 | 3 | 0.34% | 0.0244 | <0.0001 | -2.9599 | GREEN (Diag) |
 | **20d** | Historical Simulation | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3530 | GREEN (Diag) |
 | **20d** | Parametric Gaussian | 856 | 3 | 0.35% | 0.0274 | <0.0001 | -2.6591 | GREEN (Diag) |
 | **20d** | Static Copula | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.2601 | GREEN (Diag) |
 | **20d** | Basel Sqrt Time | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3963 | GREEN (Diag) |
-| **20d** | **Proposed Multiscale Copula** | **856** | **0** | **0.00%** | **<0.0001** | **1.0000** | **-2.2601** | **GREEN (Diag)** |
+| **20d** | Proposed Multiscale Copula | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.2601 | GREEN (Diag) |
 | **20d** | H-TCM Adjusted | 856 | 0 | 0.00% | <0.0001 | 1.0000 | -2.3963 | GREEN (Diag) |
+
+> **Interpretation note (FZ Loss: lower is better):** At 1d and 20d, Proposed Multiscale Copula is identical to Static Copula (same breach count and FZ loss). At 5d, Proposed ties on breaches (2) but its FZ loss (-2.8600) is higher (worse) than Historical Simulation (-2.9245), Basel (-2.9744), and Gaussian (-3.0778). The Proposed model is **comparable** to benchmarks, not superior, during this calm 2023-2026 window. The H-TCM buffer is a precautionary overlay for tail-stress regimes, not a proven performance improvement over the observed period. **Numbers above are from one specific library environment -- regenerate with `python run_all.py` for your local values.**
 
 ### H-TCM Contingent Capital Multiplier Sensitivity Matrix
 Values for risk desks across calibration factors $\kappa \in [0.20, 0.50]$ (baseline $\hat{\lambda}_L(1) = 0.189$):
@@ -215,7 +218,7 @@ Run the test suite to verify all mathematical and econometric invariants:
 ```bash
 pytest tests/
 ```
-*All 45 tests pass in ~15 seconds.*
+*All 47 tests pass in ~20 seconds.*
 
 ### 4. Automated Submission Verification
 ```bash

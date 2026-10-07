@@ -413,10 +413,8 @@ def export_latex_tables(
     )
     with open(bt_path, "w", encoding="utf-8") as f:
         f.write(tex_code)
-    rep_tables_dir = ROOT_PATH / "report" / "tables"
-    rep_tables_dir.mkdir(parents=True, exist_ok=True)
-    with open(rep_tables_dir / "backtest_metrics.tex", "w", encoding="utf-8") as f:
-        f.write(tex_code)
+    # Note: report.tex reads from \input{../tables/backtest_metrics.tex} (root tables/ dir).
+    # Do NOT copy to report/tables/ -- that directory is not tracked and caused stale fabricated data.
 
     # 2. Copula Tournament Leaderboard Table (tables/copula_tournament.tex)
     c_rows = []
@@ -471,8 +469,6 @@ def export_latex_tables(
         )
         with open(c_path, "w", encoding="utf-8") as f:
             f.write(c_tex)
-        with open(rep_tables_dir / "copula_tournament.tex", "w", encoding="utf-8") as f:
-            f.write(c_tex)
         print(f"[Visualizer] Exported LaTeX Table -> {c_path}")
 
     # 3. Variance Decomposition Table (tables/variance_decomposition.tex)
@@ -485,8 +481,6 @@ def export_latex_tables(
             float_format="%.2f",
         )
         with open(var_path, "w", encoding="utf-8") as f:
-            f.write(var_tex)
-        with open(rep_tables_dir / "variance_decomposition.tex", "w", encoding="utf-8") as f:
             f.write(var_tex)
         print(f"[Visualizer] Exported LaTeX Table -> {var_path}")
 

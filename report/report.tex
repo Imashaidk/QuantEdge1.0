@@ -234,13 +234,13 @@ Across all decomposed timescales ($D_1$ through $S_5$), the Student-$t$ copula w
 \end{equation}
 To benchmark whether tail co-movement reflects true tail crash dependence or background linear correlation, we compute the exact bivariate Gaussian benchmark $\lambda_{\text{Gauss}}(0.05; \rho_{ij})$ for each asset pair and report the \textbf{Excess Tail Dependence} ($\text{Excess} = \hat{\lambda}_L - \bar{\lambda}_{\text{Gauss}}$) in Table \ref{tab:copula_tournament}:
 \begin{itemize}
-    \item \textbf{Microstructure Scale ($D_1$, 2 to 4d):} Empirical co-exceedance is $\hat{\lambda}_L = 0.189$, but the Gaussian benchmark with matched linear correlation is $0.185$. The excess tail dependence is negligible ($+0.004$), proving that high-frequency tail co-movement is almost entirely linear correlation.
-    \item \textbf{Weekly Swing Scale ($D_2$, 4 to 8d):} Empirical tail dependence reaches its global peak at $\hat{\lambda}_L = 0.201$ against a Gaussian benchmark of $0.171$, generating statistically and economically meaningful **Excess Tail Dependence** of $+0.030$. Weekly swing trading and momentum rebalancing exhibit true non-linear crash clustering.
-    \item \textbf{Intermediate Cycles ($D_4, D_5$, 16 to 64d):} Co-exceedance drops into the range of $\approx 0.08 - 0.12$, matching or slightly dipping below the Gaussian baseline.
-    \item \textbf{Secular Macro Trend ($S_5$, $>64$d):} Co-exceedance rebounds to $0.178$ against a Gaussian benchmark of $0.136$, yielding an excess tail dependence of $+0.042$, reflecting shared macroeconomic and monetary cycle vulnerabilities.
+    \item \textbf{Microstructure Scale ($D_1$, 2 to 4d):} Empirical co-exceedance is $\hat{\lambda}_L = 0.189$, but the Gaussian benchmark with matched linear correlation is $0.185$. The excess tail dependence is negligible ($+0.004$), consistent with high-frequency tail co-movement being driven almost entirely by linear correlation rather than non-linear crash dependence.
+    \item \textbf{Weekly Swing Scale ($D_2$, 4 to 8d):} Empirical tail dependence reaches its global peak at $\hat{\lambda}_L = 0.201$ against a Gaussian benchmark of $0.171$, generating an economically notable \textbf{Excess Tail Dependence} of $+0.030$. No formal bootstrap confidence interval was computed; this observation is consistent with, but does not prove, genuine non-linear crash clustering at weekly frequencies.
+    \item \textbf{Intermediate Cycles ($D_4, D_5$, 16 to 64d):} Co-exceedance drops into the range of $\approx 0.08 - 0.12$, at or below the Gaussian baseline, indicating that mid-horizon diversification is less impaired by non-linear crash dependence.
+    \item \textbf{Secular Macro Trend ($S_5$, $>64$d):} Co-exceedance rebounds to $\hat{\lambda}_L \approx 0.178$ against a Gaussian benchmark of $\approx 0.136$, reflecting shared macroeconomic and monetary cycle exposures. The excess of $+0.042$ is consistent with non-linear contagion, though the limited sample of macro-cycle observations constrains inference.
 \end{itemize}
 
-\section{Out-of-Sample Backtesting \& Basel Invalidation}
+\section{Out-of-Sample Backtesting \& Regulatory Evaluation}
 \label{sec:backtest}
 
 To evaluate what happens when a risk desk ignores horizon-dependent tail dependence, we run an out-of-sample backtest across 875 trading days from January 2023 to June 2026 for horizons $h \in \{1, 5, 20\}$ days. The models are calibrated strictly on data from 2015 to 2022, ensuring zero lookahead bias.
