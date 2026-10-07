@@ -36,6 +36,7 @@ from src.config import (
     REFIT_EVERY,
     RESULTS_DIR,
     ROLLING_WINDOW,
+    STRESS_PERIODS,
     TABLES_DIR,
     WAVELET_FAMILY,
     WAVELET_LEVEL,
@@ -65,15 +66,6 @@ from src.wavelets import compute_scale_variance_decomposition, decompose_multisc
 # Horizons for the capital comparison. 60 days is too few non-overlapping windows
 # for coverage tests, so it only appears in the capital comparison.
 CAPITAL_HORIZONS = sorted(set(BACKTEST_HORIZONS) | {60})
-
-# The first forecast needs ROLLING_WINDOW days of history, so with data from
-# April 2007 the backtest starts in 2011 and 2008 is only ever in-sample.
-STRESS_PERIODS = {
-    "2011 US downgrade": ("2011-07-22", "2011-10-31"),
-    "COVID 2020": ("2020-02-15", "2020-04-30"),
-    "2022 rates shock": ("2022-01-01", "2022-10-31"),
-    "2025 tariff shock": ("2025-03-25", "2025-05-30"),
-}
 
 
 def step(title: str) -> float:

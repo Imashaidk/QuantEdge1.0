@@ -7,7 +7,7 @@ Author: Sameera Ekanayaka
 """
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 import numpy as np
 
 # Directory paths
@@ -86,3 +86,13 @@ ALPHA_VAR_99: float = 0.99
 
 # Evaluation horizons in days
 BACKTEST_HORIZONS: List[int] = [1, 5, 20]
+
+# Breaches are also counted inside these periods. The first forecast needs
+# ROLLING_WINDOW days of history, so with data from April 2007 the backtest
+# starts in 2011 and 2008 is only ever in-sample.
+STRESS_PERIODS: Dict[str, Tuple[str, str]] = {
+    "2011 US downgrade": ("2011-07-22", "2011-10-31"),
+    "COVID 2020": ("2020-02-15", "2020-04-30"),
+    "2022 rates shock": ("2022-01-01", "2022-10-31"),
+    "2025 tariff shock": ("2025-03-25", "2025-05-30"),
+}

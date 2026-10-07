@@ -18,12 +18,17 @@ if str(ROOT_PATH) not in sys.path:
 import pandas as pd
 
 from src.config import (
+    BACKTEST_HORIZONS,
     REFIT_EVERY,
+    RESULTS_DIR,
     ROLLING_WINDOW,
+    STRESS_PERIODS,
     TABLES_DIR,
     TAIL_BOOTSTRAP_REPS,
     TAIL_QUANTILE,
     VAR_SIMULATIONS,
+    WAVELET_FAMILY,
+    WAVELET_LEVEL,
 )
 from src.tail_dependence import BOOTSTRAP_BLOCK
 
@@ -144,3 +149,32 @@ def write_key_numbers(numbers: Dict[str, str], out_dir: Path = TABLES_DIR) -> Pa
         lines.append(f"\\newcommand{{\\{name}}}{{{value}}}")
     path.write_text("\n".join(lines) + "\n")
     return path
+
+
+def key_numbers_from_results(results_dir: Path = RESULTS_DIR) -> Dict[str, str]:
+    """Rebuilds the numbers from the CSV files in results/, without re-running the models.
+
+    Used by verify_submission.py to check that tables/key_numbers.tex matches results/.
+    """
+    from src.data_loader import load_returns
+    from src.rolling_backtest import compare_fz, stress_breaches
+    from src.wavelets import compute_scale_variance_decomposition, decompose_multiscale
+
+    results_dir = Path(results_dir)
+    returns = load_returns()
+    decomposed = decompose_multiscale(returns, wavelet=WAVELET_FAMILY, level=WAVELET_LEVEL)
+    var_share = compute_scale_variance_decomposition(decomposed, normalize=True)
+    tail = {name: pd.read_csv(results_dir / f"tail_{name}.csv") for name in ["sleeves", "pairs", "copulas"]}
+    forecasts = pd.read_csv(results_dir / "rolling_forecasts.csv", parse_dates=["date"])
+    tested = forecasts[forecasts["h"].isin(BACKTEST_HORIZONS)]
+    dm = pd.concat([compare_fz(tested, base=b) for b in ["daily_copula", "daily_sqrt"]], ignore_index=True)
+    return collect_key_numbers(
+        returns,
+        tail,
+        var_share,
+        forecasts,
+        pd.read_csv(results_dir / "backtest_evaluation.csv"),
+        dm,
+        pd.read_csv(results_dir / "capital_gap.csv"),
+        stress_breaches(tested, STRESS_PERIODS),
+    )
