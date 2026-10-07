@@ -62,14 +62,14 @@ Five copula families fitted via MLE and evaluated by Bayesian Information Criter
 
 | Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | Gauss Bench | Excess $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **D1** | 2 to 4 Days | Student-t | 0.020 | 0.020 | 0.189 | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
-| **D2** | 4 to 8 Days | Student-t | 0.024 | 0.024 | 0.201 | 0.171 | +0.030 | 0.214 | -0.013 | -4623.9 |
-| **D3** | 8 to 16 Days | Student-t | 0.005 | 0.005 | 0.176 | 0.166 | +0.009 | 0.168 | +0.008 | -4545.2 |
-| **D4** | 16 to 32 Days | Student-t | 0.000 | 0.000 | 0.081 | 0.101 | -0.020 | 0.057 | +0.025 | -2210.3 |
-| **D5** | 32 to 64 Days | Student-t | 0.000 | 0.000 | 0.052 | 0.049 | +0.003 | 0.064 | -0.012 | -1290.4 |
-| **S5** | >64 Days | Student-t | 0.046 | 0.046 | 0.178 | 0.136 | +0.042 | 0.118 | +0.060 | -4961.8 |
+| **D1** | 2 to 4 Days | Student-t | 0.089 | 0.089 | 0.189 | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
+| **D2** | 4 to 8 Days | Student-t | 0.079 | 0.079 | 0.201 | 0.171 | +0.030 | 0.214 | -0.013 | -4623.9 |
+| **D3** | 8 to 16 Days | Student-t | 0.047 | 0.047 | 0.176 | 0.166 | +0.009 | 0.168 | +0.008 | -4545.2 |
+| **D4** | 16 to 32 Days | Student-t | 0.002 | 0.002 | 0.081 | 0.101 | -0.020 | 0.057 | +0.025 | -2210.3 |
+| **D5** | 32 to 64 Days | Student-t | 0.001 | 0.001 | 0.052 | 0.049 | +0.003 | 0.064 | -0.012 | -1290.4 |
+| **S5** | >64 Days | Student-t | 0.098 | 0.098 | 0.178 | 0.136 | +0.042 | 0.118 | +0.060 | -4961.8 |
 
-> **Gaussian Benchmark Finding:** At high-frequency noise scales ($D_1$), the empirical co-exceedance $\hat{\lambda}_L = 0.189$ is almost entirely accounted for by background linear correlation (Gaussian benchmark $0.185$, excess $+0.004$). True non-linear crash clustering peaks at weekly swing frequencies ($D_2$, excess $+0.030$) and secular macroeconomic cycles ($S_5$, excess $+0.042$).
+> **Gaussian Benchmark & Bootstrap Finding:** At high-frequency noise scales ($D_1$), the empirical co-exceedance $\hat{\lambda}_L = 0.189$ is almost entirely accounted for by background linear correlation (Gaussian benchmark $0.185$, excess $+0.004$). While excess tail crash dependence peaks at weekly swing frequencies ($D_2$, excess $+0.030$), a moving-block bootstrap ($b=64$ days, 300 replications) produces a $95\%$ confidence interval $[0.161, 0.239]$ overlapping with $D_1$ $[0.154, 0.228]$, confirming that the $0.012$ gap lies within finite-sample estimation uncertainty. Macroeconomic cycles ($S_5$) exhibit persistent excess co-exceedance ($+0.042$).
 
 ### Out-of-Sample Performance (875 Test Days: 2023 to 2026)
 Models calibrated strictly on historical data (2015 to 2022) with zero lookahead bias:
@@ -217,7 +217,7 @@ Run the test suite to verify all mathematical and econometric invariants:
 ```bash
 pytest tests/
 ```
-*All 47 tests pass in ~20 seconds.*
+*All 48 tests pass in ~20 seconds.*
 
 ### 4. Automated Submission Verification
 ```bash

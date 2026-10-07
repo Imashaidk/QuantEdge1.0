@@ -99,17 +99,17 @@ Five copula families fitted via MLE and evaluated by Bayesian Information Criter
 
 | Scale | Trading Horizon | Best Copula | Theo. $\lambda_L$ | Theo. $\lambda_U$ | Emp. $\lambda_L$ | Gauss Bench | Excess $\lambda_L$ | Emp. $\lambda_U$ | Emp. TAR | BIC |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **D1** | 2 to 4 Days | Student-t | 0.020 | 0.020 | 0.189 | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
-| **D2** | 4 to 8 Days | Student-t | 0.024 | 0.024 | 0.201 | 0.171 | +0.030 | 0.214 | -0.013 | -4623.9 |
-| **D3** | 8 to 16 Days | Student-t | 0.005 | 0.005 | 0.176 | 0.166 | +0.009 | 0.168 | +0.008 | -4545.2 |
-| **D4** | 16 to 32 Days | Student-t | 0.000 | 0.000 | 0.081 | 0.101 | -0.020 | 0.057 | +0.025 | -2210.3 |
-| **D5** | 32 to 64 Days | Student-t | 0.000 | 0.000 | 0.052 | 0.049 | +0.003 | 0.064 | -0.012 | -1290.4 |
-| **S5** | >64 Days | Student-t | 0.046 | 0.046 | 0.178 | 0.136 | +0.042 | 0.118 | +0.060 | -4961.8 |
+| **D1** | 2 to 4 Days | Student-t | 0.089 | 0.089 | 0.189 | 0.185 | +0.004 | 0.187 | +0.002 | -5547.0 |
+| **D2** | 4 to 8 Days | Student-t | 0.079 | 0.079 | 0.201 | 0.171 | +0.030 | 0.214 | -0.013 | -4623.9 |
+| **D3** | 8 to 16 Days | Student-t | 0.047 | 0.047 | 0.176 | 0.166 | +0.009 | 0.168 | +0.008 | -4545.2 |
+| **D4** | 16 to 32 Days | Student-t | 0.002 | 0.002 | 0.081 | 0.101 | -0.020 | 0.057 | +0.025 | -2210.3 |
+| **D5** | 32 to 64 Days | Student-t | 0.001 | 0.001 | 0.052 | 0.049 | +0.003 | 0.064 | -0.012 | -1290.4 |
+| **S5** | >64 Days | Student-t | 0.098 | 0.098 | 0.178 | 0.136 | +0.042 | 0.118 | +0.060 | -4961.8 |
 
 **Disentangling Tail Dependence from Linear Correlation:**
 At a $5\%$ quantile threshold ($q = 0.05$), assets governed by a Gaussian copula produce positive co-exceedance due to linear correlation $\rho$. By benchmarking against the bivariate normal integral $\lambda_{\text{Gauss}}(0.05; \rho) = \Phi_2(z_{0.05}, z_{0.05}; \rho) / 0.05$, we find:
 - At $D_1$, empirical $\hat{\lambda}_L = 0.189$ vs Gaussian benchmark $0.185$ (excess $+0.004$), consistent with daily co-exceedance being driven primarily by linear correlation rather than non-linear crash dependence.
-- At $D_2$, empirical $\hat{\lambda}_L = 0.201$ vs Gaussian benchmark $0.171$ (excess $+0.030$), indicating genuine non-linear crash clustering at weekly holding periods.
+- At $D_2$, empirical $\hat{\lambda}_L = 0.201$ vs Gaussian benchmark $0.171$ (excess $+0.030$). Moving-block bootstrap analysis (block size 64 days, 300 replications) yields a 95% confidence interval of [0.161, 0.239] overlapping with D1 [0.154, 0.228], indicating that the 0.012 gap between D1 and D2 lies within finite-sample estimation uncertainty.
 - At $S_5$, excess tail dependence reaches $+0.042$, capturing secular macro co-dependence.
 
 ***

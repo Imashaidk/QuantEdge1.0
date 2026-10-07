@@ -191,15 +191,18 @@ class StudentTCopula(BaseCopula):
         np.fill_diagonal(self.R, 1.0)
         self.inv_R = np.linalg.inv(self.R)
 
-        # Compute average pairwise theoretical tail dependence
+        # Compute average pairwise theoretical tail dependence across all asset pairs
         off_diags = self.R[np.triu_indices(self.n_dim, k=1)]
         mean_rho = float(np.mean(off_diags))
 
-        if mean_rho > -0.999:
-            arg = -np.sqrt((self.nu + 1.0) * (1.0 - mean_rho) / (1.0 + mean_rho))
-            tail_dep = float(2.0 * t.cdf(arg, df=self.nu + 1.0))
-        else:
-            tail_dep = 0.0
+        pair_tails = []
+        for rho_ij in off_diags:
+            if rho_ij > -0.999:
+                arg = -np.sqrt((self.nu + 1.0) * (1.0 - rho_ij) / (1.0 + rho_ij))
+                pair_tails.append(float(2.0 * t.cdf(arg, df=self.nu + 1.0)))
+            else:
+                pair_tails.append(0.0)
+        tail_dep = float(np.mean(pair_tails)) if pair_tails else 0.0
 
         self.lambda_L = tail_dep
         self.lambda_U = tail_dep
@@ -507,6 +510,48 @@ def compute_empirical_tail_dependence(
     excess_l_L = float(mean_l_L - mean_gauss)
 
     return mean_l_L, mean_l_U, tar, mean_gauss, excess_l_L
+
+
+def compute_bootstrap_tail_confidence_intervals(
+    U: np.ndarray,
+    q: float = 0.05,
+    n_bootstraps: int = 300,
+    block_size: int = 64,
+    confidence_level: float = 0.95,
+    seed: int = RANDOM_SEED,
+) -> Tuple[float, float, float]:
+    """Computes moving-block bootstrap confidence intervals for empirical tail dependence lambda_L(q).
+
+    Args:
+        U: Uniform marginal data (N x d).
+        q: Tail quantile cutoff (default: 0.05).
+        n_bootstraps: Number of bootstrap replications (default: 300).
+        block_size: Moving block size in trading days (default: 64 days).
+        confidence_level: Nominal confidence level (default: 0.95).
+        seed: Random seed for deterministic reproducibility.
+
+    Returns:
+        Tuple[float, float, float]: (point_estimate, ci_lower, ci_upper)
+    """
+    N, d = U.shape
+    point_est, _, _ = compute_empirical_tail_dependence(U, q=q, return_benchmark=False)
+
+    rng = np.random.default_rng(seed)
+    n_blocks = int(np.ceil(N / block_size))
+    boot_estimates: List[float] = []
+
+    for _ in range(n_bootstraps):
+        start_indices = rng.integers(0, max(1, N - block_size + 1), size=n_blocks)
+        boot_indices = np.concatenate([np.arange(start, start + block_size) for start in start_indices])[:N]
+        U_boot = U[boot_indices]
+        b_est, _, _ = compute_empirical_tail_dependence(U_boot, q=q, return_benchmark=False)
+        boot_estimates.append(b_est)
+
+    alpha_half = (1.0 - confidence_level) / 2.0
+    ci_lower = float(np.percentile(boot_estimates, 100.0 * alpha_half))
+    ci_upper = float(np.percentile(boot_estimates, 100.0 * (1.0 - alpha_half)))
+
+    return float(point_est), float(ci_lower), float(ci_upper)
 
 
 def compute_pairwise_tail_matrix(

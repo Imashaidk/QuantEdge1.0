@@ -29,6 +29,7 @@ from src.copulas import (
     GaussianCopula,
     GumbelCopula,
     StudentTCopula,
+    compute_bootstrap_tail_confidence_intervals,
     compute_empirical_tail_dependence,
     compute_pairwise_tail_matrix,
     run_scale_copula_tournament,
@@ -321,4 +322,16 @@ def test_empirical_tail_dependence_with_gaussian_benchmark(fitted_margins):
     assert 0.0 <= g_bench <= 1.0, f"Gaussian benchmark must be in [0, 1], got {g_bench}"
     assert -1.0 <= excess <= 1.0, f"Excess tail dependence must be in [-1, 1], got {excess}"
     assert abs(excess - (lam_L - g_bench)) < 1e-9
+
+
+def test_bootstrap_tail_confidence_intervals(fitted_margins):
+    """Verifies that moving-block bootstrap produces valid, bounded confidence intervals."""
+    u_df, _ = fitted_margins
+    pt, ci_l, ci_u = compute_bootstrap_tail_confidence_intervals(
+        u_df.values[:500], q=0.05, n_bootstraps=50, block_size=32, seed=42
+    )
+    assert 0.0 <= pt <= 1.0, f"Point estimate must be in [0, 1], got {pt}"
+    assert 0.0 <= ci_l <= ci_u <= 1.0, f"Confidence interval must be ordered and in [0, 1]: [{ci_l}, {ci_u}]"
+    assert ci_l <= pt <= ci_u, f"Point estimate {pt} should typically lie inside [{ci_l}, {ci_u}]"
+
 
