@@ -7,6 +7,8 @@ Tests:
 4. Generation of Figure 4 (Basel Regulatory Traffic Light Matrix).
 5. Generation of LaTeX Tables (backtest_metrics.tex, copula_tournament.tex).
 6. End-to-end execution: generate_all_figures_and_tables execution.
+
+Author: Sameera Ekanayaka
 """
 
 import sys

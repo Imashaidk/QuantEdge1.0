@@ -8,13 +8,15 @@ this do to a portfolio's measured risk?"
 Executes the complete end-to-end institutional workflow in < 3 minutes:
   Step 1: Data Ingestion & Deterministic Caching
   Step 2: MODWT Wavelet Multiresolution Analysis (MRA)
-  Step 3: AR(1)-GJR-GARCH(1,1) EVT-POT Margins & Scale-Optimal Copula Tournament
+  Step 3: Rank-based copula data per wavelet scale & copula tournament
   Step 4: Out-of-Sample Quantitative Risk Backtesting & Regulatory Evaluation
   Step 5: Publication Figures (300 DPI) & LaTeX Table Generation
   Step 6: Executive Recommendation & H-TCM Capital Policy Report
 
 Usage:
   python run_all.py
+
+Author: Sameera Ekanayaka
 """
 
 import sys
@@ -46,7 +48,7 @@ from src.config import (
 )
 from src.copulas import run_scale_copula_tournament
 from src.data_loader import load_and_split_data
-from src.margins import fit_margins_and_transform_uniform
+from src.margins import pseudo_observations
 from src.risk_engine import compute_htcm_multiplier
 from src.visualizer import generate_all_figures_and_tables
 from src.wavelets import (
@@ -92,15 +94,14 @@ def main() -> None:
     print(f"  Step 2 completed in {t1 - t0:.2f}s")
 
     # Step 3: GARCH-EVT margins and copula tournament
-    print("\n[Step 3/6] Fitting margins and running copula tournament...")
+    print("\n[Step 3/6] Ranking each wavelet component and running the copula tournament...")
     t0 = time.time()
     copula_results: dict = {}
     tournament_summary = []
 
     for scale in ["D1", "D2", "D3", "D4", "D5", "S5"]:
-        u_s, meta_s = fit_margins_and_transform_uniform(decomposed[scale])
+        u_s = pseudo_observations(decomposed[scale])
         t_res = run_scale_copula_tournament(u_s, scale_name=scale)
-        t_res["models_meta"] = meta_s
         copula_results[scale] = t_res
 
         best_c = t_res["best_copula"]
@@ -181,13 +182,14 @@ def main() -> None:
     m_40 = compute_htcm_multiplier(lambda_L_h=lL_5, lambda_L_1=lL_1, kappa=HTCM_KAPPA)
 
     emp_tails = [float(copula_results[s]["lambda_L_emp"]) for s in ["D1", "D2", "D3", "D4", "D5", "S5"] if s in copula_results]
-    min_tail = min(emp_tails) if emp_tails else 0.052
-    max_tail = max(emp_tails) if emp_tails else 0.201
+    min_tail = min(emp_tails)
+    max_tail = max(emp_tails)
 
-    b_5d = backtest_df[backtest_df["Horizon"] == "5d"]["Breaches"].tolist()
-    b_20d = backtest_df[backtest_df["Horizon"] == "20d"]["Breaches"].tolist()
-    min_b = min(b_5d + b_20d) if (b_5d + b_20d) else 0
-    max_b = max(b_5d + b_20d) if (b_5d + b_20d) else 3
+    sqrt_rows = backtest_df[backtest_df["Model"] == "Basel_Sqrt_Time"].set_index("Horizon")
+    b_5d = int(sqrt_rows.loc["5d", "Breaches"])
+    b_20d = int(sqrt_rows.loc["20d", "Breaches"])
+
+    gauss_1d = backtest_df[(backtest_df["Horizon"] == "1d") & (backtest_df["Model"] == "Parametric_Gaussian")].iloc[0]
 
     print("\n[Step 6/6] Summary & H-TCM Policy Analysis")
 
@@ -205,8 +207,8 @@ def main() -> None:
 
   2. BACKTEST INSIGHT:
      In out-of-sample backtesting (2023-2026), conventional square-root scaling was
-     statistically conservative at 5-day and 20-day horizons ({min_b} to {max_b} breaches observed),
-     whereas 1-day Parametric Gaussian produced 13 breaches (1.49% breach rate).
+     statistically conservative at 5-day and 20-day horizons ({b_5d} breaches at 5d, {b_20d} at 20d),
+     whereas 1-day Parametric Gaussian produced {gauss_1d["Breaches"]} breaches ({gauss_1d["Breach_Rate"]} breach rate).
 
   3. ACTIONABLE INSTITUTIONAL RISK RECOMMENDATION:
      Square-root-of-time scaling remains adequate in benign market conditions.

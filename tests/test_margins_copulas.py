@@ -8,6 +8,8 @@ Tests:
 5. Timescale Asymmetry Ratio (TAR) calculation and theoretical tail bounds.
 6. Synthetic joint return simulation and empirical cross-asset dependence preservation.
 7. Strict seed determinism (SEED = 42).
+
+Author: Sameera Ekanayaka
 """
 
 import sys

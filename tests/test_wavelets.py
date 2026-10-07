@@ -10,6 +10,8 @@ Tests:
 6. Boundary extension handling (periodic vs reflection).
 7. Strict zero lookahead bias and temporal isolation.
 8. Input validation, error handling, and alternative wavelet families (db4, sym8).
+
+Author: Sameera Ekanayaka
 """
 
 import sys

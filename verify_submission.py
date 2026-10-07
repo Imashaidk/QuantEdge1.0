@@ -8,6 +8,8 @@ Automated verification script recommended by audit reports to validate:
 5. Exact confidence level alignment (VaR alpha = ES alpha = FZ alpha = 0.99).
 6. Exported LaTeX tables, 300 DPI figures, and file size limits (< 25 MB).
 7. Strict zero emojis and zero non-ASCII dashes across project files.
+
+Author: Sameera Ekanayaka
 """
 
 import os

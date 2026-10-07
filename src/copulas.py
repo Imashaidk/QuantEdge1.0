@@ -1,4 +1,7 @@
-"""Copula models (Gaussian, Student-t, Clayton, Gumbel, Frank) and scale tournament."""
+"""Copula models (Gaussian, Student-t, Clayton, Gumbel, Frank) and scale tournament.
+
+Author: Sameera Ekanayaka
+"""
 
 import sys
 from abc import ABC, abstractmethod

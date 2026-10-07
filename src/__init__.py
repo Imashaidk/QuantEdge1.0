@@ -1,1 +1,4 @@
-"""QuantEdge-MTR package initialization."""
+"""QuantEdge-MTR package initialization.
+
+Author: Sameera Ekanayaka
+"""

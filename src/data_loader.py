@@ -3,6 +3,8 @@
 Downloads, caches, and preprocesses multi-asset historical price data from
 Yahoo Finance. Computes log returns, tests stationarity, and enforces
 strict in-sample / out-of-sample temporal partitioning.
+
+Author: Sameera Ekanayaka
 """
 
 import sys

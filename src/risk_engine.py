@@ -2,6 +2,8 @@
 
 Computes portfolio Value-at-Risk (VaR at 95% and 99%) and Expected Shortfall (ES)
 across benchmark models and multiscale wavelet-copula estimators.
+
+Author: Sameera Ekanayaka
 """
 
 import sys
@@ -459,7 +461,7 @@ class RiskEngine:
 if __name__ == "__main__":
     from src.data_loader import load_and_split_data
     from src.wavelets import decompose_multiscale
-    from src.margins import fit_margins_and_transform_uniform
+    from src.margins import pseudo_observations
     from src.copulas import run_scale_copula_tournament
 
     df_train, df_test = load_and_split_data()
@@ -469,7 +471,7 @@ if __name__ == "__main__":
     decomposed = decompose_multiscale(df_train)
     tournament_meta: Dict[str, Any] = {}
     for scale in ["D1", "D2", "D3", "D4", "D5", "S5"]:
-        u_s, m_s = fit_margins_and_transform_uniform(decomposed[scale])
+        u_s = pseudo_observations(decomposed[scale])
         t_res = run_scale_copula_tournament(u_s, scale_name=scale)
         tournament_meta[scale] = t_res
 

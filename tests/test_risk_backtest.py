@@ -11,6 +11,8 @@ Tests:
 8. Official Basel Committee Traffic Light zone classification (Green/Yellow/Red).
 9. Fissler-Ziegel (FZ) joint scoring consistency.
 10. Backtest integration: run_out_of_sample_backtest schema and output types.
+
+Author: Sameera Ekanayaka
 """
 
 import sys

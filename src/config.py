@@ -2,6 +2,8 @@
 
 Defines global asset universe, sample date windows, random seeds,
 path constants, wavelet levels, and risk model parameters.
+
+Author: Sameera Ekanayaka
 """
 
 from pathlib import Path
@@ -46,6 +48,9 @@ TEST_END: str = "2026-06-30"
 # Wavelet multiresolution analysis (MODWT)
 WAVELET_FAMILY: str = "sym8"
 WAVELET_LEVEL: int = 5
+# Reflection avoids wrapping the last days of the sample onto the first ones,
+# which distorts the coarse scales (the level 5 sym8 filter spans 466 days).
+WAVELET_BOUNDARY: str = "reflection"
 SCALE_NAMES: List[str] = ["D1", "D2", "D3", "D4", "D5", "S5"]
 
 SCALE_HORIZONS: Dict[str, str] = {

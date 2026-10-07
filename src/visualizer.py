@@ -21,6 +21,8 @@ LaTeX Tables:
 1. `tables/backtest_metrics.tex`: Out-of-sample backtest results and p-values.
 2. `tables/copula_tournament.tex`: Scale-optimal copula selection leaderboard.
 3. `tables/variance_decomposition.tex`: Percentage variance contribution per scale.
+
+Author: Sameera Ekanayaka
 """
 
 import sys
@@ -397,10 +399,6 @@ def export_latex_tables(
     )
     with open(bt_path, "w", encoding="utf-8") as f:
         f.write(tex_code)
-    rep_tables_dir = ROOT_PATH / "report" / "tables"
-    rep_tables_dir.mkdir(parents=True, exist_ok=True)
-    with open(rep_tables_dir / "backtest_metrics.tex", "w", encoding="utf-8") as f:
-        f.write(tex_code)
 
     # 2. Copula Tournament Leaderboard Table (tables/copula_tournament.tex)
     c_rows = []
@@ -448,8 +446,6 @@ def export_latex_tables(
         )
         with open(c_path, "w", encoding="utf-8") as f:
             f.write(c_tex)
-        with open(rep_tables_dir / "copula_tournament.tex", "w", encoding="utf-8") as f:
-            f.write(c_tex)
         print(f"[Visualizer] Exported LaTeX Table -> {c_path}")
 
     # 3. Variance Decomposition Table (tables/variance_decomposition.tex)
@@ -462,8 +458,6 @@ def export_latex_tables(
             float_format="%.2f",
         )
         with open(var_path, "w", encoding="utf-8") as f:
-            f.write(var_tex)
-        with open(rep_tables_dir / "variance_decomposition.tex", "w", encoding="utf-8") as f:
             f.write(var_tex)
         print(f"[Visualizer] Exported LaTeX Table -> {var_path}")
 
@@ -546,7 +540,7 @@ def generate_all_figures_and_tables(
 if __name__ == "__main__":
     from src.data_loader import load_and_split_data
     from src.wavelets import decompose_multiscale, compute_scale_variance_decomposition
-    from src.margins import fit_margins_and_transform_uniform
+    from src.margins import pseudo_observations
     from src.copulas import run_scale_copula_tournament
     from src.backtest import run_out_of_sample_backtest
 
@@ -563,9 +557,8 @@ if __name__ == "__main__":
     print("\n[Step 3] Running scale copula tournament...")
     copula_results = {}
     for s in ["D1", "D2", "D3", "D4", "D5", "S5"]:
-        u_s, meta_s = fit_margins_and_transform_uniform(decomposed[s])
+        u_s = pseudo_observations(decomposed[s])
         t_res = run_scale_copula_tournament(u_s, scale_name=s)
-        t_res["models_meta"] = meta_s
         copula_results[s] = t_res
 
     # 4. Run Backtests

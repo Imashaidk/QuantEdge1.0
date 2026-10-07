@@ -1,4 +1,7 @@
-"""Semi-parametric marginal models: AR(1)-GJR-GARCH(1,1) filtering + EVT-POT tails."""
+"""Semi-parametric marginal models: AR(1)-GJR-GARCH(1,1) filtering + EVT-POT tails.
+
+Author: Sameera Ekanayaka
+"""
 
 import sys
 from pathlib import Path
@@ -13,7 +16,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from arch import arch_model
-from scipy.stats import genpareto, kstest
+from scipy.stats import genpareto, kstest, rankdata
 
 from src.config import (
     EVT_TAIL_PERCENTILE,
@@ -197,13 +200,20 @@ class GARCH_EVT_Margin:
         z = np.nan_to_num(z, nan=0.0, posinf=3.0, neginf=-3.0)
         z_std = float(np.std(z, ddof=1))
         if z_std > 2.5 or z_std < 0.4 or not np.isfinite(z_std):
-            # Enforce exact empirical standardization if GARCH optimization produces ill-scaled volatility
+            # The GARCH fit produced badly scaled residuals. Fall back to plain
+            # standardisation, but record it so the fallback is visible in the output.
+            warnings.warn(
+                f"{self.asset_name}: GARCH residuals badly scaled (std={z_std:.2f}), "
+                "using unconditional standardisation instead."
+            )
             uncond_mu = float(np.mean(raw_vals))
             uncond_sigma = float(max(np.std(raw_vals, ddof=1), 1e-8))
             z = (raw_vals - uncond_mu) / uncond_sigma
             self.forecast_sigma = uncond_sigma
             self.forecast_mu = uncond_mu
             self.garch_summary = {"Const": uncond_mu, "omega": uncond_sigma ** 2}
+            self.model_type = "Empirical-Standardization"
+            self.fallback_used = True
 
         self.z_filtered: np.ndarray = z.copy()
 
@@ -388,6 +398,19 @@ class GARCH_EVT_Margin:
         sigma = conditional_sigma if conditional_sigma is not None else self.forecast_sigma
         mu = conditional_mu if conditional_mu is not None else self.forecast_mu
         return mu + sigma * z
+
+
+def pseudo_observations(df: pd.DataFrame) -> pd.DataFrame:
+    """Maps each column to (0, 1) using its ranks: u = rank / (n + 1).
+
+    This is the standard nonparametric way to get copula data. It does not need a
+    marginal model, so it gives the same answer on every machine and library version.
+    We use it for the wavelet components, where GARCH fits were unstable on the
+    smoother scales and changed the results between environments.
+    """
+    n = len(df)
+    u = {col: rankdata(df[col].to_numpy(), method="average") / (n + 1.0) for col in df.columns}
+    return pd.DataFrame(u, index=df.index, columns=df.columns)
 
 
 def fit_margins_and_transform_uniform(

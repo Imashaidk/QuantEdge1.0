@@ -21,8 +21,12 @@ Theoretical & Architectural Foundations:
      to economic trading horizons (2-4d microstructure, weekly, bi-weekly, monthly,
      quarterly business cycle, and secular trend).
 4. Zero Lookahead Enforcement:
-   - Boundary filtering uses periodic circular boundary extension on strictly isolated historical training partitions.
-   - Out-of-sample data is never concatenated during in-sample decomposition, ensuring zero lookahead bias.
+   - The MRA is a two-sided filter, so each point uses data on both sides of it. That is fine
+     for describing a sample, but anything used for forecasting must only decompose data
+     available at the forecast date.
+   - Boundaries use reflection by default (see WAVELET_BOUNDARY in config.py).
+
+Author: Sameera Ekanayaka
 """
 
 import sys
@@ -41,6 +45,7 @@ import pywt
 from src.config import (
     SCALE_HORIZONS,
     SCALE_NAMES,
+    WAVELET_BOUNDARY,
     WAVELET_FAMILY,
     WAVELET_LEVEL,
 )
@@ -313,7 +318,7 @@ def decompose_multiscale(
     df_returns: pd.DataFrame,
     wavelet: str = WAVELET_FAMILY,
     level: int = WAVELET_LEVEL,
-    boundary: str = "periodic",
+    boundary: str = WAVELET_BOUNDARY,
 ) -> Dict[str, pd.DataFrame]:
     """Decomposes multi-asset return series using MODWT Additive MRA.
 

@@ -6,6 +6,8 @@ for out-of-sample portfolio Value-at-Risk (VaR) and Expected Shortfall (ES):
 - Christoffersen Independence Test (conditional coverage)
 - Basel Committee on Banking Supervision (BCBS) Traffic Light Matrix
 - Fissler-Ziegel (FZ) joint scoring function for (VaR, ES)
+
+Author: Sameera Ekanayaka
 """
 
 import sys
@@ -355,15 +357,14 @@ def run_out_of_sample_backtest(
 
     if copula_results is None:
         from src.wavelets import decompose_multiscale
-        from src.margins import fit_margins_and_transform_uniform
+        from src.margins import pseudo_observations
         from src.copulas import run_scale_copula_tournament
 
         decomposed = decompose_multiscale(df_train)
         copula_results = {}
         for scale in ["D1", "D2", "D3", "D4", "D5", "S5"]:
-            u_s, m_s = fit_margins_and_transform_uniform(decomposed[scale])
+            u_s = pseudo_observations(decomposed[scale])
             t_res = run_scale_copula_tournament(u_s, scale_name=scale)
-            t_res["models_meta"] = m_s
             copula_results[scale] = t_res
 
     # Generate genuine raw copula simulation if not provided
