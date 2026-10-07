@@ -42,10 +42,11 @@ from src.config import (
     WAVELET_LEVEL,
 )
 from src.data_loader import load_returns
+from src.key_numbers import collect_key_numbers, write_key_numbers
 from src.horizon_var import MODEL_LABELS, measured_risk_table
 from src.rolling_backtest import (
     capital_gap,
-    compare_to_daily_copula,
+    compare_fz,
     evaluate_forecasts,
     run_rolling_forecasts,
     stress_breaches,
@@ -66,10 +67,13 @@ from src.wavelets import compute_scale_variance_decomposition, decompose_multisc
 # for coverage tests, so it only appears in the capital comparison.
 CAPITAL_HORIZONS = sorted(set(BACKTEST_HORIZONS) | {60})
 
+# The first forecast needs ROLLING_WINDOW days of history, so with data from
+# April 2007 the backtest starts in 2011 and 2008 is only ever in-sample.
 STRESS_PERIODS = {
-    "2008 crisis": ("2008-09-01", "2009-03-31"),
+    "2011 US downgrade": ("2011-07-22", "2011-10-31"),
     "COVID 2020": ("2020-02-15", "2020-04-30"),
     "2022 rates shock": ("2022-01-01", "2022-10-31"),
+    "2025 tariff shock": ("2025-03-25", "2025-05-30"),
 }
 
 
@@ -112,14 +116,14 @@ def main() -> None:
     forecasts.to_csv(RESULTS_DIR / "rolling_forecasts.csv", index=False, float_format="%.6f")
     tested = forecasts[forecasts["h"].isin(BACKTEST_HORIZONS)]
     evaluation = evaluate_forecasts(tested, alpha=ALPHA_VAR_99)
-    dm = compare_to_daily_copula(tested, alpha=ALPHA_VAR_99)
+    dm = pd.concat([compare_fz(tested, alpha=ALPHA_VAR_99, base=b) for b in ["daily_copula", "daily_sqrt"]], ignore_index=True)
     gap = capital_gap(forecasts)
     stress = stress_breaches(tested, STRESS_PERIODS)
     for name, df in [("backtest_evaluation", evaluation), ("backtest_dm", dm), ("capital_gap", gap), ("stress_breaches", stress)]:
         df.to_csv(RESULTS_DIR / f"{name}.csv", index=False, float_format="%.6f")
     print(f"  Forecast dates: {forecasts['date'].min().date()} to {forecasts['date'].max().date()}")
     print(evaluation.round(4).to_string(index=False))
-    print("  FZ score against the daily copula (negative = better):")
+    print("  FZ score against the daily copula and the sqrt(h) rule (negative = better):")
     print(dm.round(4).to_string(index=False))
     print("  VaR change against the daily copula:")
     print(gap.round(4).to_string(index=False))
@@ -144,7 +148,9 @@ def main() -> None:
     plot_fig4_capital_gap(gap, out_path=FIGURES_DIR / "fig4_capital_gap_by_horizon.png")
     export_variance_table(var_share, out_dir=TABLES_DIR)
     export_tail_table(tail["sleeves"], tail["pairs"], out_dir=TABLES_DIR)
-    export_rolling_backtest_table(evaluation, dm, out_dir=TABLES_DIR)
+    export_rolling_backtest_table(evaluation, dm[dm["base"] == "daily_copula"], out_dir=TABLES_DIR)
+    numbers = collect_key_numbers(returns, tail, var_share, forecasts, evaluation, dm, gap, stress)
+    print(f"  {len(numbers)} numbers for the report text -> {write_key_numbers(numbers, out_dir=TABLES_DIR)}")
     print(f"  done in {time.time() - t0:.1f}s")
 
     step("[7/7] Summary")
@@ -163,6 +169,14 @@ def main() -> None:
     best = evaluation.loc[evaluation.groupby("horizon")["fz"].idxmin(), ["horizon", "model"]]
     for _, r in best.iterrows():
         print(f"  Best FZ score at {r['horizon']}d: {MODEL_LABELS[r['model']]}")
+
+    print("\n  Recommendation, 20-day risk: replace the sqrt(h) rule with GARCH h-day volatility and")
+    print("  a copula fitted to the matching horizon view.")
+    print(f"    average 20d VaR: sqrt(h) {numbers['AvgVarTwentySqrt']}, horizon copula {numbers['AvgVarTwentyHorizon']} "
+          f"({numbers['HorizonVsSqrtTwenty']})".replace("\\%", "%"))
+    print(f"    breaches in {numbers['ObsTwenty']} non-overlapping windows: sqrt(h) {numbers['BreachTwentySqrt']}, "
+          f"horizon copula {numbers['BreachTwentyHorizon']}")
+    print(f"    FZ test p-values, horizon copula vs sqrt(h) {numbers['DmSqrtTwenty']}, vs daily copula {numbers['DmDailyTwenty']}")
 
     print(f"\nFinished in {time.time() - t_total:.0f} seconds.")
 
