@@ -25,6 +25,7 @@ def _pct(x: float, signed: bool = True) -> str:
 
 
 def _num(x: float, digits: int = 2, signed: bool = False) -> str:
+    x = round(float(x), digits) + 0.0  # avoids printing -0.00
     return f"{x:+.{digits}f}" if signed else f"{x:.{digits}f}"
 
 

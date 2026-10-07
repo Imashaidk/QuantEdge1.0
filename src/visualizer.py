@@ -203,6 +203,11 @@ def plot_fig2_tail_by_horizon(
     print(f"[Visualizer] Exported Figure 2 -> {out_path}")
 
 
+def _signed(x: float) -> str:
+    """Two decimals with a sign. Rounds first so -0.004 prints as +0.00, not -0.00."""
+    return f"{round(float(x), 2) + 0.0:+.2f}"
+
+
 def export_tail_table(
     sleeve_table: pd.DataFrame,
     pair_table: pd.DataFrame,
@@ -216,18 +221,19 @@ def export_tail_table(
         "\\small",
         "\\caption{Lower-tail co-exceedance at the 5\\% level by horizon view. Brackets are 90\\% moving block bootstrap intervals.}",
         "\\label{tab:tail_by_horizon}",
-        "\\begin{tabular}{lccccc}",
+        "\\begin{tabular}{lcccccc}",
         "\\toprule",
-        "Horizon & Risky vs hedge & Change vs daily & Gaussian & SPY-TLT & SPY-HYG \\\\",
+        "Horizon & Risky vs hedge & Change vs daily & Gaussian & SPY-TLT & SPY-HYG & SPY-GLD \\\\",
         "\\midrule",
     ]
     for j, r in sl.iterrows():
         spy_tlt = pair_table[(pair_table["pair"] == "SPY-TLT") & (pair_table["view"] == j)].iloc[0]
         spy_hyg = pair_table[(pair_table["pair"] == "SPY-HYG") & (pair_table["view"] == j)].iloc[0]
-        change = "--" if j == 0 else f"{r['change_vs_daily']:+.2f} [{r['change_ci_low']:+.2f}, {r['change_ci_high']:+.2f}]"
+        spy_gld = pair_table[(pair_table["pair"] == "SPY-GLD") & (pair_table["view"] == j)].iloc[0]
+        change = "--" if j == 0 else f"{_signed(r['change_vs_daily'])} [{_signed(r['change_ci_low'])}, {_signed(r['change_ci_high'])}]"
         lines.append(
             f"{r['horizon']} & {r['lambda_L']:.2f} [{r['ci_low']:.2f}, {r['ci_high']:.2f}] & {change} & {r['gauss']:.2f} & "
-            f"{spy_tlt['lambda_L']:.2f} & {spy_hyg['lambda_L']:.2f} \\\\"
+            f"{spy_tlt['lambda_L']:.2f} & {spy_hyg['lambda_L']:.2f} & {spy_gld['lambda_L']:.2f} \\\\"
         )
     lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}", ""]
     path = out_dir / "tail_by_horizon.tex"
@@ -331,7 +337,8 @@ def export_rolling_backtest_table(
     lines = [
         "\\begin{table}[htbp]",
         "\\centering",
-        "\\small",
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{4pt}",
         "\\caption{Rolling out-of-sample backtest of 99\\% VaR and ES. Coverage tests use non-overlapping windows. "
         "FZ is the Fissler-Ziegel score (lower is better); $\\Delta$FZ is the difference to the daily copula with its Diebold-Mariano $p$-value.}",
         "\\label{tab:backtest}",
@@ -342,17 +349,17 @@ def export_rolling_backtest_table(
     ]
     for h, eh in evaluation.groupby("horizon"):
         for _, r in eh.iterrows():
+            label = MODEL_LABELS[r["model"]]
+            if h == 1 and r["model"] in ("daily_sqrt", "horizon_copula"):
+                continue  # at one day the three copula models are the same forecast
+            if h == 1 and r["model"] == "daily_copula":
+                label = "All three copula models"
             d = dm[(dm["horizon"] == h) & (dm["model"] == r["model"])]
-            if r["model"] == "daily_copula" or d.empty:
-                dfz = "--"
-            elif h == 1 and r["model"] in ("daily_sqrt", "horizon_copula"):
-                dfz = "same"
-            else:
-                dfz = f"{d['mean_fz_diff'].iloc[0]:+.3f} ({d['p_value'].iloc[0]:.2f})"
+            dfz = "--" if r["model"] == "daily_copula" or d.empty else f"{d['mean_fz_diff'].iloc[0]:+.3f} ({d['p_value'].iloc[0]:.2f})"
             zone = r.get("basel_zone", "")
             zone = zone.capitalize() if isinstance(zone, str) and h == 1 else "--"
             lines.append(
-                f"{h}d & {MODEL_LABELS[r['model']]} & {r['breaches']} / {r['expected']:.1f} & {r['kupiec_p']:.2f} & "
+                f"{h}d & {label} & {r['breaches']} / {r['expected']:.1f} & {r['kupiec_p']:.2f} & "
                 f"{r['christoffersen_p']:.2f} & {r['fz']:.3f} & {dfz} & {r['avg_var'] * 100:.2f}\\% & {zone} \\\\"
             )
         lines.append("\\midrule" if h != evaluation["horizon"].max() else "\\bottomrule")
@@ -370,6 +377,7 @@ def export_variance_table(variance_decomp_df: pd.DataFrame, out_dir: Path = TABL
         position="htbp",
         float_format="%.1f",
     )
+    var_tex = var_tex.replace("\\begin{tabular}", "\\centering\n\\small\n\\begin{tabular}", 1)
     path = out_dir / "variance_decomposition.tex"
     path.write_text(var_tex, encoding="utf-8")
     print(f"[Visualizer] Exported LaTeX Table -> {path}")
