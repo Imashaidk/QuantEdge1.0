@@ -243,6 +243,67 @@ def run_tail_dependence_analysis(
     return {"pairs": pair_table, "sleeves": sleeve_table, "copulas": copula_table, "views": views}
 
 
+def block_length_robustness(
+    views: Dict[int, pd.DataFrame],
+    pair: Tuple[str, str] = ("SPY", "HYG"),
+    target_view: int = 5,
+    blocks: Sequence[int] = (63, 126, 252),
+    q: float = TAIL_QUANTILE,
+    reps: int = TAIL_BOOTSTRAP_REPS,
+    seed: int = RANDOM_SEED,
+) -> pd.DataFrame:
+    """Evaluates change in lower-tail co-exceedance vs daily across different block lengths.
+
+    Supports the block-length robustness check quoted in the report.
+    """
+    cols = list(views[0].columns)
+    ia, ib = cols.index(pair[0]), cols.index(pair[1])
+    x_daily = views[0].to_numpy(dtype=float)[:, [ia, ib]]
+    x_long = views[target_view].to_numpy(dtype=float)[:, [ia, ib]]
+    n = len(views[0])
+
+    u_d = to_ranks(x_daily)
+    u_l = to_ranks(x_long)
+    est_change = coexceedance(u_l[:, 0], u_l[:, 1], q) - coexceedance(u_d[:, 0], u_d[:, 1], q)
+
+    rows = []
+    for b in blocks:
+        idx = block_bootstrap_indices(n, b, reps=reps, seed=seed)
+        diff = np.empty(reps)
+        for r in range(reps):
+            ub_d = to_ranks(x_daily[idx[r]])
+            ub_l = to_ranks(x_long[idx[r]])
+            diff[r] = coexceedance(ub_l[:, 0], ub_l[:, 1], q) - coexceedance(ub_d[:, 0], ub_d[:, 1], q)
+        rows.append({
+            "pair": f"{pair[0]}-{pair[1]}",
+            "block_length": b,
+            "change_vs_daily": est_change,
+            "ci_low": float(np.percentile(diff, 5)),
+            "ci_high": float(np.percentile(diff, 95)),
+        })
+    return pd.DataFrame(rows)
+
+
+def spy_tlt_crash_days(
+    views: Dict[int, pd.DataFrame],
+    pair: Tuple[str, str] = ("SPY", "TLT"),
+    target_view: int = 5,
+    q: float = TAIL_QUANTILE,
+) -> pd.DataFrame:
+    """Counts joint crash days (both in lower q tail) for SPY-TLT at the target horizon view.
+
+    Outputs counts by episode/year and total, confirming the 2009 and 2022 concentration.
+    """
+    v = views[target_view]
+    u = to_ranks(v[list(pair)].to_numpy(dtype=float))
+    mask = (u[:, 0] <= q) & (u[:, 1] <= q)
+    dates = v.index[mask]
+    counts = dates.year.value_counts().sort_index()
+    rows = [{"year": str(yr), "count": int(cnt)} for yr, cnt in counts.items()]
+    rows.append({"year": "Total", "count": int(len(dates))})
+    return pd.DataFrame(rows)
+
+
 if __name__ == "__main__":
     from src.data_loader import load_returns
 
@@ -252,3 +313,4 @@ if __name__ == "__main__":
     print(out["sleeves"].round(3).to_string(index=False))
     print(out["pairs"].pivot(index="pair", columns="view", values="lambda_L").round(2))
     print(out["copulas"].round(3).to_string(index=False))
+

@@ -97,10 +97,14 @@ def compute_log_returns(
     Returns:
         pd.DataFrame: Daily log returns without missing values.
     """
+    raw_path = DATA_DIR / "raw_prices.csv"
     if cache_path.exists():
-        print(f"[DataLoader] Loading cached log returns from: {cache_path}")
-        df_returns = pd.read_csv(cache_path, index_col=0, parse_dates=True)
-        return df_returns
+        # Check if raw prices cache was updated after log returns cache
+        if not (raw_path.exists() and raw_path.stat().st_mtime > cache_path.stat().st_mtime):
+            print(f"[DataLoader] Loading cached log returns from: {cache_path}")
+            df_returns = pd.read_csv(cache_path, index_col=0, parse_dates=True)
+            return df_returns
+        print(f"[DataLoader] raw_prices.csv is newer than cache. Rebuilding log_returns.csv...")
 
     log_returns = np.log(df_prices / df_prices.shift(1)).dropna()
     log_returns.index = pd.to_datetime(log_returns.index)
@@ -114,6 +118,9 @@ def compute_log_returns(
 
 def verify_stationarity(df_returns: pd.DataFrame) -> Dict[str, Dict[str, float]]:
     """Runs the Augmented Dickey-Fuller (ADF) test on each asset return series.
+
+    Exploratory / diagnostic validation function (not required in the automated pipeline).
+
 
     Asserts that all series are strictly stationary (p-value < 0.01).
 

@@ -10,9 +10,9 @@ The full write-up is [report/report.pdf](report/report.pdf). This page explains 
 
 We use a five-asset portfolio (SPY 30%, QQQ 20%, TLT 25%, GLD 15%, HYG 10%) on daily data from April 2007 to June 2026. A MODWT wavelet decomposition gives us the same returns seen at horizons from one day to more than three months.
 
-- **Tail dependence changes with horizon for some pairs, but not portfolio-wide.** Strong evidence for equities and credit (lower-tail co-exceedance rises from 0.53 at one day to 0.77 beyond 64 days, and the 90% bootstrap interval for the change excludes zero across 63-, 126-, and 252-day blocks), suggestive for equities and Treasuries (hedge weakens, but interval includes zero), and not detectable for gold or for the portfolio as a whole.
-- **Horizon-matched dependence gives 5% higher VaR.** A copula fitted to the matching horizon would give about 5% higher 20-day VaR on average than a daily copula (and more than 10% higher on one day in ten). This compares two model forecasts on the same dates; out-of-sample evidence that the higher number is better is weak, as the Diebold-Mariano test cannot statistically separate them ($p = 0.32$ at 20 days, and at 5 days the daily sqrt(h) model actually scores best). The usual sqrt(h) rule hides this because it overstates 20-day VaR by even more.
-- **Recommendation.** For positions held 20 days or longer, replace sqrt(h) scaling with a full-horizon GARCH volatility forecast and a copula fitted to the matching wavelet horizon view. In a rolling out-of-sample backtest from 2011 to 2026 this achieved the best point-estimate FZ score at 20 days (without statistical significance) and needed about 5% less capital than sqrt(h).
+- **Tail dependence changes with horizon for some pairs, but not portfolio-wide.** Across 30 horizon comparisons (6 asset pairs across 5 multi-day horizons), only one comparison excludes zero: suggestive evidence for equities and credit (lower-tail co-exceedance rises from 0.53 at one day to 0.77 beyond 64 days, and the 90% bootstrap interval for the change excludes zero across 63-, 126-, and 252-day blocks), suggestive for equities and Treasuries (hedge weakens, but interval includes zero), and not detectable for gold or for the portfolio as a whole.
+- **Horizon-matched dependence gives 5.0% higher VaR.** A copula fitted to the matching horizon would give 5.0% higher 20-day VaR on average than a daily copula (and more than 10.9% higher on one day in ten). This compares two model forecasts on the same dates; out-of-sample evidence that the higher number is better is weak, as the Diebold-Mariano test cannot statistically separate them ($p = 0.32$ at 20 days, and at 5 days the daily sqrt(h) model actually scores best). The usual sqrt(h) rule hides this because it overstates 20-day VaR by even more (8.7% on average).
+- **Recommendation.** For positions held 20 days or longer, replace sqrt(h) scaling with a full-horizon GARCH volatility forecast and a copula fitted to the matching wavelet horizon view. In a rolling out-of-sample backtest from 2011 to 2026 this achieved the best point-estimate FZ score at 20 days (without statistical significance) and needed 4.7% less capital than sqrt(h).
 
 All numbers above are produced by `run_all.py`. The exact values used in the report are written to `tables/key_numbers.tex`.
 
@@ -86,7 +86,7 @@ verify_submission.py  pre-submission checks
 
 ## Data
 
-Daily adjusted closing prices from Yahoo Finance for SPY, QQQ, TLT, GLD and HYG. The sample starts on 11 April 2007, the first day HYG traded. If `data/raw_prices.csv` is removed, `src/data_loader.py` downloads it again with `yfinance`.
+Daily adjusted closing prices from Yahoo Finance for SPY, QQQ, TLT, GLD and HYG. The sample starts on 11 April 2007 (first recorded price, yielding the first log return on 12 April 2007, the first day HYG traded). If `data/raw_prices.csv` is removed, `src/data_loader.py` downloads it again with `yfinance`.
 
 ## Use of AI tools
 

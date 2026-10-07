@@ -206,3 +206,20 @@ def capital_gap(forecasts: pd.DataFrame) -> pd.DataFrame:
                 "es_ratio_mean": float((m["ES"] / base["ES"]).mean() - 1.0),
             })
     return pd.DataFrame(rows)
+
+
+def capital_gap_by_year(forecasts: pd.DataFrame, horizon: int = 20) -> pd.DataFrame:
+    """Mean VaR ratio (horizon copula / daily copula) for the given horizon, by calendar year.
+
+    Supports the year-by-year gap figures quoted in the report recommendation section.
+    Only rows where both models have forecasts on the same date are included.
+    """
+    fh = forecasts[forecasts["h"] == horizon].copy()
+    base = fh[fh["model"] == "daily_copula"].set_index("date")["VaR"].rename("base_var")
+    hcop = fh[fh["model"] == "horizon_copula"].set_index("date")["VaR"].rename("hcop_var")
+    both = pd.concat([base, hcop], axis=1).dropna()
+    both["ratio"] = both["hcop_var"] / both["base_var"] - 1.0
+    both["year"] = both.index.year
+    result = both.groupby("year")["ratio"].mean().reset_index()
+    result.columns = ["year", "var_ratio_mean"]
+    return result

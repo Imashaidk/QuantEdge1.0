@@ -28,7 +28,9 @@ class GARCH_EVT_Margin:
     """Semi-parametric marginal distribution model for financial asset returns.
 
     Combines AR(1)-GJR-GARCH(1,1) with Student-t innovations to filter
-    autocorrelation and asymmetric volatility clustering, followed by
+    autocorrelation and asymmetric volatility clustering (exploratory implementation
+    used in unit tests; multi-day rolling forecasts in horizon_var.py use constant-mean GJR-GARCH
+    to avoid multi-day drift accumulation), followed by
     EVT-POT (Generalized Pareto Distribution) on upper/lower tails and
     an Empirical CDF on the interior body.
 

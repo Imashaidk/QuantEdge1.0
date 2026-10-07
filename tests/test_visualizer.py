@@ -30,7 +30,7 @@ TICKERS = ["SPY", "QQQ", "TLT", "GLD", "HYG"]
 
 def _tail_tables():
     rows = []
-    for pair in ["Risky-Hedge", "SPY-TLT", "SPY-HYG", "TLT-HYG", "SPY-GLD"]:
+    for pair in ["Risky-Hedge", "SPY-TLT", "SPY-HYG", "TLT-HYG", "SPY-GLD", "SPY-QQQ", "TLT-GLD"]:
         for j in range(6):
             rows.append({"view": j, "horizon": "Daily" if j == 0 else f"> {2 ** (j + 1)}d", "pair": pair,
                          "lambda_L": 0.1 + 0.02 * j, "ci_low": 0.05, "ci_high": 0.3, "change_vs_daily": 0.02 * j,

@@ -51,6 +51,7 @@ def collect_key_numbers(
     dm: pd.DataFrame,
     gap: pd.DataFrame,
     stress: pd.DataFrame,
+    gap_by_year: Optional[pd.DataFrame] = None,
 ) -> Dict[str, str]:
     """Builds the macro name -> text mapping. Macro names must be letters only."""
     k: Dict[str, str] = {}
@@ -106,6 +107,17 @@ def collect_key_numbers(
         k[f"Gap{word}High"] = _pct(g.loc[("horizon_copula", h), "var_ratio_p90"])
         k[f"Sqrt{word}"] = _pct(g.loc[("daily_sqrt", h), "var_ratio_mean"], signed=False)
 
+    if gap_by_year is None:
+        from src.rolling_backtest import capital_gap_by_year
+        gap_by_year = capital_gap_by_year(forecasts, horizon=20)
+    gy = gap_by_year.set_index("year")["var_ratio_mean"]
+    if 2021 in gy.index:
+        k["GapYearTwentyOne"] = _pct(gy.loc[2021], signed=False)
+    if 2022 in gy.index:
+        k["GapYearTwentyTwo"] = _pct(gy.loc[2022], signed=False)
+    if 2023 in gy.index:
+        k["GapYearTwentyThree"] = _pct(gy.loc[2023], signed=False)
+
     ev = evaluation.set_index(["model", "horizon"])
     k["ExpectedOne"] = f"{ev.loc[('daily_copula', 1), 'expected']:.0f}"
     for model, name in [("historical", "Hist"), ("gaussian_sqrt", "Gauss"), ("daily_copula", "Copula")]:
@@ -133,6 +145,10 @@ def collect_key_numbers(
         for model, mname in [("daily_sqrt", "Sqrt"), ("daily_copula", "Daily"), ("horizon_copula", "Horizon")]:
             k[f"Stress{name}{mname}"] = str(int(st.loc[(period, 20, model), "breaches"]))
         k[f"Stress{name}Days"] = str(int(st.loc[(period, 20, "daily_copula"), "days"]))
+    k["StressTwentyTwoDiff"] = str(
+        int(st.loc[("2022 rates shock", 20, "daily_copula"), "breaches"])
+        - int(st.loc[("2022 rates shock", 20, "horizon_copula"), "breaches"])
+    )
 
     return k
 
@@ -157,7 +173,7 @@ def key_numbers_from_results(results_dir: Path = RESULTS_DIR) -> Dict[str, str]:
     Used by verify_submission.py to check that tables/key_numbers.tex matches results/.
     """
     from src.data_loader import load_returns
-    from src.rolling_backtest import compare_fz, stress_breaches
+    from src.rolling_backtest import capital_gap_by_year, compare_fz, stress_breaches
     from src.wavelets import compute_scale_variance_decomposition, decompose_multiscale
 
     results_dir = Path(results_dir)
@@ -168,6 +184,11 @@ def key_numbers_from_results(results_dir: Path = RESULTS_DIR) -> Dict[str, str]:
     forecasts = pd.read_csv(results_dir / "rolling_forecasts.csv", parse_dates=["date"])
     tested = forecasts[forecasts["h"].isin(BACKTEST_HORIZONS)]
     dm = pd.concat([compare_fz(tested, base=b) for b in ["daily_copula", "daily_sqrt"]], ignore_index=True)
+    gap_by_year_path = results_dir / "gap_by_year.csv"
+    if gap_by_year_path.exists():
+        gap_by_year = pd.read_csv(gap_by_year_path)
+    else:
+        gap_by_year = capital_gap_by_year(forecasts, horizon=20)
     return collect_key_numbers(
         returns,
         tail,
@@ -177,4 +198,6 @@ def key_numbers_from_results(results_dir: Path = RESULTS_DIR) -> Dict[str, str]:
         dm,
         pd.read_csv(results_dir / "capital_gap.csv"),
         stress_breaches(tested, STRESS_PERIODS),
+        gap_by_year=gap_by_year,
     )
+

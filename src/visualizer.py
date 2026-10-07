@@ -84,7 +84,8 @@ def plot_fig1_wavelet_mra(
     print(f"[Visualizer] Exported Figure 1 -> {out_path}")
 
 
-FIG2_PAIRS = ["SPY-TLT", "SPY-HYG", "TLT-HYG", "SPY-GLD"]
+FIG2_PAIRS = ["SPY-QQQ", "SPY-HYG", "SPY-TLT", "SPY-GLD", "TLT-HYG", "TLT-GLD"]
+FIG2_COLORS = ["#8e44ad", "#2a78d6", "#eb6834", "#eda100", "#1baf7a", "#7f8c8d"]
 
 
 def plot_fig2_tail_by_horizon(
@@ -97,13 +98,13 @@ def plot_fig2_tail_by_horizon(
 
     Left: risky sleeve vs hedge sleeve with its 90% bootstrap band, the upper tail,
     and what a Gaussian copula with the same correlation would give.
-    Right: the main asset pairs.
+    Right: all six asset pairs evaluated across the 30 comparisons.
     """
     sl = sleeve_table.sort_values("view")
     x = sl["view"].to_numpy()
     labels = sl["horizon"].tolist()
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.2))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11.5, 4.2))
     fig.patch.set_facecolor("white")
 
     ax1.fill_between(x, sl["ci_low"], sl["ci_high"], color=SERIES_COLORS[0], alpha=0.15, linewidth=0,
@@ -124,9 +125,9 @@ def plot_fig2_tail_by_horizon(
         pt = pair_table[pair_table["pair"] == pair].sort_values("view")
         if pt.empty:
             continue
-        ax2.plot(pt["view"], pt["lambda_L"], color=SERIES_COLORS[k], linewidth=2, marker="o", markersize=5, label=pair)
+        ax2.plot(pt["view"], pt["lambda_L"], color=FIG2_COLORS[k], linewidth=1.8, marker="o", markersize=4.5, label=pair)
     ax2.axhline(0.05, color="#b5b4ac", linewidth=0.8, linestyle=":")
-    ax2.set_title("Lower tail, main asset pairs", fontsize=9.5, loc="left")
+    ax2.set_title("Lower tail, all asset pairs (6 pairs, 30 tests)", fontsize=9.5, loc="left")
     ax2.set_ylim(0, 1)
     ax2.set_xlim(-0.3, x[-1] + 0.3)
 
@@ -139,7 +140,7 @@ def plot_fig2_tail_by_horizon(
         ax.spines["right"].set_visible(False)
         ax.tick_params(labelsize=8)
     ax1.legend(loc="upper left", fontsize=7.5, frameon=False)
-    ax2.legend(loc="upper left", fontsize=7.5, frameon=False, ncol=2)
+    ax2.legend(loc="upper left", fontsize=7.5, frameon=False, ncol=3)
 
     plt.tight_layout()
     plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
@@ -162,27 +163,31 @@ def export_tail_table(
     lines = [
         "\\begin{table}[htbp]",
         "\\centering",
-        "\\small",
+        "\\footnotesize",
+        "\\setlength{\\tabcolsep}{3.5pt}",
         "\\caption{Lower-tail co-exceedance at the 5\\% level by horizon view. Brackets are 90\\% moving block bootstrap intervals.}",
         "\\label{tab:tail_by_horizon}",
-        "\\begin{tabular}{lcccccc}",
+        "\\begin{tabular}{lccccccccc}",
         "\\toprule",
-        "Horizon & Risky vs hedge & Change vs daily & Gaussian & SPY-TLT & SPY-HYG & SPY-GLD \\\\",
+        "Horizon & Risky vs hedge & Change vs daily & Gaussian & SPY-HYG & SPY-TLT & SPY-GLD & SPY-QQQ & TLT-HYG & TLT-GLD \\\\",
         "\\midrule",
     ]
     for j, r in sl.iterrows():
-        spy_tlt = pair_table[(pair_table["pair"] == "SPY-TLT") & (pair_table["view"] == j)].iloc[0]
-        spy_hyg = pair_table[(pair_table["pair"] == "SPY-HYG") & (pair_table["view"] == j)].iloc[0]
-        spy_gld = pair_table[(pair_table["pair"] == "SPY-GLD") & (pair_table["view"] == j)].iloc[0]
+        def _get_lambda(pair_name: str) -> str:
+            sub = pair_table[(pair_table["pair"] == pair_name) & (pair_table["view"] == j)]
+            return f"{sub['lambda_L'].iloc[0]:.2f}" if not sub.empty else "--"
+
         change = "--" if j == 0 else f"{_signed(r['change_vs_daily'])} [{_signed(r['change_ci_low'])}, {_signed(r['change_ci_high'])}]"
         lines.append(
             f"{r['horizon']} & {r['lambda_L']:.2f} [{r['ci_low']:.2f}, {r['ci_high']:.2f}] & {change} & {r['gauss']:.2f} & "
-            f"{spy_tlt['lambda_L']:.2f} & {spy_hyg['lambda_L']:.2f} & {spy_gld['lambda_L']:.2f} \\\\"
+            f"{_get_lambda('SPY-HYG')} & {_get_lambda('SPY-TLT')} & {_get_lambda('SPY-GLD')} & "
+            f"{_get_lambda('SPY-QQQ')} & {_get_lambda('TLT-HYG')} & {_get_lambda('TLT-GLD')} \\\\"
         )
     lines += ["\\bottomrule", "\\end{tabular}", "\\end{table}", ""]
     path = out_dir / "tail_by_horizon.tex"
     path.write_text("\n".join(lines).replace("> ", "$>$ "), encoding="utf-8")
     print(f"[Visualizer] Exported LaTeX Table -> {path}")
+
 
 
 MODEL_COLORS = {
@@ -289,7 +294,7 @@ def export_rolling_backtest_table(
         "\\footnotesize",
         "\\setlength{\\tabcolsep}{4pt}",
         "\\caption{Rolling out-of-sample backtest of 99\\% VaR and ES. Coverage tests use non-overlapping windows. "
-        "FZ is the Fissler-Ziegel score (lower is better); $\\Delta$FZ is the difference to the daily copula with its Diebold-Mariano $p$-value.}",
+        "FZ is the Fissler-Ziegel score (lower is better); $\\Delta$FZ is the difference to the baseline model (Daily copula, $h$-day vol) with its Diebold-Mariano $p$-value.}",
         "\\label{tab:backtest}",
         "\\begin{tabular}{llccccccc}",
         "\\toprule",

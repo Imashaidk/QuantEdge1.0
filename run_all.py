@@ -46,12 +46,17 @@ from src.key_numbers import collect_key_numbers, write_key_numbers
 from src.horizon_var import MODEL_LABELS, measured_risk_table
 from src.rolling_backtest import (
     capital_gap,
+    capital_gap_by_year,
     compare_fz,
     evaluate_forecasts,
     run_rolling_forecasts,
     stress_breaches,
 )
-from src.tail_dependence import run_tail_dependence_analysis
+from src.tail_dependence import (
+    block_length_robustness,
+    run_tail_dependence_analysis,
+    spy_tlt_crash_days,
+)
 from src.visualizer import (
     export_rolling_backtest_table,
     export_tail_table,
@@ -95,11 +100,19 @@ def main() -> None:
     tail = run_tail_dependence_analysis(returns, weights=DEFAULT_PORTFOLIO_WEIGHTS)
     for name in ["sleeves", "pairs", "copulas"]:
         tail[name].to_csv(RESULTS_DIR / f"tail_{name}.csv", index=False, float_format="%.6f")
+    block_rob = block_length_robustness(tail["views"], pair=("SPY", "HYG"), target_view=5)
+    block_rob.to_csv(RESULTS_DIR / "block_length_robustness.csv", index=False, float_format="%.6f")
+    tlt_crash = spy_tlt_crash_days(tail["views"], pair=("SPY", "TLT"), target_view=5)
+    tlt_crash.to_csv(RESULTS_DIR / "spy_tlt_crash_days.csv", index=False)
     cols = ["horizon", "lambda_L", "ci_low", "ci_high", "change_vs_daily", "change_ci_low", "change_ci_high", "lambda_U", "gauss"]
     print("  Risky sleeve vs hedge sleeve:")
     print(tail["sleeves"][cols].round(3).to_string(index=False))
     print("  Lower tail by pair:")
     print(tail["pairs"].pivot(index="pair", columns="view", values="lambda_L").round(2).to_string())
+    print("  SPY-HYG block-length robustness (view > 64d):")
+    print(block_rob.to_string(index=False))
+    print("  SPY-TLT joint crash days (view > 64d):")
+    print(tlt_crash.to_string(index=False))
     print(f"  done in {time.time() - t0:.1f}s")
 
     t0 = step(f"[4/7] Rolling backtest (window {ROLLING_WINDOW} days, refit every {REFIT_EVERY} days)")
@@ -109,6 +122,8 @@ def main() -> None:
     evaluation = evaluate_forecasts(tested, alpha=ALPHA_VAR_99)
     dm = pd.concat([compare_fz(tested, alpha=ALPHA_VAR_99, base=b) for b in ["daily_copula", "daily_sqrt"]], ignore_index=True)
     gap = capital_gap(forecasts)
+    gap_by_year = capital_gap_by_year(forecasts, horizon=20)
+    gap_by_year.to_csv(RESULTS_DIR / "gap_by_year.csv", index=False, float_format="%.6f")
     stress = stress_breaches(tested, STRESS_PERIODS)
     for name, df in [("backtest_evaluation", evaluation), ("backtest_dm", dm), ("capital_gap", gap), ("stress_breaches", stress)]:
         df.to_csv(RESULTS_DIR / f"{name}.csv", index=False, float_format="%.6f")
@@ -118,6 +133,8 @@ def main() -> None:
     print(dm.round(4).to_string(index=False))
     print("  VaR change against the daily copula:")
     print(gap.round(4).to_string(index=False))
+    print("  20d VaR change by calendar year:")
+    print(gap_by_year.round(4).to_string(index=False))
     if not stress.empty:
         print("  Breaches in stress periods:")
         print(stress.pivot_table(index=["period", "horizon"], columns="model", values="breaches").to_string())
@@ -140,7 +157,7 @@ def main() -> None:
     export_variance_table(var_share, out_dir=TABLES_DIR)
     export_tail_table(tail["sleeves"], tail["pairs"], out_dir=TABLES_DIR)
     export_rolling_backtest_table(evaluation, dm[dm["base"] == "daily_copula"], out_dir=TABLES_DIR)
-    numbers = collect_key_numbers(returns, tail, var_share, forecasts, evaluation, dm, gap, stress)
+    numbers = collect_key_numbers(returns, tail, var_share, forecasts, evaluation, dm, gap, stress, gap_by_year=gap_by_year)
     print(f"  {len(numbers)} numbers for the report text -> {write_key_numbers(numbers, out_dir=TABLES_DIR)}")
     print(f"  done in {time.time() - t0:.1f}s")
 

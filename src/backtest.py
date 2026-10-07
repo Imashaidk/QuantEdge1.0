@@ -137,6 +137,8 @@ def christoffersen_conditional_coverage_test(
 ) -> Tuple[float, float, bool]:
     """Computes joint Christoffersen Conditional Coverage test (POF + Independence).
 
+    Diagnostic test utility (evaluated in unit tests; primary report table uses POF and Independence separately).
+
     Test statistic:
         LR_CC = LR_POF + LR_ind ~ Chi-Square(2).
 
