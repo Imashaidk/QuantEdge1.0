@@ -17,8 +17,8 @@
 \usepackage{titlesec}
 \usepackage{setspace}
 
-\setstretch{1.06}
-\captionsetup{font=small,labelfont=bf,skip=5pt}
+\setstretch{1.03}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
 
 % Compact list spacing
 \setlist{noitemsep, topsep=3pt, parsep=1pt, partopsep=0pt}
@@ -36,7 +36,8 @@
 \setlength{\floatsep}{8pt plus 2pt minus 2pt}
 \setlength{\intextsep}{8pt plus 2pt minus 2pt}
 
-\graphicspath{{../figures/}{figures/}}
+\graphicspath{{figures/}{../figures/}{./}}
+\newcommand{\loadtable}[1]{\IfFileExists{tables/#1}{\input{tables/#1}}{\input{../tables/#1}}}
 
 \hypersetup{
     colorlinks=true,
@@ -194,6 +195,7 @@ At each scale $D_1$ through $D_5$ and $S_5$, we run an automated tournament acro
     \item \textbf{Clayton Copula:} Asymmetric lower crash dependence ($\lambda_L = 2^{-1/\theta} > 0, \lambda_U = 0$).
     \item \textbf{Gumbel Copula:} Asymmetric upper-tail dependence ($\lambda_U = 2 - 2^{1/\theta} > 0, \lambda_L = 0$).
     \item \textbf{Frank Copula:} Radial symmetry with zero tail dependence ($\lambda_L = \lambda_U = 0$).
+\end{enumerate}
 To ensure computational tractability across five assets ($d=5$), candidate Archimedean copulas (Clayton, Gumbel, Frank) are estimated via pairwise composite log-likelihood (PCL) summation across all $\binom{5}{2} = 10$ pairs \cite{mcneil2015}, while elliptical candidates (Gaussian and Student-$t$) evaluate full 5-dimensional joint likelihoods. Consequently, candidate Archimedean BICs are based on composite pairwise likelihoods and are not directly commensurate with 5D joint likelihoods. Between Gaussian and Student-$t$ (which share the exact same full 5-dimensional joint likelihood construction and parameter dimensionality), the Student-$t$ copula strictly dominates across every timescale ($\Delta \text{BIC} \approx -182$ at $D_1$, $-145$ at $D_2$, $-118$ at $D_3$, $-36$ at $D_4$, $-68$ at $D_5$, $-134$ at $S_5$), demonstrating the empirical superiority of elliptical fat-tailed dependence over Gaussian co-movement. The winning copula per timescale is selected by minimizing the Bayesian Information Criterion:
 \begin{equation}
 \text{BIC} = k \ln(N) - 2 \ln(\hat{L})
@@ -208,7 +210,7 @@ Rather than attempting synthetic frequency-domain time-series inversion (which i
 \subsection{Timescale Variance Decomposition}
 Table \ref{tab:variance_decomposition} displays how total return variance is distributed across octave frequency bands.
 
-\input{../tables/variance_decomposition.tex}
+\loadtable{variance_decomposition.tex}
 
 High-frequency noise ($D_1$) represents between $53\%$ and $64\%$ of total variance across all asset classes. Intermediate scales ($D_2$ and $D_3$) represent another $25\%$ to $37\%$, while quarterly and macroeconomic cycles ($D_5$ and $S_5$) account for the remaining $5\%$ to $6\%$. Percentages represent the relative share of total scale variance ($\text{Var}(D_j) / \sum_k \text{Var}(k)$), calculated as normalized scale variance shares ($\text{Var}(D_j) / \sum_k \text{Var}(k)$) that sum to $100\%$ by construction.
 
@@ -222,7 +224,7 @@ High-frequency noise ($D_1$) represents between $53\%$ and $64\%$ of total varia
 \subsection{Tail Dependence Across Investment Horizons}
 Table \ref{tab:copula_tournament} and Figure \ref{fig:tail_dep} report the scale-optimal copula tournament leaderboard, tail dependence parameters, and Gaussian benchmarks across horizons.
 
-\input{../tables/copula_tournament.tex}
+\loadtable{copula_tournament.tex}
 
 We define the \textbf{Timescale Asymmetry Ratio (TAR)}:
 \begin{equation}
@@ -292,7 +294,7 @@ Multi-day holding period returns are computed via overlapping rolling windows ($
 \subsection{Backtesting Performance Results}
 Table \ref{tab:backtest_metrics} reports the empirical out-of-sample backtest results across all competing models. Accounting for rolling window reductions, total observations are $N = 875$ at $h = 1$d, $N = 871$ at $h = 5$d, and $N = 856$ at $h = 20$d.
 
-\input{../tables/backtest_metrics.tex}
+\loadtable{backtest_metrics.tex}
 
 \textbf{Key Findings \& Hypothesis Testing:} 
 \begin{enumerate}
@@ -350,7 +352,8 @@ We provide a transparent evaluation of the H-TCM recommendation:
     \item \textbf{Precautionary Buffer vs. Statistical Noise:} The $+2.2\%$ capital buffer at the 5-day horizon stems from an empirical difference of $\hat{\lambda}_L(D_2) - \hat{\lambda}_L(D_1) = 0.201 - 0.189 = 0.012$. In finite samples without asymptotic hypothesis testing, a difference of $0.012$ lies within sampling variation. The overlay functions as an asymmetric precautionary risk buffer rather than a statistically proven divergence.
     \item \textbf{Performance in Calm Regimes:} In the 2023--2026 backtest, standard square-root scaling was already conservative (3 breaches at 5d). Applying the $+2.2\%$ H-TCM surcharge yielded the exact same 3 breaches while locking up additional capital, resulting in a slightly higher (worse) Fissler-Ziegel score ($-2.9599$ vs $-2.9744$) due to the scoring penalty on excess capital lockup.
     \item \textbf{Collapse at Long Horizons:} At 20-day and 40-day horizons, because scale tail dependence falls below the 1-day baseline, the floored multiplier $\max(0, \dots)$ is exactly zero, making the multiplier $1.000$ (identical to standard scaling).
-    \item \textbf{Untested Crisis Performance:} H-TCM is intended as a contingent macroprudential safety rail for systemic liquidity squeezes (such as 2008 or March 2020), where multiscale tail dependence surges simultaneously across horizons. It remains untested out-of-sample in a severe historical crisis.
+    \item \textbf{Untested Crisis Performance \& Scope Limit:} H-TCM is intended as a contingent macroprudential safety rail for systemic liquidity squeezes (such as 2008 or March 2020), where multiscale tail dependence surges simultaneously across horizons. It remains untested out-of-sample in a severe historical crisis. The 40-day horizon is not backtested.
+    \item \textbf{Operational Policy Trigger Rule:} Keep square-root-of-time scaling. Re-estimate horizon tail dependence with bootstrap intervals every quarter. Apply the H-TCM surcharge only when the horizon interval lies entirely above the 1-day interval. On our data this rule does not trigger at any tested horizon. Owner: head of market risk. $\kappa = 0.35$ is a policy choice, not an estimate.
 \end{enumerate}
 
 \section{Conclusion}
@@ -363,6 +366,8 @@ This research provides a direct and empirical resolution to the official competi
     \item \textbf{What does ignoring this do to a portfolio's measured risk?} 
     At short horizons (1-day), ignoring fat tails and tail dependence (Parametric Gaussian) understates measured risk, producing 13 breaches ($1.49\%$ failure rate) compared to 5 breaches for copula-based specifications. However, at multi-day horizons (5-day, 20-day), conventional square-root-of-time scaling does not understate risk in normal trending markets; it was statistically conservative (0 to 3 breaches observed). The H-TCM multiplier provides an actionable, contingent macroprudential overlay to guard against multiscale tail contagion during stressed regimes without imposing unnecessary capital drag in quiet markets.
 \end{enumerate}
+
+\noindent\textbf{Recommendation for Risk Desks:} Keep square-root-of-time scaling. Re-estimate horizon tail dependence with bootstrap intervals every quarter. Apply the H-TCM surcharge only when the horizon interval lies entirely above the 1-day interval. On our data this rule does not trigger at any tested horizon. Owner: head of market risk. $\kappa = 0.35$ is a policy choice, not an estimate. The 40-day horizon is not backtested.
 
 \section*{Appendix: Reproducibility \& AI Disclosure}
 \noindent

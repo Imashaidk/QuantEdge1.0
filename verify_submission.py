@@ -187,18 +187,37 @@ def verify_all() -> bool:
     assert "Out-of-Sample Performance" in readme_text or "Backtest" in readme_text, "README.md missing backtest table"
     assert "Out-of-Sample Backtesting" in report_md_text, "REPORT.md missing backtest table"
 
-    # Numeric consistency check: ensure fresh table lambda values match prose
+    # Check 8: Comprehensive row-level numeric consistency across LaTeX, README, and REPORT.md
     for line in c_tex.splitlines():
         line = line.strip()
         if line.startswith(("D1", "D2", "D3", "D4", "D5", "S5")):
-            parts = [p.strip() for p in line.split("&")]
-            scale = parts[0]
-            emp_lL = parts[5]
-            assert emp_lL in readme_text, f"README.md missing or mismatching emp lambda_L {emp_lL} for scale {scale}"
-            assert emp_lL in report_md_text, f"REPORT.md missing or mismatching emp lambda_L {emp_lL} for scale {scale}"
-            assert emp_lL in report_tex, f"report.tex missing or mismatching emp lambda_L {emp_lL} for scale {scale}"
+            parts = [p.strip().replace(r"\\", "") for p in line.split("&")]
+            scale, emp_lL, ci, gauss, excess, bic = parts[0], parts[5], parts[6], parts[7], parts[8], parts[11].strip()
 
-    print("  [+] Verified dynamic LaTeX inputs, table generation, and numeric documentation alignment [PASSED]")
+            # Match exact copula leaderboard row in README.md
+            r_rows = [l for l in readme_text.splitlines() if f"| **{scale}** |" in l and "Student-t" in l]
+            assert len(r_rows) == 1, f"Expected 1 copula row for {scale} in README.md, found {len(r_rows)}"
+            r_cols = [p.strip() for p in r_rows[0].split("|")[1:-1]]
+            assert r_cols[5] == emp_lL, f"README.md {scale} emp_lL mismatch: {r_cols[5]} != {emp_lL}"
+            assert r_cols[6] == ci, f"README.md {scale} 95% CI mismatch: {r_cols[6]} != {ci}"
+            assert r_cols[7] == gauss, f"README.md {scale} Gauss Bench mismatch: {r_cols[7]} != {gauss}"
+            assert r_cols[8] == excess, f"README.md {scale} Excess mismatch: {r_cols[8]} != {excess}"
+            assert r_cols[11] == bic, f"README.md {scale} BIC mismatch: {r_cols[11]} != {bic}"
+
+            # Match exact copula leaderboard row in REPORT.md
+            rep_rows = [l for l in report_md_text.splitlines() if f"| **{scale}** |" in l and "Student-t" in l]
+            assert len(rep_rows) == 1, f"Expected 1 copula row for {scale} in REPORT.md, found {len(rep_rows)}"
+            rep_cols = [p.strip() for p in rep_rows[0].split("|")[1:-1]]
+            assert rep_cols[5] == emp_lL, f"REPORT.md {scale} emp_lL mismatch: {rep_cols[5]} != {emp_lL}"
+            assert rep_cols[6] == ci, f"REPORT.md {scale} 95% CI mismatch: {rep_cols[6]} != {ci}"
+            assert rep_cols[7] == gauss, f"REPORT.md {scale} Gauss Bench mismatch: {rep_cols[7]} != {gauss}"
+            assert rep_cols[8] == excess, f"REPORT.md {scale} Excess mismatch: {rep_cols[8]} != {excess}"
+            assert rep_cols[11] == bic, f"REPORT.md {scale} BIC mismatch: {rep_cols[11]} != {bic}"
+
+            # Verify presence in report.tex prose
+            assert emp_lL in report_tex, f"report.tex missing emp lambda_L {emp_lL} for {scale}"
+
+    print("  [+] Verified dynamic LaTeX inputs, table generation, and row-level numeric documentation alignment [PASSED]")
 
     print("\n" + "=" * 80)
     print(" [ALL AUDIT INTEGRITY CHECKS PASSED SUCCESSFULLY]")

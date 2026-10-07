@@ -107,6 +107,8 @@ Values for risk desks across calibration factors $\kappa \in [0.20, 0.50]$ (base
 | **h = 20d** | D4 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
 | **h = 40d** | D5 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
 
+> **Institutional Recommendation for Risk Desks:** Keep square-root-of-time scaling. Re-estimate horizon tail dependence with bootstrap intervals every quarter. Apply the H-TCM surcharge only when the horizon interval lies entirely above the 1-day interval. On our data this rule does not trigger at any tested horizon. Owner: head of market risk. Kappa = 0.35 is a policy choice, not an estimate. The 40-day horizon is not backtested.
+>
 > **Candid H-TCM Backtest Evaluation:** During the calm 2023-2026 backtest window, standard square-root scaling was already conservative (3 breaches at 5d vs ~8.7 expected). H-TCM incurred the same 3 breaches while holding extra capital, producing a slightly higher Fissler-Ziegel loss (-2.9599 vs -2.9744). The +2.2% buffer operates as an asymmetric contingent safety buffer for stressed crisis regimes, and remains untested out-of-sample in a severe historical liquidity shock.
 
 ***

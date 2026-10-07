@@ -163,11 +163,14 @@ $$\text{VaR}_h^* = \text{VaR}_1 \times \sqrt{h} \times \left[ 1 + \kappa \cdot \
 | **$h = 20$d** | D4 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
 | **$h = 40$d** | D5 | 1.000 | **1.000** | 1.000 | Baseline Scaling (No Surcharge Required) |
 
+**Institutional Recommendation for Risk Desks:**
+Keep square-root-of-time scaling. Re-estimate horizon tail dependence with bootstrap intervals every quarter. Apply the H-TCM surcharge only when the horizon interval lies entirely above the 1-day interval. On our data this rule does not trigger at any tested horizon. Owner: head of market risk. Kappa = 0.35 is a policy choice, not an estimate. The 40-day horizon is not backtested.
+
 **Candid Evaluation & Empirical Scope:**
 1. **Precautionary Buffer vs Noise:** The +2.2% buffer reflects an empirical difference of $\hat{\lambda}_L(D_2) - \hat{\lambda}_L(D_1) = 0.201 - 0.189 = 0.012$, which operates as a precautionary safety margin rather than a statistically separated divergence.
 2. **Calm Market Performance:** In the 2023-2026 backtest, standard scaling was already conservative (3 breaches at 5d). H-TCM held extra capital without reducing breaches below 3, incurring a slightly higher Fissler-Ziegel loss (-2.9599 vs -2.9744).
 3. **Long Horizon Behavior:** At 20d and 40d, the multiplier floors at 1.000, identical to standard scaling.
-4. **Crisis Positioning:** H-TCM is a contingent stress buffer for systemic crises (such as 2008 or March 2020), and remains untested out-of-sample in a severe historical liquidity shock.
+4. **Crisis Positioning & Scope Limit:** H-TCM is a contingent stress buffer for systemic crises (such as 2008 or March 2020), and remains untested out-of-sample in a severe historical liquidity shock. The 40-day horizon is not backtested.
 
 ***
 
