@@ -37,7 +37,12 @@
 \setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
 \setlength{\floatsep}{8pt plus 2pt minus 2pt}
 
-\graphicspath{{../figures/}}
+\graphicspath{{../figures/}{figures/}{./}}
+
+\makeatletter
+\def\input@path{{../tables/}{tables/}{./}}
+\makeatother
+
 \hypersetup{colorlinks=true, linkcolor=blue!60!black, citecolor=blue!60!black, urlcolor=blue!60!black}
 
 \pagestyle{fancy}
@@ -47,7 +52,7 @@
 \cfoot{\thepage}
 
 % Every number quoted in the text comes from this file, written by run_all.py.
-\input{../tables/key_numbers.tex}
+\input{key_numbers.tex}
 
 \newcommand{\lamL}{\hat\lambda_L}
 
@@ -119,7 +124,7 @@ Most market volatility happens at short timescales: on average, \FineShare{} of 
 \label{fig:mra}
 \end{figure}
 
-\input{../tables/variance_decomposition.tex}
+\input{variance_decomposition.tex}
 
 \subsection{Measuring tail dependence at each horizon}
 
@@ -199,7 +204,7 @@ Table~\ref{tab:tail_by_horizon} and Figure~\ref{fig:tail} present our main findi
 
 \textbf{Portfolio sleeve-level test is not statistically significant.} Comparing the risky sleeve (SPY, QQQ, HYG) directly against the hedge sleeve (TLT, GLD) shows joint crash frequency moving from \SleeveDaily{} at one day to \SleeveLong{} beyond 64 days. At every horizon, this stays slightly higher than the Gaussian baseline (\SleeveGaussDaily{} at one day). However, the overall change of \SleeveChange{} has a 90\% confidence interval of \SleeveChangeLow{} to \SleeveChangeHigh{}, which includes zero across all horizons. Because multi-month views contain relatively few separate historical crises, this portfolio-level change is not statistically significant. Upper tails (joint rallies) show no corresponding increase, confirming that shared movements are concentrated in downturns rather than bull markets.
 
-\input{../tables/tail_by_horizon.tex}
+\input{tail_by_horizon.tex}
 
 \begin{figure}[H]
 \centering
@@ -229,7 +234,7 @@ At the 20-day horizon, the horizon copula achieves the lowest (best) point-estim
 
 During the 2022 rate-hiking cycle, every model struggled. Stocks and bonds dropped simultaneously for most of the year. Across \StressTwentyTwoDays{} forecast days at the 20-day horizon, all copula models experienced severe breach clustering compared to roughly 2 expected breaches: the daily copula suffered \StressTwentyTwoDaily{} breaches, while the horizon copula recorded \StressTwentyTwoHorizon{} (saving just \StressTwentyTwoDiff{} bad days). The $\sqrt{h}$ rule recorded \StressTwentyTwoSqrt{} breaches, while requiring substantially higher average capital over the full backtest. During the initial COVID-19 crash, all three copula models recorded \StressCovidDaily{} breaches, as the shock hit too fast for any 20-day model to adjust in advance. Because multi-day forecasts overlap, these crisis counts serve as practical diagnostics rather than formal statistical tests.
 
-\input{../tables/backtest_metrics.tex}
+\input{backtest_metrics.tex}
 
 \begin{figure}[H]
 \centering
