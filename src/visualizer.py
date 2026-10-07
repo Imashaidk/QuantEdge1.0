@@ -235,6 +235,142 @@ def export_tail_table(
     print(f"[Visualizer] Exported LaTeX Table -> {path}")
 
 
+MODEL_COLORS = {
+    "daily_copula": SERIES_COLORS[1],
+    "horizon_copula": SERIES_COLORS[0],
+    "daily_sqrt": SERIES_COLORS[2],
+    "historical": SERIES_COLORS[3],
+    "gaussian_sqrt": "#7a7a75",
+}
+
+
+def plot_fig3_rolling_var(
+    forecasts: pd.DataFrame,
+    horizon: int = 20,
+    out_path: Path = FIGURES_DIR / "fig3_backtest_var_exceedances.png",
+    dpi: int = 300,
+) -> None:
+    """Figure 3: realised h-day loss against the daily and horizon copula VaR."""
+    from src.horizon_var import MODEL_LABELS
+
+    f = forecasts[forecasts["h"] == horizon]
+    fig, ax = plt.subplots(figsize=(11, 4))
+    fig.patch.set_facecolor("white")
+
+    loss = f[f["model"] == "horizon_copula"].set_index("date")["loss"]
+    ax.plot(loss.index, loss * 100, color="#9a998f", linewidth=0.7, label=f"Realised {horizon}-day loss")
+    for name in ["daily_copula", "horizon_copula"]:
+        m = f[f["model"] == name].set_index("date")
+        ax.plot(m.index, m["VaR"] * 100, color=MODEL_COLORS[name], linewidth=1.4, label=f"VaR 99%, {MODEL_LABELS[name]}")
+        hit = m[m["loss"] > m["VaR"]]
+        ax.scatter(hit.index, hit["loss"] * 100, s=14, color=MODEL_COLORS[name], zorder=5,
+                   marker="o" if name == "horizon_copula" else "x", linewidths=1.2)
+
+    ax.set_ylabel("Portfolio loss, %", fontsize=9)
+    ax.xaxis.set_major_locator(mdates.YearLocator(2))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y"))
+    ax.grid(True, axis="y")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.tick_params(labelsize=8)
+    ax.legend(loc="upper left", fontsize=7.5, frameon=False)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
+    plt.close()
+    print(f"[Visualizer] Exported Figure 3 -> {out_path}")
+
+
+def plot_fig4_capital_gap(
+    gap: pd.DataFrame,
+    out_path: Path = FIGURES_DIR / "fig4_capital_gap_by_horizon.png",
+    dpi: int = 300,
+) -> None:
+    """Figure 4: how much VaR changes when the dependence matches the horizon.
+
+    Bars are the average change of the horizon copula VaR against the daily copula
+    VaR over all rolling forecasts; whiskers are the 10th and 90th percentiles.
+    """
+    g = gap[(gap["model"] == "horizon_copula") & (gap["horizon"] > 1)].sort_values("horizon")
+    x = np.arange(len(g))
+    mean = g["var_ratio_mean"].to_numpy() * 100
+    lo = mean - g["var_ratio_p10"].to_numpy() * 100
+    hi = g["var_ratio_p90"].to_numpy() * 100 - mean
+
+    fig, ax = plt.subplots(figsize=(6, 3.4))
+    fig.patch.set_facecolor("white")
+    ax.bar(x, mean, width=0.5, color=SERIES_COLORS[0], yerr=[lo, hi], capsize=4,
+           error_kw={"elinewidth": 1, "ecolor": "#2d2d2a"})
+    for xi, m in zip(x, mean):
+        ax.text(xi + 0.28, m, f"{m:+.1f}%", fontsize=8, va="center", color="#2d2d2a")
+    ax.axhline(0, color="#2d2d2a", linewidth=0.8)
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"{h} days" for h in g["horizon"]], fontsize=8.5)
+    ax.set_ylabel("VaR change vs daily copula, %", fontsize=8.5)
+    ax.grid(True, axis="y")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.tick_params(labelsize=8)
+    plt.tight_layout()
+    plt.savefig(out_path, dpi=dpi, bbox_inches="tight")
+    plt.close()
+    print(f"[Visualizer] Exported Figure 4 -> {out_path}")
+
+
+def export_rolling_backtest_table(
+    evaluation: pd.DataFrame,
+    dm: pd.DataFrame,
+    out_dir: Path = TABLES_DIR,
+) -> None:
+    """LaTeX table of the rolling backtest."""
+    from src.horizon_var import MODEL_LABELS
+
+    lines = [
+        "\\begin{table}[htbp]",
+        "\\centering",
+        "\\small",
+        "\\caption{Rolling out-of-sample backtest of 99\\% VaR and ES. Coverage tests use non-overlapping windows. "
+        "FZ is the Fissler-Ziegel score (lower is better); $\\Delta$FZ is the difference to the daily copula with its Diebold-Mariano $p$-value.}",
+        "\\label{tab:backtest}",
+        "\\begin{tabular}{llccccccc}",
+        "\\toprule",
+        "$h$ & Model & Breaches / exp. & Kupiec $p$ & Christ. $p$ & FZ & $\\Delta$FZ ($p$) & Avg VaR & Basel \\\\",
+        "\\midrule",
+    ]
+    for h, eh in evaluation.groupby("horizon"):
+        for _, r in eh.iterrows():
+            d = dm[(dm["horizon"] == h) & (dm["model"] == r["model"])]
+            if r["model"] == "daily_copula" or d.empty:
+                dfz = "--"
+            elif h == 1 and r["model"] in ("daily_sqrt", "horizon_copula"):
+                dfz = "same"
+            else:
+                dfz = f"{d['mean_fz_diff'].iloc[0]:+.3f} ({d['p_value'].iloc[0]:.2f})"
+            zone = r.get("basel_zone", "")
+            zone = zone.capitalize() if isinstance(zone, str) and h == 1 else "--"
+            lines.append(
+                f"{h}d & {MODEL_LABELS[r['model']]} & {r['breaches']} / {r['expected']:.1f} & {r['kupiec_p']:.2f} & "
+                f"{r['christoffersen_p']:.2f} & {r['fz']:.3f} & {dfz} & {r['avg_var'] * 100:.2f}\\% & {zone} \\\\"
+            )
+        lines.append("\\midrule" if h != evaluation["horizon"].max() else "\\bottomrule")
+    lines += ["\\end{tabular}", "\\end{table}", ""]
+    path = out_dir / "backtest_metrics.tex"
+    path.write_text("\n".join(lines).replace("sqrt(h)", "$\\sqrt{h}$"), encoding="utf-8")
+    print(f"[Visualizer] Exported LaTeX Table -> {path}")
+
+
+def export_variance_table(variance_decomp_df: pd.DataFrame, out_dir: Path = TABLES_DIR) -> None:
+    """LaTeX table of the share of variance in each wavelet scale."""
+    var_tex = variance_decomp_df.round(1).to_latex(
+        caption="Share of each asset's return variance in each MODWT scale (\\%).",
+        label="tab:variance_decomposition",
+        position="htbp",
+        float_format="%.1f",
+    )
+    path = out_dir / "variance_decomposition.tex"
+    path.write_text(var_tex, encoding="utf-8")
+    print(f"[Visualizer] Exported LaTeX Table -> {path}")
+
+
 def plot_fig3_backtest_exceedances(
     df_test: pd.DataFrame,
     weights: np.ndarray,

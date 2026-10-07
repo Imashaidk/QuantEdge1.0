@@ -1,17 +1,16 @@
-"""QuantEdge-MTR Master Pipeline Orchestration Script.
+"""Runs the whole analysis and regenerates every number, table and figure in the report.
 
-SAIFA QUANT EDGE 1.0: MASTER RESEARCH & RISK PIPELINE
-Official Challenge Question:
-"Does tail dependence change with the investment horizon, and what does ignoring
-this do to a portfolio's measured risk?"
+Question: does tail dependence change with the investment horizon, and what does
+ignoring this do to a portfolio's measured risk?
 
-Executes the complete end-to-end institutional workflow in < 3 minutes:
-  Step 1: Data Ingestion & Deterministic Caching
-  Step 2: MODWT Wavelet Multiresolution Analysis (MRA)
-  Step 3: Rank-based copula data per wavelet scale & copula tournament
-  Step 4: Out-of-Sample Quantitative Risk Backtesting & Regulatory Evaluation
-  Step 5: Publication Figures (300 DPI) & LaTeX Table Generation
-  Step 6: Executive Recommendation & H-TCM Capital Policy Report
+Steps:
+  1. Load daily prices and compute log returns
+  2. MODWT multiresolution analysis and variance by scale
+  3. Tail co-exceedance by horizon view, with block bootstrap intervals
+  4. Rolling out-of-sample backtest of the VaR models
+  5. Measured risk by model on the latest window
+  6. Figures and LaTeX tables
+  7. Summary
 
 Usage:
   python run_all.py
@@ -23,236 +22,149 @@ import sys
 import time
 from pathlib import Path
 
-# Ensure project root is in sys.path
 ROOT_PATH = Path(__file__).resolve().parent
 if str(ROOT_PATH) not in sys.path:
     sys.path.insert(0, str(ROOT_PATH))
 
-import numpy as np
 import pandas as pd
 
-from src.backtest import run_out_of_sample_backtest
 from src.config import (
-    DEFAULT_PORTFOLIO_WEIGHTS,
     ALPHA_VAR_99,
+    BACKTEST_HORIZONS,
+    DEFAULT_PORTFOLIO_WEIGHTS,
     FIGURES_DIR,
-    ROLLING_WINDOW,
+    REFIT_EVERY,
     RESULTS_DIR,
-    HTCM_KAPPA,
-    SCALE_HORIZONS,
+    ROLLING_WINDOW,
     TABLES_DIR,
     TICKERS,
-    TRAIN_END,
-    TRAIN_START,
-    TEST_END,
-    TEST_START,
     WAVELET_FAMILY,
     WAVELET_LEVEL,
 )
-from src.copulas import run_scale_copula_tournament
-from src.tail_dependence import run_tail_dependence_analysis
-from src.horizon_var import measured_risk_table
-from src.data_loader import load_and_split_data, load_returns
-from src.margins import pseudo_observations
-from src.risk_engine import compute_htcm_multiplier
-from src.visualizer import generate_all_figures_and_tables
-from src.wavelets import (
-    compute_scale_variance_decomposition,
-    decompose_multiscale,
-    verify_additivity,
+from src.data_loader import load_returns
+from src.horizon_var import MODEL_LABELS, measured_risk_table
+from src.rolling_backtest import (
+    capital_gap,
+    compare_to_daily_copula,
+    evaluate_forecasts,
+    run_rolling_forecasts,
+    stress_breaches,
 )
+from src.tail_dependence import run_tail_dependence_analysis
+from src.visualizer import (
+    export_rolling_backtest_table,
+    export_tail_table,
+    export_variance_table,
+    plot_fig1_wavelet_mra,
+    plot_fig2_tail_by_horizon,
+    plot_fig3_rolling_var,
+    plot_fig4_capital_gap,
+)
+from src.wavelets import compute_scale_variance_decomposition, decompose_multiscale, verify_additivity
+
+# Horizons for the capital comparison. 60 days is too few non-overlapping windows
+# for coverage tests, so it only appears in the capital comparison.
+CAPITAL_HORIZONS = sorted(set(BACKTEST_HORIZONS) | {60})
+
+STRESS_PERIODS = {
+    "2008 crisis": ("2008-09-01", "2009-03-31"),
+    "COVID 2020": ("2020-02-15", "2020-04-30"),
+    "2022 rates shock": ("2022-01-01", "2022-10-31"),
+}
+
+
+def step(title: str) -> float:
+    print(f"\n{title}")
+    return time.time()
 
 
 def main() -> None:
-    t_start_total = time.time()
+    t_total = time.time()
+    pd.set_option("display.width", 160)
 
-    print("=" * 85)
-    print(" [SAIFA QUANT EDGE 1.0] MASTER RESEARCH & RISK PIPELINE EXECUTION")
-    print(" Framework: QuantEdge-MTR (Multiscale Tail Risk Framework)")
-    print("=" * 85)
+    t0 = step("[1/7] Loading data")
+    returns = load_returns()
+    print(f"  Assets: {list(returns.columns)}")
+    print(f"  {returns.index[0].date()} to {returns.index[-1].date()}, {len(returns)} trading days")
+    print(f"  done in {time.time() - t0:.1f}s")
 
-    # Step 1: Data ingestion and caching
-    print("\n[Step 1/6] Ingesting multi-asset data...")
-    t0 = time.time()
-    df_train, df_test = load_and_split_data()
-    t1 = time.time()
+    t0 = step(f"[2/7] MODWT multiresolution analysis ({WAVELET_FAMILY}, level {WAVELET_LEVEL})")
+    decomposed = decompose_multiscale(returns, wavelet=WAVELET_FAMILY, level=WAVELET_LEVEL)
+    assert verify_additivity(returns, decomposed, tol=1e-10), "MRA does not add back up to the returns"
+    var_share = compute_scale_variance_decomposition(decomposed, normalize=True)
+    print("  Share of variance by scale (%):")
+    print(var_share.round(1).to_string())
+    print(f"  done in {time.time() - t0:.1f}s")
 
-    print(f"  Multi-asset universe: {list(df_train.columns)}")
-    print(f"  In-sample  (train): {TRAIN_START} to {TRAIN_END} ({len(df_train)} trading days)")
-    print(f"  Out-of-sample (test): {TEST_START} to {TEST_END} ({len(df_test)} trading days)")
-    print(f"  Step 1 completed in {t1 - t0:.2f}s")
-
-    # Step 2: MODWT wavelet decomposition
-    print(f"\n[Step 2/6] Executing MODWT MRA (wavelet: {WAVELET_FAMILY}, level: {WAVELET_LEVEL})...")
-    t0 = time.time()
-    decomposed = decompose_multiscale(df_train, wavelet=WAVELET_FAMILY, level=WAVELET_LEVEL)
-
-    # Verify additivity
-    is_additive = verify_additivity(df_train, decomposed, tol=1e-10)
-    var_decomp_df = compute_scale_variance_decomposition(decomposed, normalize=True)
-    t1 = time.time()
-
-    print(f"  Extracted scales: {list(decomposed.keys())}")
-    print(f"  Additive invariant check: {'PASSED' if is_additive else 'FAILED'}")
-    print("  Timescale variance contribution (%):")
-    print(var_decomp_df.round(1).to_string())
-    print(f"  Step 2 completed in {t1 - t0:.2f}s")
-
-    # Step 3: GARCH-EVT margins and copula tournament
-    print("\n[Step 3/6] Ranking each wavelet component and running the copula tournament...")
-    t0 = time.time()
-    copula_results: dict = {}
-    tournament_summary = []
-
-    for scale in ["D1", "D2", "D3", "D4", "D5", "S5"]:
-        u_s = pseudo_observations(decomposed[scale])
-        t_res = run_scale_copula_tournament(u_s, scale_name=scale)
-        copula_results[scale] = t_res
-
-        best_c = t_res["best_copula"]
-        lL = t_res["lambda_L"]
-        lU = t_res["lambda_U"]
-        tar = t_res["tar"]
-        horizon_name = SCALE_HORIZONS.get(scale, scale).split("(")[0].strip()
-
-        tournament_summary.append({
-            "Scale": scale,
-            "Horizon": horizon_name,
-            "Best Copula": best_c.upper(),
-            "Lower Tail (lambda_L)": f"{lL:.3f}",
-            "Upper Tail (lambda_U)": f"{lU:.3f}",
-            "TAR (lambda_L - lambda_U)": f"{tar:+.3f}",
-        })
-
-    t1 = time.time()
-    print("  Scale-optimal copula leaderboard:")
-    print(pd.DataFrame(tournament_summary).to_string(index=False))
-
-    lambda_1d = float(copula_results["D1"]["lambda_L_emp"])
-    lambda_macro = float(copula_results["D5"]["lambda_L_emp"])
-    print(f"\n  Average pairwise lower tail dependence: D1={lambda_1d:.3f}, D5={lambda_macro:.3f}.")
-    print(f"  Step 3 completed in {t1 - t0:.2f}s")
-
-    # Step 3b: tail dependence across horizon views on the full history,
-    # with block bootstrap intervals
-    print("\n[Step 3b] Tail co-exceedance by horizon view (full history)...")
-    t0 = time.time()
-    tail_results = run_tail_dependence_analysis(load_returns(), weights=DEFAULT_PORTFOLIO_WEIGHTS)
+    t0 = step("[3/7] Tail co-exceedance by horizon view")
+    tail = run_tail_dependence_analysis(returns, weights=DEFAULT_PORTFOLIO_WEIGHTS)
     for name in ["sleeves", "pairs", "copulas"]:
-        tail_results[name].to_csv(RESULTS_DIR / f"tail_{name}.csv", index=False, float_format="%.6f")
-    print(tail_results["sleeves"][["horizon", "lambda_L", "ci_low", "ci_high", "change_vs_daily", "lambda_U", "gauss"]].round(3).to_string(index=False))
-    print(f"  Step 3b completed in {time.time() - t0:.2f}s")
+        tail[name].to_csv(RESULTS_DIR / f"tail_{name}.csv", index=False, float_format="%.6f")
+    cols = ["horizon", "lambda_L", "ci_low", "ci_high", "change_vs_daily", "change_ci_low", "change_ci_high", "lambda_U", "gauss"]
+    print("  Risky sleeve vs hedge sleeve:")
+    print(tail["sleeves"][cols].round(3).to_string(index=False))
+    print("  Lower tail by pair:")
+    print(tail["pairs"].pivot(index="pair", columns="view", values="lambda_L").round(2).to_string())
+    print(f"  done in {time.time() - t0:.1f}s")
 
-    # Step 4: Out-of-sample backtesting
-    print("\n[Step 4/6] Running out-of-sample backtesting...")
-    t0 = time.time()
-    backtest_df = run_out_of_sample_backtest(
-        df_test=df_test,
-        weights=DEFAULT_PORTFOLIO_WEIGHTS,
-        copula_results=copula_results,
-        h_horizons=[1, 5, 20],
-        alpha_var=0.99,
-        df_train=df_train,
-    )
-    t1 = time.time()
+    t0 = step(f"[4/7] Rolling backtest (window {ROLLING_WINDOW} days, refit every {REFIT_EVERY} days)")
+    forecasts = run_rolling_forecasts(returns, horizons=CAPITAL_HORIZONS, alpha=ALPHA_VAR_99)
+    forecasts.to_csv(RESULTS_DIR / "rolling_forecasts.csv", index=False, float_format="%.6f")
+    tested = forecasts[forecasts["h"].isin(BACKTEST_HORIZONS)]
+    evaluation = evaluate_forecasts(tested, alpha=ALPHA_VAR_99)
+    dm = compare_to_daily_copula(tested, alpha=ALPHA_VAR_99)
+    gap = capital_gap(forecasts)
+    stress = stress_breaches(tested, STRESS_PERIODS)
+    for name, df in [("backtest_evaluation", evaluation), ("backtest_dm", dm), ("capital_gap", gap), ("stress_breaches", stress)]:
+        df.to_csv(RESULTS_DIR / f"{name}.csv", index=False, float_format="%.6f")
+    print(f"  Forecast dates: {forecasts['date'].min().date()} to {forecasts['date'].max().date()}")
+    print(evaluation.round(4).to_string(index=False))
+    print("  FZ score against the daily copula (negative = better):")
+    print(dm.round(4).to_string(index=False))
+    print("  VaR change against the daily copula:")
+    print(gap.round(4).to_string(index=False))
+    if not stress.empty:
+        print("  Breaches in stress periods:")
+        print(stress.pivot_table(index=["period", "horizon"], columns="model", values="breaches").to_string())
+    print(f"  done in {time.time() - t0:.1f}s")
 
-    print("  Out-of-sample performance table (2023-2026):")
-    display_cols = ["Horizon", "Model", "Breaches", "Breach_Rate", "Kupiec_p", "Basel_Zone", "FZ_Loss"]
-    print(backtest_df[display_cols].to_string(index=False))
-    print(f"  Step 4 completed in {t1 - t0:.2f}s")
-
-    # Step 4b: what ignoring the horizon does to measured risk, on the latest window
-    print("\n[Step 4b] Measured risk by model on the latest estimation window...")
-    t0 = time.time()
-    returns_all = load_returns()
-    latest_window = returns_all.iloc[-ROLLING_WINDOW:]
-    risk_latest = measured_risk_table(latest_window, [1, 5, 20, 60], ALPHA_VAR_99, weights=DEFAULT_PORTFOLIO_WEIGHTS)
+    t0 = step("[5/7] Measured risk on the latest window")
+    latest = returns.iloc[-ROLLING_WINDOW:]
+    risk_latest = measured_risk_table(latest, CAPITAL_HORIZONS, ALPHA_VAR_99, weights=DEFAULT_PORTFOLIO_WEIGHTS)
     risk_latest.to_csv(RESULTS_DIR / "measured_risk_latest.csv", index=False, float_format="%.6f")
-    print(f"  Window: {latest_window.index[0].date()} to {latest_window.index[-1].date()}")
+    print(f"  Window {latest.index[0].date()} to {latest.index[-1].date()}")
     print(risk_latest.round(4).to_string(index=False))
-    print(f"  Step 4b completed in {time.time() - t0:.2f}s")
+    print(f"  done in {time.time() - t0:.1f}s")
 
-    # Step 5: Visualizer and table export
-    print("\n[Step 5/6] Generating figures and LaTeX tables...")
-    t0 = time.time()
-    generate_all_figures_and_tables(
-        wavelet_dict=decomposed,
-        copula_tournament_results=copula_results,
-        backtest_results_df=backtest_df,
-        df_raw_train=df_train,
-        df_raw_test=df_test,
-        weights=DEFAULT_PORTFOLIO_WEIGHTS,
-        variance_decomp_df=var_decomp_df,
-        out_dir_figures=FIGURES_DIR,
-        out_dir_tables=TABLES_DIR,
-        tail_results=tail_results,
-    )
-    t1 = time.time()
+    t0 = step("[6/7] Figures and tables")
+    plot_fig1_wavelet_mra(decomposed, returns, primary_asset="SPY", secondary_asset="TLT",
+                          out_path=FIGURES_DIR / "fig1_wavelet_mra_decomposition.png")
+    plot_fig2_tail_by_horizon(tail["sleeves"], tail["pairs"], out_path=FIGURES_DIR / "fig2_tail_dependence_vs_horizon.png")
+    plot_fig3_rolling_var(tested, horizon=20, out_path=FIGURES_DIR / "fig3_backtest_var_exceedances.png")
+    plot_fig4_capital_gap(gap, out_path=FIGURES_DIR / "fig4_capital_gap_by_horizon.png")
+    export_variance_table(var_share, out_dir=TABLES_DIR)
+    export_tail_table(tail["sleeves"], tail["pairs"], out_dir=TABLES_DIR)
+    export_rolling_backtest_table(evaluation, dm, out_dir=TABLES_DIR)
+    print(f"  done in {time.time() - t0:.1f}s")
 
-    print(f"  Figures exported to {FIGURES_DIR}")
-    print(f"  LaTeX tables exported to {TABLES_DIR}")
-    print(f"  Step 5 completed in {t1 - t0:.2f}s")
+    step("[7/7] Summary")
+    sl = tail["sleeves"].set_index("view")
+    last = sl.index.max()
+    print(f"  Risky vs hedge lower-tail co-exceedance: daily {sl.loc[0, 'lambda_L']:.2f}, "
+          f"{sl.loc[last, 'horizon']} {sl.loc[last, 'lambda_L']:.2f} "
+          f"(change {sl.loc[last, 'change_vs_daily']:+.2f}, 90% interval "
+          f"{sl.loc[last, 'change_ci_low']:+.2f} to {sl.loc[last, 'change_ci_high']:+.2f})")
+    hc = gap[gap["model"] == "horizon_copula"].set_index("horizon")
+    for h in CAPITAL_HORIZONS:
+        if h == 1:
+            continue
+        print(f"  {h:>2}d VaR, horizon copula vs daily copula: {hc.loc[h, 'var_ratio_mean']:+.1%} on average "
+              f"(10th to 90th percentile {hc.loc[h, 'var_ratio_p10']:+.1%} to {hc.loc[h, 'var_ratio_p90']:+.1%})")
+    best = evaluation.loc[evaluation.groupby("horizon")["fz"].idxmin(), ["horizon", "model"]]
+    for _, r in best.iterrows():
+        print(f"  Best FZ score at {r['horizon']}d: {MODEL_LABELS[r['model']]}")
 
-    # Step 6: Summary and H-TCM report
-    t_end_total = time.time()
-    total_time = t_end_total - t_start_total
-
-    lL_1 = float(copula_results["D1"]["lambda_L_emp"])
-    lL_2 = float(copula_results["D2"]["lambda_L_emp"])
-    lL_4 = float(copula_results["D4"]["lambda_L_emp"])
-    lL_5 = float(copula_results["D5"]["lambda_L_emp"])
-    tar_5 = float(copula_results["D5"]["tar_emp"])
-
-    m_1 = compute_htcm_multiplier(lambda_L_h=lL_1, lambda_L_1=lL_1, kappa=HTCM_KAPPA)
-    m_5 = compute_htcm_multiplier(lambda_L_h=lL_2, lambda_L_1=lL_1, kappa=HTCM_KAPPA)
-    m_20 = compute_htcm_multiplier(lambda_L_h=lL_4, lambda_L_1=lL_1, kappa=HTCM_KAPPA)
-    m_40 = compute_htcm_multiplier(lambda_L_h=lL_5, lambda_L_1=lL_1, kappa=HTCM_KAPPA)
-
-    emp_tails = [float(copula_results[s]["lambda_L_emp"]) for s in ["D1", "D2", "D3", "D4", "D5", "S5"] if s in copula_results]
-    min_tail = min(emp_tails)
-    max_tail = max(emp_tails)
-
-    sqrt_rows = backtest_df[backtest_df["Model"] == "Basel_Sqrt_Time"].set_index("Horizon")
-    b_5d = int(sqrt_rows.loc["5d", "Breaches"])
-    b_20d = int(sqrt_rows.loc["20d", "Breaches"])
-
-    gauss_1d = backtest_df[(backtest_df["Horizon"] == "1d") & (backtest_df["Model"] == "Parametric_Gaussian")].iloc[0]
-
-    print("\n[Step 6/6] Summary & H-TCM Policy Analysis")
-
-    print(f"""
-  THE CORE CHALLENGE ANSWER:
-  "Does tail dependence change with the investment horizon, and what does ignoring
-   this do to a portfolio's measured risk?"
-
-  1. EMPIRICAL FINDING:
-     Average pairwise lower-tail dependence changes across timescales:
-     - Empirical lambda_L ranges from {min_tail:.3f} to {max_tail:.3f}, peaking at weekly scale D2 ({lL_2:.3f}).
-     - Student-t copula is optimal across all scales, indicating elliptical joint fat tails.
-     - Benchmarking against Gaussian copulas reveals excess tail dependence peaks at D2 ({copula_results['D2'].get('excess_lambda_L', 0.0):+.3f})
-       and macro scale S5 ({copula_results['S5'].get('excess_lambda_L', 0.0):+.3f}), whereas D1 co-exceedance ({copula_results['D1'].get('excess_lambda_L', 0.0):+.3f}) is mostly linear correlation.
-
-  2. BACKTEST INSIGHT:
-     In out-of-sample backtesting (2023-2026), conventional square-root scaling was
-     statistically conservative at 5-day and 20-day horizons ({b_5d} breaches at 5d, {b_20d} at 20d),
-     whereas 1-day Parametric Gaussian produced {gauss_1d["Breaches"]} breaches ({gauss_1d["Breach_Rate"]} breach rate).
-
-  3. ACTIONABLE INSTITUTIONAL RISK RECOMMENDATION:
-     Square-root-of-time scaling remains adequate in benign market conditions.
-     The Horizon-Conditioned Tail Capital Multiplier (H-TCM) provides a contingent policy overlay
-     designed to add a precautionary capital buffer during regimes when horizon tail dependence spikes:
-
-         VaR_h* = VaR_1 * sqrt(h) * [ 1 + kappa * max(0, (lambda_L(h) - lambda_L(1)) / (lambda_L(1) + epsilon)) ]
-
-     Contingent Overlay Status (kappa = {HTCM_KAPPA:.2f}, baseline lambda_L(1) = {lL_1:.3f}):
-       - Horizon h = 1d  (D1): Multiplier = {m_1:.3f} (Baseline allocation, 0% capital surcharge)
-       - Horizon h = 5d  (D2): Multiplier = {m_5:.3f} (Precautionary buffer = +{(m_5 - 1.0) * 100.0:.1f}%)
-       - Horizon h = 20d (D4): Multiplier = {m_20:.3f} (Surcharge = +{(m_20 - 1.0) * 100.0:.1f}%)
-       - Horizon h = 40d (D5): Multiplier = {m_40:.3f} (Surcharge = +{(m_40 - 1.0) * 100.0:.1f}%)
-    """)
-    print("=" * 85)
-    print(f" [OK] PIPELINE REPRODUCTION COMPLETE IN {total_time:.1f} SECONDS (< 3 Minutes Hard Limit)!")
-    print("=" * 85)
+    print(f"\nFinished in {time.time() - t_total:.0f} seconds.")
 
 
 if __name__ == "__main__":
