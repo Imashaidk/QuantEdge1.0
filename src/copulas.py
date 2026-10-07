@@ -194,15 +194,14 @@ class StudentTCopula(BaseCopula):
         np.fill_diagonal(self.R, 1.0)
         self.inv_R = np.linalg.inv(self.R)
 
-        # Compute average pairwise theoretical tail dependence
+        # Tail dependence is defined for each pair, so compute it pair by pair and
+        # then average. Plugging the average correlation into the formula instead
+        # understates it badly when some pairs are negatively correlated.
         off_diags = self.R[np.triu_indices(self.n_dim, k=1)]
         mean_rho = float(np.mean(off_diags))
-
-        if mean_rho > -0.999:
-            arg = -np.sqrt((self.nu + 1.0) * (1.0 - mean_rho) / (1.0 + mean_rho))
-            tail_dep = float(2.0 * t.cdf(arg, df=self.nu + 1.0))
-        else:
-            tail_dep = 0.0
+        rho = np.clip(off_diags, -0.999, 0.999)
+        arg = -np.sqrt((self.nu + 1.0) * (1.0 - rho) / (1.0 + rho))
+        tail_dep = float(np.mean(2.0 * t.cdf(arg, df=self.nu + 1.0)))
 
         self.lambda_L = tail_dep
         self.lambda_U = tail_dep
@@ -581,10 +580,17 @@ def run_scale_copula_tournament(
     copula_candidates: Dict[str, BaseCopula] = {
         "gaussian": GaussianCopula(),
         "student_t": StudentTCopula(),
-        "clayton": ClaytonCopula(),
-        "gumbel": GumbelCopula(),
-        "frank": FrankCopula(),
     }
+    # The one-parameter Archimedean families are fitted with a pairwise composite
+    # likelihood, which is not on the same scale as the full likelihood of the
+    # Gaussian and t copulas when there are more than two assets. Their BIC would
+    # not be comparable, so they only enter the contest for a single pair.
+    if U.shape[1] == 2:
+        copula_candidates.update({
+            "clayton": ClaytonCopula(),
+            "gumbel": GumbelCopula(),
+            "frank": FrankCopula(),
+        })
 
     bic_scores: Dict[str, float] = {}
     aic_scores: Dict[str, float] = {}

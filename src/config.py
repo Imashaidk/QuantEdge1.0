@@ -16,9 +16,10 @@ DATA_DIR: Path = ROOT_DIR / "data"
 FIGURES_DIR: Path = ROOT_DIR / "figures"
 TABLES_DIR: Path = ROOT_DIR / "tables"
 REPORT_DIR: Path = ROOT_DIR / "report"
+RESULTS_DIR: Path = ROOT_DIR / "results"
 
 # Ensure output directories exist
-for directory in [DATA_DIR, FIGURES_DIR, TABLES_DIR, REPORT_DIR]:
+for directory in [DATA_DIR, FIGURES_DIR, TABLES_DIR, REPORT_DIR, RESULTS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
 # Deterministic execution
@@ -72,6 +73,10 @@ COPULA_FAMILIES: List[str] = [
     "frank",
 ]
 COPULA_SIMULATION_SAMPLES: int = 10_000
+
+# Tail co-exceedance is measured in the worst 5% of days for each asset.
+TAIL_QUANTILE: float = 0.05
+TAIL_BOOTSTRAP_REPS: int = 500
 
 # Risk and regulatory backtest parameters
 ALPHA_VAR_99: float = 0.99

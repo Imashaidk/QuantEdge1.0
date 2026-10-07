@@ -151,6 +151,12 @@ def verify_stationarity(df_returns: pd.DataFrame) -> Dict[str, Dict[str, float]]
     return adf_results
 
 
+def load_returns(cache_dir: Path = DATA_DIR, tickers: List[str] = TICKERS) -> pd.DataFrame:
+    """Full daily log return history used for the descriptive analysis."""
+    df_prices = fetch_or_load_prices(tickers=tickers, cache_path=cache_dir / "raw_prices.csv")
+    return compute_log_returns(df_prices, cache_path=cache_dir / "log_returns.csv")
+
+
 def load_and_split_data(
     tickers: List[str] = TICKERS,
     train_start: str = TRAIN_START,
